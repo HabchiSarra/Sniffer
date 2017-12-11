@@ -1,0 +1,35 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:2.0.0"
+    }
+}
+
+
+task harissaGitHubMavenPackage(type: Exec) {
+    workingDir './HarissaGitHub'
+
+    executable "mvn"
+    args 'package'
+}
+
+task harissaGitHubClean(type: Exec) {
+    workingDir './HarissaGitHub'
+
+    executable "mvn"
+    args 'clean'
+}
+
+task packages {
+    subprojects.each { dependsOn("${it.name}:shadowJar") }
+    packages.dependsOn(harissaGitHubMavenPackage)
+}
+
+task clean {
+    dependsOn(harissaGitHubClean)
+}
