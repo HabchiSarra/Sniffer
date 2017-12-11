@@ -1,0 +1,9 @@
+[submodule "Harissa"]
+	path = Harissa
+	url = git@github.com:HSarah/Harissa.git
+[submodule "HarissaMetrics"]
+	path = HarissaMetrics
+	url = git@github.com:HSarah/HarissaMetrics.git
+[submodule "HarissaGitHub"]
+	path = HarissaGitHub
+	url = git@github.com:HSarah/HarissaGitHub.git
