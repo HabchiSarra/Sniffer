@@ -14,7 +14,7 @@ Example usage: `./metricLoop.sh ../allApps.csv`
 # devNote.sh
 
 This is the main script of the Tandoori approach, working on only one project at a time 
-(see [metricLoop.sh](#metricLoopsh) to load multiple projects).
+(see [metricLoop.sh](#metricloopsh) to load multiple projects).
 
 It will :
 
