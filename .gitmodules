@@ -7,3 +7,6 @@
 [submodule "HarissaGitHub"]
 	path = HarissaGitHub
 	url = git@github.com:HSarah/HarissaGitHub.git
+[submodule "PaprikaCommitManager"]
+	path = PaprikaCommitManager
+	url = git@git.evilantrules.xyz:antoine/PaprikaCommitManager.git
