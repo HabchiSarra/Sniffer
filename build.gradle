@@ -33,3 +33,15 @@ task packages {
 task clean {
     dependsOn(harissaGitHubClean)
 }
+
+subprojects {
+    apply plugin: 'java'
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    version '1.0-SNAPSHOT'
+    group = 'fr.inria.tandoori'
+
+    repositories {
+        mavenCentral()
+    }
+}

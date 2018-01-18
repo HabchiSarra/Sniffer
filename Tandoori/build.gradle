@@ -1,0 +1,17 @@
+
+
+dependencies {
+    compile project(":Harissa")
+    compile project(":HarissaMetrics")
+    // TODO: Synchronize HarissaGithub
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+apply plugin: 'application'
+mainClassName = "org.tandoori.Main"
+
+apply plugin: "com.github.johnrengelman.shadow"
+shadowJar {
+    mergeServiceFiles()
+}
