@@ -1,4 +1,4 @@
 // HarissaGithub is a maven project, we will build it by hand.
-include ':Harissa', ":HarissaMetrics"
+include ':Harissa', ":HarissaMetrics", ':HarissaGithub'
 include ':Tandoori'
 
