@@ -1,6 +1,6 @@
-package fr.inria.tandoori.query;
+package fr.inria.tandoori.analysis.query;
 
-import fr.inria.tandoori.Main;
+import fr.inria.tandoori.analysis.Main;
 import neo4j.HashMapUsageQuery;
 import neo4j.IGSQuery;
 import neo4j.InitOnDrawQuery;

@@ -1,7 +1,10 @@
-package fr.inria.tandoori;
+package fr.inria.tandoori.analysis;
 
-import fr.inria.tandoori.query.DevelopersQuery;
-import fr.inria.tandoori.query.SmellQuery;
+import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.SQLitePersistence;
+import fr.inria.tandoori.analysis.query.DevelopersQuery;
+import fr.inria.tandoori.analysis.query.MetricsQuery;
+import fr.inria.tandoori.analysis.query.SmellQuery;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
@@ -13,6 +16,9 @@ public class SingleAppAnalysis {
     private final String repo;
     private final String db;
     private final String githubToken;
+
+    // TODO: Configurable persistence
+    private final Persistence persistence = new SQLitePersistence("output.sqlite");
 
     SingleAppAnalysis(String appName, String appRepo, String db, String githubToken) {
         this.name = appName;
@@ -30,9 +36,14 @@ public class SingleAppAnalysis {
         );
     }
 
-    public void start() {
+    public void analyze() {
+        persistence.initialize();
         new SmellQuery(db).query();
         new DevelopersQuery(repo, githubToken).query();
+
+        // TODO: Log file with topological order
+
+        new MetricsQuery(persistence).query();
     }
 
     /**

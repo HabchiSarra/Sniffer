@@ -1,4 +1,4 @@
-package fr.inria.tandoori;
+package fr.inria.tandoori.analysis;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -27,7 +27,7 @@ public class Main {
             Namespace res = parser.parseArgs(args);
             switch (res.getString(COMMAND_KEY)) {
                 case APP_ANALYSIS_COMMAND:
-                    new SingleAppAnalysis(res).start();
+                    new SingleAppAnalysis(res).analyze();
                 default:
                     logger.error("Unable to find command: " + res.getString(COMMAND_KEY));
             }

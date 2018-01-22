@@ -1,4 +1,4 @@
-package fr.inria.tandoori.query;
+package fr.inria.tandoori.analysis.query;
 
 public interface Query {
 

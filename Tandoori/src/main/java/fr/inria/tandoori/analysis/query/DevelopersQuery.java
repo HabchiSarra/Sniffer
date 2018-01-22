@@ -1,4 +1,4 @@
-package fr.inria.tandoori.query;
+package fr.inria.tandoori.analysis.query;
 
 import org.tandoori.gitminer.ContentFetcher;
 import org.tandoori.gitminer.model.Repository;
