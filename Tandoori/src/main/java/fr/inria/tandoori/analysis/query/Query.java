@@ -5,5 +5,5 @@ public interface Query {
     /**
      * Execute the query.
      */
-    void query();
+    void query() throws QueryException;
 }

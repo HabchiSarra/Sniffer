@@ -1,6 +1,5 @@
 package fr.inria.tandoori.analysis.query;
 
-import fr.inria.tandoori.analysis.Main;
 import neo4j.HashMapUsageQuery;
 import neo4j.IGSQuery;
 import neo4j.InitOnDrawQuery;
@@ -21,7 +20,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 public class SmellQuery implements Query {
-    private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(SmellQuery.class.getName());
     private final String db;
 
     public SmellQuery(String db) {
