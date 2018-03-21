@@ -1,12 +1,12 @@
 # coding=utf-8
 from typing import List
 
-import csv
+from analysis.output import CsvOutputWriter, OutputWriter
 
-__all__ = ["OutputWriter", "CsvOutputWriter"]
+__all__ = ["CommitOutputWriter", "CsvCommitWriter"]
 
 
-class OutputWriter(object):
+class CommitOutputWriter(OutputWriter):
     AUTHOR = "author"
     COMMITTER = "committer"
     SHA1 = "sha1"
@@ -18,72 +18,62 @@ class OutputWriter(object):
     MESSAGE = "message"
     TAGS = "tags"
 
-    def __init__(self):
-        pass
-
     def add_commit(self, author: str, committer: str, sha1: str, date: str,
                    classifications: List[str], addition: int, deletion: int, message: str,
                    tags: List[str]):
         """
+        Add a commit to the final output.
 
+        :param author: The registered Author.
+        :param committer: The final committer.
+        :param sha1: The SHA1 identifier.
+        :param date: The commit creation date.
+        :param classifications: The classification tags.
+        :param addition: The number of added lines.
+        :param deletion: The number of removed lines.
+        :param message: The commit message.
+        :param tags: The tags associated with this commit.
         :return:
         """
         raise NotImplementedError("Please Implement this method")
 
-    def write(self):
-        """
 
-        :return:
-        """
-        raise NotImplementedError("Please Implement this method")
-
-
-class CsvOutputWriter(OutputWriter):
+class CsvCommitWriter(CsvOutputWriter, CommitOutputWriter):
     HEADER = (
-        OutputWriter.AUTHOR,
-        OutputWriter.COMMITTER,
-        OutputWriter.SHA1,
-        OutputWriter.DATE,
-        OutputWriter.TAGS,
-        OutputWriter.CLASSIFICATIONS,
-        OutputWriter.ADDITION,
-        OutputWriter.DELETION,
-        OutputWriter.SIZE,
-        OutputWriter.MESSAGE
+        CommitOutputWriter.AUTHOR,
+        CommitOutputWriter.COMMITTER,
+        CommitOutputWriter.SHA1,
+        CommitOutputWriter.DATE,
+        CommitOutputWriter.TAGS,
+        CommitOutputWriter.CLASSIFICATIONS,
+        CommitOutputWriter.ADDITION,
+        CommitOutputWriter.DELETION,
+        CommitOutputWriter.SIZE,
+        CommitOutputWriter.MESSAGE
     )
 
-    def __init__(self, output_path: str = "./output.csv", separator='ا'):  # That's an alif
+    def __init__(self, output_path: str = None, separator: str = None):
         """
 
         :param output_path:
         :param separator:
         """
-        super().__init__()
-        self.output_path = output_path
-        self.separator = separator
-        self.lines = []
+        CsvOutputWriter.__init__(self, self.HEADER, output_path, separator)
+        CommitOutputWriter.__init__(self)
 
     def add_commit(self, author: str, committer: str, sha1: str, date: str,
                    classifications: List[str], addition: int, deletion: int, message: str,
                    tags: List[str]):
         commit_line = {
-            OutputWriter.AUTHOR: author,
-            OutputWriter.COMMITTER: committer,
-            OutputWriter.SHA1: sha1,
-            OutputWriter.DATE: date,
-            OutputWriter.CLASSIFICATIONS: classifications,
-            OutputWriter.ADDITION: str(addition),
-            OutputWriter.DELETION: str(deletion),
-            OutputWriter.SIZE: str(addition + deletion),
-            OutputWriter.MESSAGE: message,
-            OutputWriter.TAGS: tags
+            CommitOutputWriter.AUTHOR: author,
+            CommitOutputWriter.COMMITTER: committer,
+            CommitOutputWriter.SHA1: sha1,
+            CommitOutputWriter.DATE: date,
+            CommitOutputWriter.CLASSIFICATIONS: classifications,
+            CommitOutputWriter.ADDITION: str(addition),
+            CommitOutputWriter.DELETION: str(deletion),
+            CommitOutputWriter.SIZE: str(addition + deletion),
+            CommitOutputWriter.MESSAGE: message,
+            CommitOutputWriter.TAGS: tags
         }
-        self.lines.append(commit_line)
-
-    def write(self):
-        print("Writing file: " + self.output_path)
-        with open(self.output_path, "w") as output_file:
-            output = csv.DictWriter(output_file, fieldnames=self.HEADER, delimiter=self.separator)
-            # print("[DEBUG] printing rows: " + str(self.lines))
-            output.writeheader()
-            output.writerows(self.lines)
+        self._add_line(commit_line)

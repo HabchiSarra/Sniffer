@@ -3,10 +3,12 @@
 import shutil
 import tempfile
 import time
+from enum import Enum, auto
 from typing import List
 
-from enum import Enum, auto
 from git import Repo
+
+from analysis.output import OutputWriter
 
 __all__ = ["LocalProjectHandler", "RemoteProjectHandler", "ProjectHandler", "Analyzer", "OutputType"]
 
@@ -20,14 +22,21 @@ class Analyzer(object):
     Interface defining the project analyzers methods.
     """
 
-    def __init__(self, project: str, output_type: OutputType):
-        self.project = project
-        self.output_type = output_type
+    def __init__(self, output_writer: OutputWriter):
+        self.output_writer = output_writer
 
     def analyze(self, repo: Repo):
         """
         Run the analysis on the given repository.
-        :return:
+        :return: None
+        """
+        self._process(repo)
+        self.output_writer.write()
+
+    def _process(self, repo: Repo):
+        """
+        Actual analysis implementation.
+        :return: None
         """
         raise NotImplementedError("Please Implement the analysis method")
 
@@ -37,10 +46,9 @@ class ProjectHandler(object):
     Handle project analysis which will run the added analyzers onto the given project.
     """
 
-    def __init__(self, project: str, repo: Repo, analyzers: List[Analyzer] = None):
+    def __init__(self, repo: Repo, analyzers: List[Analyzer] = None):
         """
         Create a new project handler.
-        :param project: Project name, used for logging and output configuration purpose
         :param repo: git.Repo object to process analysis onto.
         :param analyzers: List of analyzers to launch on the given project.
         """

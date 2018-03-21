@@ -2,7 +2,7 @@
 import unittest
 
 from analysis.commits.computation import CommitHandler
-from analysis.commits.output import OutputWriter
+from analysis.commits.output import CommitOutputWriter
 
 
 class TestProjectHandler(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestProjectHandler(unittest.TestCase):
 class TestCommitHandler(unittest.TestCase):
 
     def setUp(self):
-        self.handler = CommitHandler(OutputWriter())  # TODO: Mock output
+        self.handler = CommitHandler(CommitOutputWriter())  # TODO: Mock output
 
     # TODO: Create test suite
 

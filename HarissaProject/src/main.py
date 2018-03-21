@@ -3,11 +3,12 @@
 import argparse
 import csv
 from multiprocessing import Pool
-from typing import Dict
 
-from analysis.commits.computation import ProjectAnalyzer
-from analysis.commits.output import CsvOutputWriter
+from analysis.commits.computation import CommitsAnalyzer
+from analysis.commits.output import CsvCommitWriter
 from analysis.computation import ProjectHandler, LocalProjectHandler, RemoteProjectHandler
+from analysis.projects.computation import ProjectAnalyzer
+from analysis.projects.output import CsvProjectWriter
 
 
 def handle_args():
@@ -18,65 +19,75 @@ def handle_args():
                         help="Specify the number of thread to use")
     parser.add_argument('-l', '--local', type=str, default=None,
                         help="Specify the local repositories location")
+    # TODO: [args] output dir
+    # TODO: [args] output type
+    # TODO: [args] single project
+    # TODO: [args] analyze type
     return parser.parse_args()
 
 
-def generate_output_writer(app_name: str):
-    return CsvOutputWriter("./output/output-" + app_name + ".csv")
-
-
 class Processing(object):
-    def __init__(self, apps: Dict, args):
+    def __init__(self, apps: csv.DictReader, args):
         self.apps = apps
+        self.thread_count = args.threads
+
+        # Choosing analysis origin
         if args.local is not None:
             self.method = self.analyze_local
-            self.arguments = [args.local + x['name'] for x in apps]
+            self.arguments = [args.local + x['name'] for x in self.apps]
         else:
             self.method = self.analyze_remote
             self.arguments = apps
-        self.analyzers = (ProjectAnalyzer(),)
-
 
     def process(self):
-        with Pool(args.threads) as p:
+        with Pool(self.thread_count) as p:
             p.map(self.method, self.arguments)
 
-    def analyze_remote(self, app):
+    @staticmethod
+    def analyze_remote(app):
+        """
+        Analyze the remote repository, available on github, defined by a dictionary entry.
+        :param app: A Dict containing the fields:
+         - "uri": The user/repository available on GitHub.
+         - "name": The project name to use in logging and output.
+        :return: None
+        """
         app_name = app["name"]
         app_url = "https://github.com/" + app["uri"]
         print("Handling project: " + app_name + " - " + app_url)
-        writer = generate_output_writer(app_name)
-        handler = RemoteProjectHandler(app_url)
-        self.analyze(handler)
+        Processing._analyze(app_name, RemoteProjectHandler(app_url))
 
-    def analyze_local(self, repo: str):
+    @staticmethod
+    def analyze_local(repo: str):
+        """
+        Analyze a local repository from its path.
+
+        :param repo: Path to the local repository.
+        :return: None
+        """
         print("Handling local project: " + repo)
-        writer = generate_output_writer(repo.split("/")[-1])
-        handler = LocalProjectHandler(repo)
-        self.analyze(handler)
+        Processing._analyze(repo.split("/")[-1], LocalProjectHandler(repo))
 
-    def analyze(self, handler: ProjectHandler):
-        handler.add_analyzer(ProjectAnalyzer(output_writer=writer))
+    @staticmethod
+    def _analyze(app_name: str, handler: ProjectHandler):
+        commit_writer = CsvCommitWriter("./output/commits-" + app_name + ".csv")
+        project_writer = CsvProjectWriter("./output/project-" + app_name + ".csv")
+        handler.add_analyzer(ProjectAnalyzer(project_writer))
+        handler.add_analyzer(CommitsAnalyzer(commit_writer))
         handler.run()
         del handler
 
+    @staticmethod
+    def _generate_output_writer(app_name: str):
+        return CsvCommitWriter("./output/output-" + app_name + ".csv")
+
 
 if __name__ == '__main__':
-    args = handle_args()
+    exec_args = handle_args()
 
-    my_pool = Pool(args.threads)
+    my_pool = Pool(exec_args.threads)
 
-    with open(args.csv, 'r') as appsfile:
-        apps = csv.DictReader(appsfile, fieldnames=["name", "uri"])
-        # Choosing analysis method
-        if args.local is not None:
-            method = analyze_local
-            arguments = [args.local + x['name'] for x in apps]
-        else:
-            method = analyze_remote
-            arguments = apps
-
-        # Actual analysis
-        with Pool(args.threads) as p:
-            p.map(method, arguments)
-    print("Done!")
+    with open(exec_args.csv, 'r') as appsfile:
+        apps_csv = csv.DictReader(appsfile, fieldnames=["name", "uri"])
+        Processing(apps_csv, exec_args).process()
+        print("Done!")

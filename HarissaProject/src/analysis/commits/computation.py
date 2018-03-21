@@ -5,26 +5,24 @@ from git import Repo, Commit, NULL_TREE, TagReference
 
 from analysis.commits.classification import CommitClassifier
 from analysis.commits.output import *
-from analysis.computation import Analyzer, OutputType
+from analysis.computation import Analyzer
 
-__all__ = ["ProjectAnalyzer"]
+__all__ = ["CommitsAnalyzer"]
 
 
-class ProjectAnalyzer(Analyzer):
+class CommitsAnalyzer(Analyzer):
     """
-    Clone and analyze a project from any git url.
+    Analyze a project's commits.
     """
 
-    def __init__(self, project: str, output_writer: OutputWriter = CsvOutputWriter()):
+    def __init__(self, output_writer: CommitOutputWriter = CsvCommitWriter()):
         """
-
-        :param repo:  The git.Repo instance to work with
-        :param output_writer: The writer to use
+        Analyze each commit of a project.
+        :param output_writer: The writer to use.
         """
-        super().__init__(project, OutputType.CSV)
-        self.output_writer = output_writer
+        super().__init__(output_writer)
 
-    def analyze(self, repo: Repo):
+    def _process(self, repo: Repo):
         """
         Analyze each commit of the repository and write the result
         using the given output_writer.
@@ -41,15 +39,13 @@ class ProjectAnalyzer(Analyzer):
             new_commit = commit
             commit_handler.analyze(new_commit=new_commit, old_commit=old_commit)
 
-        self.output_writer.write()
-
 
 class CommitHandler(object):
     """
     Handle the analysis of commits for a project.
     """
 
-    def __init__(self, output_writer: OutputWriter):
+    def __init__(self, output_writer: CommitOutputWriter):
         self.output_writer = output_writer
         self.classifier = CommitClassifier()
         self.tags = {}
