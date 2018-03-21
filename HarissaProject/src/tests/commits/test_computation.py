@@ -1,8 +1,8 @@
 # coding=utf-8
 import unittest
 
-from commitsanalysis import CommitHandler
-from commitsanalysis import OutputWriter
+from analysis.commits.computation import CommitHandler
+from analysis.commits.output import OutputWriter
 
 
 class TestProjectHandler(unittest.TestCase):

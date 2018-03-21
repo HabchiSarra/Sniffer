@@ -1,87 +1,47 @@
 # coding=utf-8
-import os
-import shutil
-import tempfile
-import time
 from typing import List
 
 from git import Repo, Commit, NULL_TREE, TagReference
 
 from analysis.commits.classification import CommitClassifier
 from analysis.commits.output import *
+from analysis.computation import Analyzer, OutputType
 
-__all__ = ["LocalProjectHandler", "RemoteProjectHandler"]
-
-
-def generate_temp_dir():
-    return tempfile.mkdtemp(prefix="projectAnalyzer", suffix=str(time.time()))
+__all__ = ["ProjectAnalyzer"]
 
 
-class ProjectHandler(object):
+class ProjectAnalyzer(Analyzer):
     """
     Clone and analyze a project from any git url.
     """
 
-    def __init__(self, repo: Repo,
-                 output_writer: OutputWriter = CsvOutputWriter()):
+    def __init__(self, project: str, output_writer: OutputWriter = CsvOutputWriter()):
         """
 
         :param repo:  The git.Repo instance to work with
         :param output_writer: The writer to use
         """
+        super().__init__(project, OutputType.CSV)
         self.output_writer = output_writer
-        self.commit_handler = CommitHandler(self.output_writer)
-        self.commit_handler.set_tags(repo.tags)
-        self.repo = repo
 
-    def analyze(self):
+    def analyze(self, repo: Repo):
         """
         Analyze each commit of the repository and write the result
         using the given output_writer.
 
         :return: None
         """
-        log = list(self.repo.iter_commits(self.repo.active_branch))
+        commit_handler = CommitHandler(self.output_writer)
+        commit_handler.set_tags(repo.tags)
+        log = list(repo.iter_commits(repo.active_branch))
 
         new_commit = NULL_TREE
         for commit in reversed(log):
             old_commit = new_commit
             new_commit = commit
-            self.commit_handler.analyze(new_commit=new_commit, old_commit=old_commit)
+            commit_handler.analyze(new_commit=new_commit, old_commit=old_commit)
 
         self.output_writer.write()
-
-
-class RemoteProjectHandler(ProjectHandler):
-    def __init__(self, repo_url: str,
-                 working_dir: os.DirEntry = None,
-                 output_writer: OutputWriter = CsvOutputWriter()):
-        # Making the default parameter mutable...
-        if working_dir is None:
-            working_dir = generate_temp_dir()
-        self.working_dir = working_dir
-        repo = Repo().clone_from(repo_url, working_dir)
-        super().__init__(repo, output_writer)
-
-    def __del__(self):
-        """
-        Remove the working directory on object destruction.
-        :return: None
-        """
-        if isinstance(self.working_dir, str):
-            to_remove = self.working_dir
-        else:
-            to_remove = self.working_dir.path
-
-        # Deleting git repository content
-        print("Removing dir: " + to_remove)
-        shutil.rmtree(to_remove)
-
-
-class LocalProjectHandler(ProjectHandler):
-    def __init__(self, repo_path: str,
-                 output_writer: OutputWriter = CsvOutputWriter()):
-        super().__init__(Repo(repo_path), output_writer)
 
 
 class CommitHandler(object):

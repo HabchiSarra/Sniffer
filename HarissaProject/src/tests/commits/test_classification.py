@@ -1,6 +1,6 @@
 # coding=utf-8
 import unittest
-from commitsanalysis import CommitClassifier
+from analysis.commits.classification import CommitClassifier
 
 
 class TestClassification(unittest.TestCase):

@@ -3,9 +3,11 @@
 import argparse
 import csv
 from multiprocessing import Pool
+from typing import Dict
 
-from analysis.commits.computation import LocalProjectHandler, RemoteProjectHandler
+from analysis.commits.computation import ProjectAnalyzer
 from analysis.commits.output import CsvOutputWriter
+from analysis.computation import ProjectHandler, LocalProjectHandler, RemoteProjectHandler
 
 
 def handle_args():
@@ -23,22 +25,40 @@ def generate_output_writer(app_name: str):
     return CsvOutputWriter("./output/output-" + app_name + ".csv")
 
 
-def analyze_remote(app):
-    app_name = app["name"]
-    app_url = "https://github.com/" + app["uri"]
-    print("Handling project: " + app_name + " - " + app_url)
-    writer = generate_output_writer(app_name)
-    handler = RemoteProjectHandler(app_url, output_writer=writer)
-    handler.analyze()
-    del handler
+class Processing(object):
+    def __init__(self, apps: Dict, args):
+        self.apps = apps
+        if args.local is not None:
+            self.method = self.analyze_local
+            self.arguments = [args.local + x['name'] for x in apps]
+        else:
+            self.method = self.analyze_remote
+            self.arguments = apps
+        self.analyzers = (ProjectAnalyzer(),)
 
 
-def analyze_local(repo: str):
-    print("Handling local project: " + repo)
-    writer = generate_output_writer(repo.split("/")[-1])
-    handler = LocalProjectHandler(repo, output_writer=writer)
-    handler.analyze()
-    del handler
+    def process(self):
+        with Pool(args.threads) as p:
+            p.map(self.method, self.arguments)
+
+    def analyze_remote(self, app):
+        app_name = app["name"]
+        app_url = "https://github.com/" + app["uri"]
+        print("Handling project: " + app_name + " - " + app_url)
+        writer = generate_output_writer(app_name)
+        handler = RemoteProjectHandler(app_url)
+        self.analyze(handler)
+
+    def analyze_local(self, repo: str):
+        print("Handling local project: " + repo)
+        writer = generate_output_writer(repo.split("/")[-1])
+        handler = LocalProjectHandler(repo)
+        self.analyze(handler)
+
+    def analyze(self, handler: ProjectHandler):
+        handler.add_analyzer(ProjectAnalyzer(output_writer=writer))
+        handler.run()
+        del handler
 
 
 if __name__ == '__main__':

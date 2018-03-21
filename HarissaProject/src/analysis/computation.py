@@ -1,0 +1,104 @@
+# coding=utf-8
+
+import shutil
+import tempfile
+import time
+from typing import List
+
+from enum import Enum, auto
+from git import Repo
+
+__all__ = ["LocalProjectHandler", "RemoteProjectHandler", "ProjectHandler", "Analyzer", "OutputType"]
+
+
+class OutputType(Enum):
+    CSV = auto
+
+
+class Analyzer(object):
+    """
+    Interface defining the project analyzers methods.
+    """
+
+    def __init__(self, project: str, output_type: OutputType):
+        self.project = project
+        self.output_type = output_type
+
+    def analyze(self, repo: Repo):
+        """
+        Run the analysis on the given repository.
+        :return:
+        """
+        raise NotImplementedError("Please Implement the analysis method")
+
+
+class ProjectHandler(object):
+    """
+    Handle project analysis which will run the added analyzers onto the given project.
+    """
+
+    def __init__(self, project: str, repo: Repo, analyzers: List[Analyzer] = None):
+        """
+        Create a new project handler.
+        :param project: Project name, used for logging and output configuration purpose
+        :param repo: git.Repo object to process analysis onto.
+        :param analyzers: List of analyzers to launch on the given project.
+        """
+        if analyzers is None:
+            analyzers = []
+        self.repo = repo
+        self.analyzers = analyzers
+
+    def add_analyzer(self, analyzer: Analyzer):
+        self.analyzers.append(analyzer)
+
+    def run(self):
+        """
+        Run project analysis
+        :return: None
+        """
+        for analyzer in self.analyzers:
+            analyzer.analyze(self.repo)
+
+
+def generate_temp_dir():
+    """
+    Generate a temporary directory.
+
+    :return: The created directory path.
+    """
+    return tempfile.mkdtemp(prefix="harissaProject", suffix=str(time.time()))
+
+
+class RemoteProjectHandler(ProjectHandler):
+    """
+    Handle a remote project by cloning it, then analyzing it.
+    """
+
+    def __init__(self, repo_url: str,
+                 working_dir: str = None,
+                 analyzers: List[Analyzer] = None):
+        # Making the default parameter mutable...
+        if working_dir is None:
+            working_dir = generate_temp_dir()
+        self.working_dir = working_dir
+        repo = Repo().clone_from(repo_url, working_dir)
+        super().__init__(repo, analyzers)
+
+    def __del__(self):
+        """
+        Remove the working directory on object destruction.
+        :return: None
+        """
+        to_remove = self.working_dir
+        print("Removing dir: " + to_remove)
+        shutil.rmtree(to_remove)
+
+
+class LocalProjectHandler(ProjectHandler):
+    """
+    Handle a project present locally on the system.
+    """
+
+    def __init__(self, repo_path: str):
+        super().__init__(Repo(repo_path))
