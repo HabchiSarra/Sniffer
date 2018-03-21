@@ -52,7 +52,7 @@ class CsvCommitWriter(CsvOutputWriter, CommitOutputWriter):
         CommitOutputWriter.MESSAGE
     )
 
-    def __init__(self, output_path: str = None, separator: str = None):
+    def __init__(self, output_path: str = None, separator: str = 'ا'):  # That's an alif
         """
 
         :param output_path:

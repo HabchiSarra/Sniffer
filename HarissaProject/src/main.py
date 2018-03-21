@@ -7,6 +7,8 @@ from multiprocessing import Pool
 from analysis.commits.computation import CommitsAnalyzer
 from analysis.commits.output import CsvCommitWriter
 from analysis.computation import ProjectHandler, LocalProjectHandler, RemoteProjectHandler
+from analysis.ownership.computation import OwnershipAnalyzer
+from analysis.ownership.output import CsvOwnershipWriter
 from analysis.projects.computation import ProjectAnalyzer
 from analysis.projects.output import CsvProjectWriter
 
@@ -70,10 +72,13 @@ class Processing(object):
 
     @staticmethod
     def _analyze(app_name: str, handler: ProjectHandler):
+        # TODO: There must be a better way of assigning those writers.
         commit_writer = CsvCommitWriter("./output/commits-" + app_name + ".csv")
-        project_writer = CsvProjectWriter("./output/project-" + app_name + ".csv")
-        handler.add_analyzer(ProjectAnalyzer(project_writer))
+        # project_writer = CsvProjectWriter("./output/project-" + app_name + ".csv")
+        ownership_writer = CsvOwnershipWriter("./output/ownership-" + app_name + ".csv")
         handler.add_analyzer(CommitsAnalyzer(commit_writer))
+        # handler.add_analyzer(ProjectAnalyzer(project_writer))
+        handler.add_analyzer(OwnershipAnalyzer(ownership_writer))
         handler.run()
         del handler
 
@@ -84,8 +89,6 @@ class Processing(object):
 
 if __name__ == '__main__':
     exec_args = handle_args()
-
-    my_pool = Pool(exec_args.threads)
 
     with open(exec_args.csv, 'r') as appsfile:
         apps_csv = csv.DictReader(appsfile, fieldnames=["name", "uri"])

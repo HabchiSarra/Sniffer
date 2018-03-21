@@ -29,7 +29,7 @@ class CsvOutputWriter(OutputWriter):
         if output_path is None:
             output_path = "./output.csv"
         if separator is None:
-            separator = 'ا'  # That's an alif
+            separator = ','
         self.header = header
         self.output_path = output_path
         self.separator = separator
