@@ -1,15 +1,15 @@
 # coding=utf-8
 import operator
 
-from git import Repo, Blob, Tree
+from git import Repo, Blob, Tree, Reference
 
 from analysis.computation import Analyzer
 from analysis.ownership.output import OwnershipOutputWriter, CsvOwnershipWriter
 
-__all__ = ["OwnershipAnalyzer"]
+__all__ = ["OwnershipAnalyzer", "FileOwnershipHandler"]
 
 
-class FileHandler(object):
+class FileOwnershipHandler(object):
     OWNERSHIP_THRESHOLD = 0.75
     """
     Analyze the ownership of the given file.
@@ -19,14 +19,15 @@ class FileHandler(object):
         self.repo = repo
         self.output_writer = output_writer
 
-    def analyze(self, path: str):
+    def analyze(self, path: str, revision: Reference):
         """
         This method will count the number of commits for each developer on a given file.
         Then say that a developer is the author if it has at most 75% the commits.
         :param path: The file path.
+        :param revision:
         :return:
         """
-        log = list(self.repo.iter_commits(self.repo.active_branch, path))
+        log = list(self.repo.iter_commits(revision, path))
         nb_commits = len(log)
         authors = self._count_authored_commits(log)
         # Retrieving author with maximum count of commits
@@ -58,22 +59,24 @@ class OwnershipAnalyzer(Analyzer):
         super().__init__(output_writer)
 
     def _process(self, repo: Repo):
-        for file in repo.tree(repo.active_branch):
-            file_handler = FileHandler(self.output_writer, repo)
+        revision = repo.active_branch
+        for file in repo.tree(revision):
+            file_handler = FileOwnershipHandler(self.output_writer, repo)
             if isinstance(file, Blob):
-                self._check(file, file_handler)
+                self._check(file, file_handler, revision)
             if isinstance(file, Tree):
-                self._walk(file, file_handler)
+                self._walk(file, file_handler, revision)
 
-    def _walk(self, tree: Tree, file_handler: FileHandler):
+    def _walk(self, tree: Tree, file_handler: FileOwnershipHandler, revision: Reference):
         for file in tree.blobs:
-            self._check(file, file_handler)
+            self._check(file, file_handler, revision)
         for subtree in tree.trees:
-            self._walk(subtree, file_handler)
+            self._walk(subtree, file_handler, revision)
 
-    def _check(self, blob: Blob, file_handler: FileHandler):
+    def _check(self, blob: Blob, file_handler: FileOwnershipHandler, revision: Reference):
         if self._is_source(blob):
-            file_handler.analyze(blob.path)
+            file_handler.analyze(blob.path, revision)
 
-    def _is_source(self, file: Blob):
+    @staticmethod
+    def _is_source(file: Blob):
         return file.name.endswith(".java")
