@@ -2,95 +2,68 @@
 
 import argparse
 import csv
-from multiprocessing import Pool
 
-from analysis.commits.computation import CommitsAnalyzer
-from analysis.commits.output import CsvCommitWriter
-from analysis.computation import ProjectHandler, LocalProjectHandler, RemoteProjectHandler
-from analysis.ownership.computation import OwnershipAnalyzer
-from analysis.ownership.output import CsvOwnershipWriter
-from analysis.projects.computation import ProjectAnalyzer
-from analysis.projects.output import CsvProjectWriter
+from analysis.processing import AnalysisProcessing
+from binding.smells import OwnershipProcessing
 
 
 def handle_args():
     parser = argparse.ArgumentParser(description='Process the commits of the given projects')
-    parser.add_argument('csv', metavar='CSV',
-                        help='A CSV file containing at least 2 columns, the project name and github uri')
+
+    # common arguments
+    # TODO: [args] output type - CSV, SQL, ...
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0.0')
     parser.add_argument('-t', '--threads', type=int, default=1,
                         help="Specify the number of thread to use")
-    parser.add_argument('-l', '--local', type=str, default=None,
-                        help="Specify the local repositories location")
-    # TODO: [args] output dir
-    # TODO: [args] output type
-    # TODO: [args] single project
-    # TODO: [args] analyze type
+    parser.add_argument("-o", "--output", type=str, default="./output",
+                        help="Output directory for the results.")
+
+    subparsers = parser.add_subparsers(dest="command",
+                                       description="Available commands on HarissaProject analysis software")
+
+    # Project analysis arguments
+    analysis_parser = subparsers.add_parser('analysis')
+    analysis_input_group = analysis_parser.add_mutually_exclusive_group(required=True)
+    analysis_input_group.add_argument("-r", "--remote", type=str, default=None,
+                                      help="Remote analysis. You must provide a CSV with the project name and uri.")
+    analysis_input_group.add_argument('-l', '--local', type=str, default=None,
+                                      help="Specify the local repositories location, will analyse the subdirectories.")
+    # TODO: [args] analysis type - Ownership, Commits, Project (switch args)
+
+    # Project binding with external data arguments
+    binding_parser = subparsers.add_parser('binding')
+    binding_parser.add_argument("-o", "--smells-ownership", action="store_true", dest="smells_ownership",
+                                help="Analyse the ownership of the host file for each project smell instance")
+    binding_parser.add_argument("-i", "--input", type=str, required=True,
+                                help="Projects' smells structured as $input/$project/smells/*.csv")
+    binding_parser.add_argument("-r", "--repo", type=str, required=True,
+                                help="Projects' git repositories structured as $input/$project/.git")
+
+    # TODO: [args] single project - possible via local? Give directly the repo?
     return parser.parse_args()
 
 
-class Processing(object):
-    def __init__(self, apps: csv.DictReader, args):
-        self.apps = apps
-        self.thread_count = args.threads
+def analysis_command(args):
+    if args.remote is not None:
+        with open(args.remote, 'r') as appsfile:
+            apps_csv = csv.DictReader(appsfile, fieldnames=["name", "uri"])
+            AnalysisProcessing(apps_csv, args.threads, args.local, args.output).process()
+    else:
+        AnalysisProcessing(None, args.threads, args.local, args.output).process()
 
-        # Choosing analysis origin
-        if args.local is not None:
-            self.method = self.analyze_local
-            self.arguments = [args.local + x['name'] for x in self.apps]
-        else:
-            self.method = self.analyze_remote
-            self.arguments = apps
 
-    def process(self):
-        with Pool(self.thread_count) as p:
-            p.map(self.method, self.arguments)
-
-    @staticmethod
-    def analyze_remote(app):
-        """
-        Analyze the remote repository, available on github, defined by a dictionary entry.
-        :param app: A Dict containing the fields:
-         - "uri": The user/repository available on GitHub.
-         - "name": The project name to use in logging and output.
-        :return: None
-        """
-        app_name = app["name"]
-        app_url = "https://github.com/" + app["uri"]
-        print("Handling project: " + app_name + " - " + app_url)
-        Processing._analyze(app_name, RemoteProjectHandler(app_url))
-
-    @staticmethod
-    def analyze_local(repo: str):
-        """
-        Analyze a local repository from its path.
-
-        :param repo: Path to the local repository.
-        :return: None
-        """
-        print("Handling local project: " + repo)
-        Processing._analyze(repo.split("/")[-1], LocalProjectHandler(repo))
-
-    @staticmethod
-    def _analyze(app_name: str, handler: ProjectHandler):
-        # TODO: There must be a better way of assigning those writers.
-        commit_writer = CsvCommitWriter("./output/commits-" + app_name + ".csv")
-        # project_writer = CsvProjectWriter("./output/project-" + app_name + ".csv")
-        ownership_writer = CsvOwnershipWriter("./output/ownership-" + app_name + ".csv")
-        handler.add_analyzer(CommitsAnalyzer(commit_writer))
-        # handler.add_analyzer(ProjectAnalyzer(project_writer))
-        handler.add_analyzer(OwnershipAnalyzer(ownership_writer))
-        handler.run()
-        del handler
-
-    @staticmethod
-    def _generate_output_writer(app_name: str):
-        return CsvCommitWriter("./output/output-" + app_name + ".csv")
+def binding_command(args):
+    if args.smells_ownership:
+        OwnershipProcessing(args.input, args.repo, args.threads, args.output).process()
+    else:
+        print("No binding defined!")
 
 
 if __name__ == '__main__':
-    exec_args = handle_args()
+    args = handle_args()
 
-    with open(exec_args.csv, 'r') as appsfile:
-        apps_csv = csv.DictReader(appsfile, fieldnames=["name", "uri"])
-        Processing(apps_csv, exec_args).process()
-        print("Done!")
+    if args.command == "analysis":
+        analysis_command(args)
+    elif args.command == "binding":
+        binding_command(args)
+    print("Done!")

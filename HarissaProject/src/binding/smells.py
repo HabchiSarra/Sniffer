@@ -10,6 +10,8 @@ from analysis.output import CsvOutputWriter
 from analysis.ownership.computation import FileOwnershipHandler
 from analysis.ownership.output import OwnershipOutputWriter
 
+__all__ = ["OwnershipProcessing"]
+
 
 class SmellOwnershipWriter(OwnershipOutputWriter, CsvOutputWriter):
     SHA1 = "sha1"
@@ -50,6 +52,15 @@ class FileFinder(object):
 
     @staticmethod
     def find(smell_instance: str, lookup_path: Tree):
+        """
+        Retrieve the compilation unit linked to the smell instance.
+        We may not find any file in the case of a package protected class
+        sharing a compilation unit with a public class.
+
+        :param smell_instance: The smell instance definition.
+        :param lookup_path: The path to look into for the file.
+        :return: The file if found, None if nothing matches.
+        """
         if smell_instance in FileFinder.BINDING:
             return FileFinder.BINDING[smell_instance]
         file_path = FileFinder._infer_java_file(smell_instance)
@@ -82,23 +93,13 @@ class FileFinder(object):
         return found_file
 
 
-def analyze_project_smells(project: str):
-    print("Analyzing project: " + project)
-    writer = SmellOwnershipWriter(os.path.join(project, "smell-commit-ownership.csv"))
-    repo = Repo(os.path.join(repo_dir, project))
-    handler = FileOwnershipHandler(writer, repo)
-    analyzer = SmellsAnalyzer(handler, repo, writer)
-    analyzer.analyze_smells_ownership(os.path.join(input_dir, project, "smells"))
-    writer.write()
-
-
 class SmellsAnalyzer(object):
     def __init__(self, analyzer: FileOwnershipHandler, repo: Repo, writer: SmellOwnershipWriter):
         """
-
-        :param writer:
-        :param writer:
+        Analyze all the smells of a given repository.
         :param analyzer: The smell analyzer set on the right repository.
+        :param repo: The git repository in which smells are located.
+        :param writer: The output on which results should be written.
         """
         self.analyzer = analyzer
         self.repo = repo
@@ -146,15 +147,37 @@ class SmellsAnalyzer(object):
             self.writer.add_smell_ownership(commit, smell_instance, java_file, author)
 
 
-if __name__ == '__main__':
-    # TODO: [args] set input dir arg
-    # TODO: [args] set output dir arg
-    # TODO: [args] set number of threads
+class OwnershipProcessing(object):
+    def __init__(self, input_dir: str, repo_dir: str,
+                 thread_count: int, output_dir: str = "./output"):
+        """
+        Creates a smell binder to check the ownership of
+        :param input_dir: Projects results directory containing smells.
+        :param repo_dir: Projects git repositories under the same name as in 'input_dir'.
+        :param thread_count: The number of available threads.
+        :param output_dir: The output for all files per project.
+        """
+        self.output_dir = output_dir
+        self.input_dir = input_dir
+        self.repo_dir = repo_dir
+        self.thread_count = thread_count
 
-    input_dir = "/data/tandoori-metrics/one-result"
-    repo_dir = "/data/tandoori-repos"
-    thread_count = 3
+    def process(self):
+        with Pool(self.thread_count) as p:
+            p.map(self.analyze_project_smells, os.listdir(self.input_dir))
+        print("Binding Done!")
 
-    with Pool(thread_count) as p:
-        p.map(analyze_project_smells, os.listdir(input_dir))
-    print("Done!")
+    def analyze_project_smells(self, project: str):
+        print("Analyzing project: " + project)
+        writer = SmellOwnershipWriter(self._output_file(project))
+        repo = Repo(os.path.join(self.repo_dir, project))
+        handler = FileOwnershipHandler(writer, repo)
+        analyzer = SmellsAnalyzer(handler, repo, writer)
+        analyzer.analyze_smells_ownership(self._smells_dir(project))
+        writer.write()
+
+    def _output_file(self, project: str):
+        return os.path.join(self.output_dir, project + "-smell-commit-ownership.csv")
+
+    def _smells_dir(self, project: str):
+        return os.path.join(self.input_dir, project, "smells")

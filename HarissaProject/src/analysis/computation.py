@@ -1,5 +1,4 @@
 # coding=utf-8
-
 import shutil
 import tempfile
 import time
@@ -10,7 +9,8 @@ from git import Repo
 
 from analysis.output import OutputWriter
 
-__all__ = ["LocalProjectHandler", "RemoteProjectHandler", "ProjectHandler", "Analyzer", "OutputType"]
+__all__ = ["LocalProjectHandler", "RemoteProjectHandler", "ProjectHandler",
+           "Analyzer", "OutputType"]
 
 
 class OutputType(Enum):

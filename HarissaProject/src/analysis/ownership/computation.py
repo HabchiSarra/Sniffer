@@ -16,6 +16,12 @@ class FileOwnershipHandler(object):
     """
 
     def __init__(self, output_writer: OwnershipOutputWriter, repo: Repo):
+        """
+        Analyze smells location in the given repository, for the given revision.
+
+        :param output_writer: The output on which results should be written.
+        :param repo: The git repository in which smells are located.
+        """
         self.repo = repo
         self.output_writer = output_writer
 
@@ -24,7 +30,7 @@ class FileOwnershipHandler(object):
         This method will count the number of commits for each developer on a given file.
         Then say that a developer is the author if it has at most 75% the commits.
         :param path: The file path.
-        :param revision:
+        :param revision: The git revision in which the smell should be looked for.
         :return:
         """
         log = list(self.repo.iter_commits(revision, path))

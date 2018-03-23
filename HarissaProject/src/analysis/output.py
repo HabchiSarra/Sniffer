@@ -2,7 +2,7 @@
 import csv
 from typing import Tuple, Dict
 
-__all__ = ["CsvOutputWriter"]
+__all__ = ["CsvOutputWriter", "OutputWriter"]
 
 
 class OutputWriter(object):

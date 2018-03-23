@@ -4,7 +4,7 @@ from typing import List
 from git import Repo, Commit, NULL_TREE, TagReference
 
 from analysis.commits.classification import CommitClassifier
-from analysis.commits.output import *
+from analysis.commits.output import CommitOutputWriter, CsvCommitWriter
 from analysis.computation import Analyzer
 
 __all__ = ["CommitsAnalyzer"]
