@@ -1,7 +1,7 @@
 # coding=utf-8
 import unittest
 
-from binding.smells import FileFinder
+from harissa_project_analysis.binding.smells import FileFinder
 
 
 class TestFileFinder(unittest.TestCase):

@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import List
 
-from analysis.output import CsvOutputWriter, OutputWriter
+from harissa_project_analysis.analysis.output import CsvOutputWriter, OutputWriter
 
 __all__ = ["CommitOutputWriter", "CsvCommitWriter"]
 

@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from analysis.output import CsvOutputWriter, OutputWriter
+from harissa_project_analysis.analysis.output import CsvOutputWriter, OutputWriter
 
 __all__ = ["ProjectOutputWriter", "CsvProjectWriter"]
 

@@ -6,9 +6,9 @@ from typing import Dict
 
 from git import Repo, Tree
 
-from analysis.output import CsvOutputWriter
-from analysis.ownership.computation import FileOwnershipHandler
-from analysis.ownership.output import OwnershipOutputWriter
+from harissa_project_analysis.analysis.output import CsvOutputWriter
+from harissa_project_analysis.analysis.ownership.computation import FileOwnershipHandler
+from harissa_project_analysis.analysis.ownership.output import OwnershipOutputWriter
 
 __all__ = ["OwnershipProcessing"]
 

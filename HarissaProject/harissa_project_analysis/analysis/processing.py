@@ -3,11 +3,11 @@ import csv
 import os
 from multiprocessing.pool import Pool
 
-from analysis.commits.computation import CommitsAnalyzer
-from analysis.commits.output import CsvCommitWriter
-from analysis.computation import RemoteProjectHandler, LocalProjectHandler, ProjectHandler
-from analysis.ownership.computation import OwnershipAnalyzer
-from analysis.ownership.output import CsvOwnershipWriter
+from harissa_project_analysis.analysis.commits.computation import CommitsAnalyzer
+from harissa_project_analysis.analysis.commits.output import CsvCommitWriter
+from harissa_project_analysis.analysis.computation import RemoteProjectHandler, LocalProjectHandler, ProjectHandler
+from harissa_project_analysis.analysis.ownership.computation import OwnershipAnalyzer
+from harissa_project_analysis.analysis.ownership.output import CsvOwnershipWriter
 
 
 class AnalysisProcessing(object):

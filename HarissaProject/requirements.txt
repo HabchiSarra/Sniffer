@@ -1,4 +1,7 @@
 gitpython==2.1.8
 
+# Distribution
+setuptools==39.0.1
+
 # Unit tests
 coverage==4.5.1

@@ -3,8 +3,8 @@ import operator
 
 from git import Repo, Blob, Tree, Reference
 
-from analysis.computation import Analyzer
-from analysis.ownership.output import OwnershipOutputWriter, CsvOwnershipWriter
+from harissa_project_analysis.analysis.computation import Analyzer
+from harissa_project_analysis.analysis.ownership.output import OwnershipOutputWriter, CsvOwnershipWriter
 
 __all__ = ["OwnershipAnalyzer", "FileOwnershipHandler"]
 

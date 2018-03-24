@@ -3,9 +3,9 @@ from typing import List
 
 from git import Repo, Commit, NULL_TREE, TagReference
 
-from analysis.commits.classification import CommitClassifier
-from analysis.commits.output import CommitOutputWriter, CsvCommitWriter
-from analysis.computation import Analyzer
+from harissa_project_analysis.analysis.commits.classification import CommitClassifier
+from harissa_project_analysis.analysis.commits.output import CommitOutputWriter, CsvCommitWriter
+from harissa_project_analysis.analysis.computation import Analyzer
 
 __all__ = ["CommitsAnalyzer"]
 

@@ -2,7 +2,7 @@
 import csv
 from typing import Dict
 
-from analysis.output import CsvOutputWriter, OutputWriter
+from harissa_project_analysis.analysis.output import CsvOutputWriter, OutputWriter
 
 __all__ = ["OwnershipOutputWriter", "CsvOwnershipWriter"]
 

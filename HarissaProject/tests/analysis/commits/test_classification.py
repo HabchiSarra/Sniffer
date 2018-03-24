@@ -1,6 +1,6 @@
 # coding=utf-8
 import unittest
-from analysis.commits.classification import CommitClassifier
+from harissa_project_analysis.analysis.commits.classification import CommitClassifier
 
 
 class TestClassification(unittest.TestCase):

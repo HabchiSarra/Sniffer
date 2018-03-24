@@ -3,8 +3,9 @@
 import argparse
 import csv
 
-from analysis.processing import AnalysisProcessing
-from binding.smells import OwnershipProcessing
+from harissa_project_analysis import __version__
+from harissa_project_analysis.analysis.processing import AnalysisProcessing
+from harissa_project_analysis.binding.smells import OwnershipProcessing
 
 
 def handle_args():
@@ -12,7 +13,7 @@ def handle_args():
 
     # common arguments
     # TODO: [args] output type - CSV, SQL, ...
-    parser.add_argument('--version', action='version', version='%(prog)s 1.0.0')
+    parser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
     parser.add_argument('-t', '--threads', type=int, default=1,
                         help="Specify the number of thread to use")
     parser.add_argument("-o", "--output", type=str, default="./output",

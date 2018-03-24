@@ -7,7 +7,7 @@ from typing import List
 
 from git import Repo
 
-from analysis.output import OutputWriter
+from harissa_project_analysis.analysis.output import OutputWriter
 
 __all__ = ["LocalProjectHandler", "RemoteProjectHandler", "ProjectHandler",
            "Analyzer", "OutputType"]

@@ -1,8 +1,8 @@
 # coding=utf-8
 from git import Repo
 
-from analysis.computation import Analyzer
-from analysis.projects.output import CsvProjectWriter, ProjectOutputWriter
+from harissa_project_analysis.analysis.computation import Analyzer
+from harissa_project_analysis.analysis.projects.output import CsvProjectWriter, ProjectOutputWriter
 
 __all__ = ["ProjectAnalyzer"]
 
