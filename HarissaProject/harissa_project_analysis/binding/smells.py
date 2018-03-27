@@ -1,8 +1,9 @@
 # coding=utf-8
 import csv
 import os
+from math import floor
 from multiprocessing import Pool
-from typing import Dict
+from typing import Dict, List
 
 from git import Repo, Tree
 
@@ -94,16 +95,22 @@ class FileFinder(object):
 
 
 class SmellsAnalyzer(object):
-    def __init__(self, analyzer: FileOwnershipHandler, repo: Repo, writer: SmellOwnershipWriter):
+    def __init__(self,
+                 analyzer: FileOwnershipHandler,
+                 repo: Repo,
+                 writer: SmellOwnershipWriter,
+                 process_count: int = 1):
         """
         Analyze all the smells of a given repository.
         :param analyzer: The smell analyzer set on the right repository.
         :param repo: The git repository in which smells are located.
         :param writer: The output on which results should be written.
+        :param process_count: Number of processes that can be used in the analysis.
         """
         self.analyzer = analyzer
         self.repo = repo
         self.writer = writer
+        self.process_count = process_count
 
     def analyze_smells_ownership(self, smell_dir: str):
         """
@@ -112,9 +119,37 @@ class SmellsAnalyzer(object):
         :return: None
         """
         for _, _, files in os.walk(smell_dir):
-            for smell_file in files:
-                print("[" + os.path.basename(smell_dir) + "] Analyzing smell file: " + smell_file)
-                self._analyze_smell_file(os.path.join(smell_dir, smell_file))
+            smell_files = self.__iterate_smell_files(smell_dir, files)
+            if self.process_count > 1:
+                self._multiprocess_analysis(smell_files)
+            else:
+                for file in smell_files:
+                    self._analyze_smell_file(file)
+
+    @staticmethod
+    def __iterate_smell_files(smell_dir: str, files: List[str]):
+        return [os.path.join(smell_dir, smell_file) for smell_file in files]
+
+    def _multiprocess_analysis(self, smell_files: List[str]):
+        with Pool(self.process_count) as p:
+            writers: List[SmellOwnershipWriter] = p.map(self._multiprocess_analyze_smell_file, smell_files)
+            for writer in writers:
+                for line in writer.lines:
+                    self.writer._add_line(line)
+
+    def _multiprocess_analyze_smell_file(self, smell_file: str):
+        """Analyze the smell file, creating a new writer with the generated lines.
+
+        :param smell_file:
+        :return: SmellOwnershipWriter - The writer
+        """
+        analyzer = SmellsAnalyzer(self.analyzer, self.repo,
+                                  SmellOwnershipWriter(self.writer.output_path), 1)
+        analyzer._analyze_smell_file(smell_file)
+        return analyzer.writer
+
+    def __repo_name(self):
+        return self.repo.git_dir.split('/')[-2]
 
     def _analyze_smell_file(self, smell_file: str):
         """
@@ -122,6 +157,7 @@ class SmellsAnalyzer(object):
         :param smell_file: Path of the file to analyze.
         :return: None
         """
+        print("[" + self.__repo_name() + "] Analyzing smell file: " + smell_file)
         with open(smell_file, "r") as smells:
             smells_csv = csv.DictReader(smells, ["commit_number", "key", "instance", "commit_status", "id"])
             next(smells_csv, None)  # Skip header
@@ -149,22 +185,41 @@ class SmellsAnalyzer(object):
 
 class OwnershipProcessing(object):
     def __init__(self, input_dir: str, repo_dir: str,
-                 thread_count: int, output_dir: str = "./output"):
+                 process_count: int, output_dir: str = "./output"):
         """
         Creates a smell binder to check the ownership of
         :param input_dir: Projects results directory containing smells.
         :param repo_dir: Projects git repositories under the same name as in 'input_dir'.
-        :param thread_count: The number of available threads.
+        :param process_count: The number of available threads.
         :param output_dir: The output for all files per project.
         """
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.repo_dir = repo_dir
-        self.thread_count = thread_count
+        self.process_count = process_count
+
+    def _available_processes(self):
+        """
+        Returns the number of threads that we can use on this level of multiprocessing.
+
+        We are dividing by the number of file we need to analyze for each project.
+        :return: int - The number of available processes
+        """
+        return max(1, int(floor(self.process_count / 10)))
+
+    def _remaining_processes(self):
+        """
+        Returns the number of cores that can be used for the underlying analysis.
+
+        :return:
+        """
+        return self.process_count  # max(1, self.process_count - self._available_processes())
 
     def process(self):
-        with Pool(self.thread_count) as p:
-            p.map(self.analyze_project_smells, os.listdir(self.input_dir))
+        # with Pool(self._available_processes()) as p:
+        #     p.map(self.analyze_project_smells, os.listdir(self.input_dir))
+        for file in os.listdir(self.input_dir):
+            self.analyze_project_smells(file)
         print("Binding Done!")
 
     def analyze_project_smells(self, project: str):
@@ -172,7 +227,7 @@ class OwnershipProcessing(object):
         writer = SmellOwnershipWriter(self._output_file(project))
         repo = Repo(os.path.join(self.repo_dir, project))
         handler = FileOwnershipHandler(writer, repo)
-        analyzer = SmellsAnalyzer(handler, repo, writer)
+        analyzer = SmellsAnalyzer(handler, repo, writer, self._remaining_processes())
         analyzer.analyze_smells_ownership(self._smells_dir(project))
         writer.write()
 
