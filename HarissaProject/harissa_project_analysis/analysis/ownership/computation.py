@@ -36,9 +36,13 @@ class FileOwnershipHandler(object):
         log = list(self.repo.iter_commits(revision, path))
         nb_commits = len(log)
         authors = self._count_authored_commits(log)
+
+        owner = None
+        ownership = 0
         # Retrieving author with maximum count of commits
-        owner = max(authors.items(), key=operator.itemgetter(1))[0]
-        ownership = authors[owner] / float(nb_commits)
+        if authors:
+            owner = max(authors.items(), key=operator.itemgetter(1))[0]
+            ownership = authors[owner] / float(nb_commits)
         if ownership > self.OWNERSHIP_THRESHOLD:
             self.output_writer.add_owner(owner, path, ownership)
         else:
