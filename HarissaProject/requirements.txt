@@ -1,4 +1,5 @@
 gitpython==2.1.8
+python-dateutil==2.7.2
 
 # Distribution
 setuptools==39.0.1
