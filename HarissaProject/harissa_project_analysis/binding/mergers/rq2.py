@@ -8,7 +8,7 @@ import datetime
 
 from dateutil import parser
 
-from analysis.output import CsvOutputWriter
+from harissa_project_analysis.analysis.output import CsvOutputWriter
 
 
 def merge_commits_with_smells(input_metrics: str, commits: str):
@@ -103,8 +103,12 @@ class SmellType(Enum):
 
 class SmellEntry(object):
     def __init__(self, smell: SmellType, fields: List[str]):
-        self.smell = smell
+        self.type = smell
         self.columns = self._get_fields(fields, smell)
+        # print("[DEBUG][" + smell.name + "] Found columns:" + str(self.columns))
+        # print("[DEBUG][" + smell.name + "] introduction col:" + str([header for header in self.columns[0::3]]))
+        # print("[DEBUG][" + smell.name + "] refactoring col:" + str([header for header in self.columns[1::3]]))
+        # print("[DEBUG][" + smell.name + "] deletion col:" + str([header for header in self.columns[2::3]]))
         self.introductions = 0
         self.refactoring = 0
         self.deletion = 0
@@ -114,7 +118,19 @@ class SmellEntry(object):
     def _get_fields(fields: List[str], smell: SmellType):
         return [field for field in fields if smell.name in field]
 
+    def reset(self):
+        self.introductions = 0
+        self.refactoring = 0
+        self.deletion = 0
+        self.removal = 0
+
     def parse(self, line):
+        """
+        Fill the number of introduction, refactoring, deletion and removal in this CSV line.
+
+        :param line: The line to analyze
+        :return: None
+        """
         self.introductions += sum(int(line[header]) for header in self.columns[0::3])
         self.refactoring += sum(int(line[header]) for header in self.columns[1::3])
         self.deletion += sum(int(line[header]) for header in self.columns[2::3])
@@ -194,7 +210,7 @@ class CommitMergerCsvWriter(CsvOutputWriter):
     def build_dictionary(self, smells: List[SmellEntry]):
         smell_dictionary = {}
         for smell in smells:
-            smell_name = smell.smell.name
+            smell_name = smell.type.name
             smell_dictionary.update({
                 self.get_int(smell_name): smell.introductions,
                 self.get_ref(smell_name): smell.refactoring,

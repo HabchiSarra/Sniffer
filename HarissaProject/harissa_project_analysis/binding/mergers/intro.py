@@ -2,7 +2,7 @@
 import csv
 import os
 
-from analysis.output import CsvOutputWriter
+from harissa_project_analysis.analysis.output import CsvOutputWriter
 
 
 def is_not_zero(x):
