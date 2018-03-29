@@ -7,6 +7,8 @@ from harissa_project_analysis import __version__
 from harissa_project_analysis.analysis.processing import AnalysisProcessing
 from harissa_project_analysis.binding.smells import OwnershipProcessing
 
+from harissa_project_analysis.binding.merge import all_merges
+
 
 def handle_args():
     parser = argparse.ArgumentParser(description='Process the commits of the given projects')
@@ -40,6 +42,11 @@ def handle_args():
     binding_parser.add_argument("-r", "--repo", type=str, required=True,
                                 help="Projects' git repositories structured as $input/$project/.git")
 
+    merge_parser = subparsers.add_parser('merge')
+    merge_parser.add_argument("-m", "--metrics", type=str, required=True,
+                              help="Projects' smells structured as $input/$project/smells/*.csv")
+    merge_parser.add_argument("-c", "--commits", type=str, required=True,
+                              help="Projects' commits analysis structured as $input/commits-$project.csv")
     # TODO: [args] single project - possible via local? Give directly the repo?
     return parser.parse_args()
 
@@ -60,6 +67,10 @@ def binding_command(args):
         print("No binding defined!")
 
 
+def merge_command(args):
+    all_merges(args.metrics, args.commits)
+
+
 if __name__ == '__main__':
     args = handle_args()
 
@@ -67,4 +78,6 @@ if __name__ == '__main__':
         analysis_command(args)
     elif args.command == "binding":
         binding_command(args)
+    elif args.command == "merge":
+        merge_command(args)
     print("Done!")

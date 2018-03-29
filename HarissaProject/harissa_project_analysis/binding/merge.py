@@ -337,6 +337,12 @@ def merge_commits_with_smells(input_metrics: str, commits: str):
     csv_writer.write()
 
 
+def all_merges(metrics: str, commits: str):
+    merge_commits_by_ird(metrics)
+    merge_ird_by_smell(metrics)
+    merge_commits_with_smells(metrics, commits)
+
+
 if __name__ == '__main__':
     metrics_dir = "/data/tandoori-metrics/results"
     commits_dir = "/data/tandoori-metrics/commits-analysis"
