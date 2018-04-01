@@ -1,16 +1,21 @@
 # coding=utf-8
+from harissa_project_analysis.binding.mergers.rq1 import merge_commits_with_smells
+from harissa_project_analysis.binding.mergers.rq4 import merge_ownership_for_ird
 
-from harissa_project_analysis.binding.mergers.rq3 import merge_ownership_for_ird
 
-
-def all_merges(metrics: str, repos: str, output: str):
+def all_merges(metrics: str, repos: str = None, commits: str = None, output: str = "./"):
     # merge_commits_by_ird(metrics)
     # merge_ird_by_smell(metrics)
-    # merge_commits_with_smells(metrics, commits)
-    if repos is None:
-        print("Repository value is needed for ownership merge!")
+
+    if commits is None:
+        print("Commits value is needed for ownership merge!")
     else:
-        merge_ownership_for_ird(metrics, repos, output)
+        merge_commits_with_smells(metrics, commits)
+
+    # if repos is None:
+    #     print("Repository value is needed for ownership merge!")
+    # else:
+    #     merge_ownership_for_ird(metrics, repos, output)
 
 
 if __name__ == '__main__':

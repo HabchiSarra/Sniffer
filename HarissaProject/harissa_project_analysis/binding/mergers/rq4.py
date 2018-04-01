@@ -7,7 +7,7 @@ from git import Repo
 
 from harissa_project_analysis.analysis.ownership.computation import FileOwnershipHandler
 from harissa_project_analysis.analysis.ownership.output import OwnershipOutputWriter
-from harissa_project_analysis.binding.mergers.rq2 import SmellType, SmellEntry
+from harissa_project_analysis.binding.mergers.rq1 import SmellType, SmellEntry
 from harissa_project_analysis.binding.smells import FileFinder
 from harissa_project_analysis.analysis.output import CsvOutputWriter
 

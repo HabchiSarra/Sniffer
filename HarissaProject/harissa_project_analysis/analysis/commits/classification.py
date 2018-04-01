@@ -46,7 +46,11 @@ class DocumentationClassifier(KeywordClassifier):
 
 class FeatureClassifier(KeywordClassifier):
     def __init__(self):
-        super().__init__("feature", ("feat",))
+        super().__init__(
+            "feature",
+            ("implement", "add", "test", "request", "new", "start",
+             "includ", "initial", "introduc", "creat", "increas")
+        )
 
 
 class FixClassifier(KeywordClassifier):
@@ -70,7 +74,12 @@ class PerformanceClassifier(KeywordClassifier):
 
 class RefactorClassifier(KeywordClassifier):
     def __init__(self):
-        super().__init__("refactor", ("refactor",))
+        super().__init__(
+            "refactor",
+            ("refactor", "restruct", "clean",
+             "not used", "unused", "reformat", "import ",
+             "remove", "replace", "split", "reorg", "rename", "move")
+        )
 
 
 class StyleClassifier(KeywordClassifier):

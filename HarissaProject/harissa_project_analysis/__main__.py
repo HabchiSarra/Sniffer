@@ -45,8 +45,10 @@ def handle_args():
     merge_parser = subparsers.add_parser('merge')
     merge_parser.add_argument("-i", "--input", type=str, required=True,
                               help="Projects' smells structured as $input/$project/smells/*.csv")
-    merge_parser.add_argument("-r", "--repo", type=str, required=True,
-                              help="Projects' git repositories structured as $input/$project/.git")
+    merge_parser.add_argument("-r", "--repo", type=str, required=False,
+                              help="Projects' git repositories structured as $repo/$project/.git")
+    merge_parser.add_argument("-c", "--commits", type=str, required=False,
+                              help="Projects' commits analysis structured as $commits/commits-$project.csv")
     # TODO: [args] single project - possible via local? Give directly the repo?
     return parser.parse_args()
 
@@ -68,7 +70,7 @@ def binding_command(args):
 
 
 def merge_command(args):
-    all_merges(args.input, args.repo, args.output)
+    all_merges(metrics=args.input, repos=args.repo, commits=args.commits, output=args.output)
 
 
 if __name__ == '__main__':
