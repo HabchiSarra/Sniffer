@@ -142,7 +142,18 @@ def retrieve_smell_file(metrics_dir: str, project: str, smell_type: str):
     return glob.glob(os.path.join(metrics_dir, project, "smells", "*" + smell_type + ".csv"))[0]
 
 
-def merge_ownership_for_ird(metrics: str, repos: str, output_path: str):
+def _find_previous_commit(commit_sha: str, logs_file: str) -> str:
+    result = None
+    with open(logs_file, 'r') as logs:
+        for commit in logs:
+            current = commit.strip()
+            if current == commit_sha:
+                return result
+            result = current
+    return None
+
+
+def merge_ownership_for_ird(metrics: str, repos: str, logs_dir: str, output_path: str):
     out_introduction = SmellOwnershipCsvWriter(os.path.join(output_path, "ownership_introductions.csv"))
     out_refactor = SmellOwnershipCsvWriter(os.path.join(output_path, "ownership_refactor.csv"))
     out_deletion = SmellOwnershipCsvWriter(os.path.join(output_path, "ownership_deletion.csv"))
@@ -152,15 +163,16 @@ def merge_ownership_for_ird(metrics: str, repos: str, output_path: str):
     for project in [x for x in os.listdir(metrics) if os.path.isdir(os.path.join(metrics, x))]:
         file_path = os.path.join(metrics, project, "metrics/metrics-perDev-perCommit-perSmell.csv")
         repo = Repo(os.path.join(repos, project))
+        logs_file = os.path.join(logs_dir, project + ".logs")
         print("[" + project + "] Starting Analysis")
 
         with open(file_path, 'r') as smell_count_file:
             reader = csv.DictReader(smell_count_file)
-            previous_sha = None
             smell_entries = [SmellEntry(smell, reader.fieldnames) for smell in SmellType]
 
             for line in reader:
                 commit_sha = line["sha"]
+                previous_sha = _find_previous_commit(commit_sha, logs_file)
 
                 # For each smell type
                 for smell in smell_entries:
