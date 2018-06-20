@@ -1,0 +1,25 @@
+dependencies {
+    compile project(":Harissa")
+    compile project(":HarissaMetrics")
+    compile project(":HarissaGitHub")
+
+    compile "net.sourceforge.argparse4j:argparse4j:0.7.0"
+    compile 'org.xerial:sqlite-jdbc:3.21.0.1'
+
+    // Using Git API inside Java
+    compile 'org.eclipse.jgit:org.eclipse.jgit:4.11.0.201803080745-r'
+
+    // Logging
+    compile 'log4j:log4j:1.2.17'
+    compile 'org.slf4j:slf4j-log4j12:1.7.25'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+apply plugin: 'application'
+mainClassName = "org.tandoori.Main"
+
+apply plugin: "com.github.johnrengelman.shadow"
+shadowJar {
+    mergeServiceFiles()
+}
