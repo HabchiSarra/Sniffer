@@ -13,7 +13,6 @@ import neo4j.OverdrawQuery;
 import neo4j.QueryEngine;
 import neo4j.UnsuitedLRUCacheSizeQuery;
 import neo4j.UnsupportedHardwareAccelerationQuery;
-import org.neo4j.graphdb.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,15 +58,14 @@ public class SmellQuery implements Query {
 
         for (neo4j.Query query : queries(queryEngine)) {
             logger.info("Querying Smells of type: " + query.getSmellName());
-            Result result = query.fetchResult(showDetails);
+            List<Map<String, Object>> result = query.fetchResult(showDetails);
             logger.debug("Got result: " + result);
             writeResults(result, query.getSmellName());
         }
     }
 
-    private void writeResults(Result results, String smellName) {
-        while (results.hasNext()) {
-            Map<String, Object> row = results.next();
+    private void writeResults(List<Map<String, Object>> results, String smellName) {
+        for (Map<String, Object> row : results) {
             String instance = (String) row.get("instance");
             Object commitSha = row.get("sha1");
 

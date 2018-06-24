@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `Languages` (
 
 );
 
-CREATE TABLE IF NOT EXISTS `Commit` (
+CREATE TABLE IF NOT EXISTS `CommitEntry` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   projectId   INTEGER NOT NULL,
   developerId INTEGER NOT NULL,
@@ -44,12 +44,12 @@ CREATE TABLE IF NOT EXISTS `Commit` (
   FOREIGN KEY (developerId) REFERENCES Developer (id)
 );
 
-CREATE TABLE IF NOT EXISTS `CommitTag` (
+CREATE TABLE IF NOT EXISTS `CommitEntryTag` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   commitId INTEGER NOT NULL,
   tag      VARCHAR(10),
   UNIQUE (commitId, tag),
-  FOREIGN KEY (commitId) REFERENCES `Commit` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
 );
 
 CREATE TABLE IF NOT EXISTS `Smell` (
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `SmellPresence` (
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `Commit` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
 );
 
 CREATE TABLE IF NOT EXISTS `SmellIntroduction` (
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `SmellIntroduction` (
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `Commit` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
 );
 
 CREATE TABLE IF NOT EXISTS `SmellRefactor` (
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS `SmellRefactor` (
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `Commit` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
 );
 
 CREATE TABLE IF NOT EXISTS `SmellDeletion` (
@@ -92,6 +92,6 @@ CREATE TABLE IF NOT EXISTS `SmellDeletion` (
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `Commit` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
 );
 

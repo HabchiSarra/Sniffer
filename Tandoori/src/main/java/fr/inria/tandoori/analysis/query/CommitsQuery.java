@@ -5,6 +5,7 @@ import fr.inria.tandoori.analysis.persistence.Persistence;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,7 @@ public class CommitsQuery implements Query {
         }
         // This is better to add them together as it creates a batch insert.
         persistence.addStatements(statements.toArray(new String[statements.size()]));
+        persistence.commit();
 
         finalizeRepository();
     }
@@ -65,8 +67,9 @@ public class CommitsQuery implements Query {
     private String persistStatement(RevCommit commit, int count) {
         int authorId = insertAuthor(commit.getAuthorIdent().getEmailAddress());
         // TODO: commit size (addition, deletion)
-        String statement = "INSERT INTO `Commit` (projectId, developerId, sha1, ordinal, date)" + // TODO: size
-                "VALUES ('" + projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + commit.getCommitTime() + "')";
+        logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + new DateTime(commit.getCommitTime()) + ")");
+        String statement = "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date)" + // TODO: size
+                "VALUES ('" + projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + new DateTime(commit.getCommitTime() * 1000).toString() + "');";
 
         return statement;
     }
