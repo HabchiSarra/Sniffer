@@ -6,8 +6,10 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 
 public class SQLitePersistence implements Persistence {
     private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
@@ -48,6 +50,18 @@ public class SQLitePersistence implements Persistence {
         } finally {
             closeStatement();
         }
+    }
+
+    @Override
+    public ResultSet query(String statement) {
+        try {
+            return sqlStatement.executeQuery(statement);
+        } catch (SQLException e) {
+            logger.error("Unable to query database: " + path, e);
+        } finally {
+            closeStatement();
+        }
+        return null;
     }
 
 

@@ -12,6 +12,8 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.slf4j.LoggerFactory;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,10 +34,10 @@ public class SingleAppAnalysis {
         int appId = persistApp(appName, persistence);
 
         analysisProcess = new ArrayList<>();
-        analysisProcess.add(new SmellQuery(db));
-        analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
         analysisProcess.add(new CommitsQuery(appId, appRepo, persistence));
-        analysisProcess.add(new MetricsQuery(persistence));
+        analysisProcess.add(new SmellQuery(appId, db, persistence));
+//        analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
+//        analysisProcess.add(new MetricsQuery(persistence));
     }
 
     /**
@@ -48,8 +50,17 @@ public class SingleAppAnalysis {
      * @return The project identifier in the database.
      */
     private static int persistApp(String appName, Persistence persistence) {
-        // TODO: Insert and retrieve an identifier for the project
-        return 0;
+        String projectInsert = "INSERT INTO Project (name) VALUES (" + appName + ");";
+        persistence.addStatements(projectInsert);
+        persistence.commit();
+
+        String idQuery = "SELECT id FROM Smell WHERE name = '" + appName + "';";
+        ResultSet result = persistence.query(idQuery);
+        try {
+            return result.getInt("id");
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to retrieve project id (" + appName + ")", e);
+        }
     }
 
     public void analyze() {

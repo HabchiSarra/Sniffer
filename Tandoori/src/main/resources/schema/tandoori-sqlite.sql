@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS `ProjectDeveloper` (
 
 CREATE TABLE IF NOT EXISTS `Developer` (
   id        INTEGER UNSIGNED PRIMARY KEY AUTOINCREMENT,
-  username  VARCHAR(40)      NOT NULL,
-  stars     INTEGER UNSIGNED NOT NULL,
-  followers INTEGER UNSIGNED NOT NULL,
+  username  VARCHAR(256)      NOT NULL,
+  stars     INTEGER UNSIGNED,
+  followers INTEGER UNSIGNED,
   UNIQUE (username)
 );
 
@@ -58,6 +58,15 @@ CREATE TABLE IF NOT EXISTS `Smell` (
   instance VARCHAR(256) NOT NULL,
   type     VARCHAR(5)   NOT NULL,
   UNIQUE (instance)
+);
+
+CREATE TABLE IF NOT EXISTS `SmellPresence` (
+  id       INTEGER UNSIGNED PRIMARY KEY AUTOINCREMENT,
+  smellId  INTEGER UNSIGNED NOT NULL,
+  commitId INTEGER UNSIGNED NOT NULL,
+  UNIQUE (smellId, commitId),
+  FOREIGN KEY (smellId) REFERENCES Smell (id),
+  FOREIGN KEY (commitId) REFERENCES `Commit` (id)
 );
 
 CREATE TABLE IF NOT EXISTS `SmellIntroduction` (

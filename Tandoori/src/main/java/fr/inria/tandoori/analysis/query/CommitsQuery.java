@@ -11,9 +11,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Fetch all commits and developers for a project.
+ */
 public class CommitsQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(CommitsQuery.class.getName());
     private int projectId;
@@ -59,25 +64,42 @@ public class CommitsQuery implements Query {
     }
 
     private String persistStatement(RevCommit commit, int count) {
-        // TODO: Query is too raw over there, should we provide an orm?
-        int authorId = getAuthorId(commit.getAuthorIdent().getEmailAddress());
+        int authorId = insertAuthor(commit.getAuthorIdent().getEmailAddress());
         //TODO: How to retrieve the diff?!
         StringBuilder statement =
                 new StringBuilder("INSERT INTO")
                         .append("Commit ")
-                        .append("(projectId, developerId, sha1, ordinal, date, size)")
+                        .append("(projectId, developerId, sha1, ordinal, date)") // TODO: size
                         .append("VALUES ")
                         .append("(")
-                        .append(projectId).append(authorId)//.append(commit.getFullMessage())
+                        .append(projectId).append(authorId)
                         .append(commit.name()).append(count).append(commit.getCommitTime())
-                        .append(commit.getTree()/*TODO*/)
+                       // .append(commit.getTree()/*TODO: commit size (addition, deletion)*/)
                         .append(")");
         return statement.toString();
     }
 
-    private static int getAuthorId(String emailAddress) {
-        // FIXME: Query database to find developer ID, insert if not exists
-        return 11;
+    private int insertAuthor(String emailAddress) {
+        String developerQuery = "SELECT FROM Developer where username = " + emailAddress;
+
+        // Try to insert the developer if not exist
+        String authorInsert = "INSERT INTO Developer (username) VALUES (" + emailAddress + ");";
+        persistence.addStatements(authorInsert);
+        persistence.commit();
+
+        // Try to insert the developer/project mapping if not exist
+        String authorProjectInsert = "INSERT INTO ProjectDeveloper (developerId, projectId) VALUES ("
+                + developerQuery + ", " + projectId + ");";
+        persistence.addStatements(authorProjectInsert);
+        persistence.commit();
+
+        // Retrieve developer ID for further usage
+        ResultSet result = persistence.query(developerQuery);
+        try {
+            return result.getInt("id");
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to retrieve developer id (" + emailAddress + ")", e);
+        }
     }
 
     private Git initializeRepository() throws QueryException {

@@ -5,6 +5,9 @@ import org.tandoori.metrics.calculator.SmellsCalculator;
 
 import java.io.File;
 
+/**
+ * Count smells introduces, refactored and deleted for each commits.
+ */
 public class MetricsQuery implements Query {
     private final Persistence persistence;
 

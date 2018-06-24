@@ -4,6 +4,9 @@ import org.tandoori.gitminer.ContentFetcher;
 import org.tandoori.gitminer.model.Repository;
 import org.tandoori.gitminer.neo4j.ModelToGraph;
 
+/**
+ * Enhance developers data with start, contributors, and every available data.
+ */
 public class DevelopersQuery implements Query {
     private static final String GITHUB_API_URL = "https://api.github.com/repos/";
     private final String repo;
