@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 /**
@@ -41,14 +42,19 @@ public class CommitsQuery implements Query {
     public void query() throws QueryException {
         Git gitRepo = initializeRepository();
         Iterable<RevCommit> commits = getCommits(gitRepo);
-
-        List<String> statements = new ArrayList<>();
-        int commitCount = 0;
+        List<RevCommit> commitsList = new ArrayList<>();
+        // Reverse our commit list.
         for (RevCommit commit : commits) {
-            statements.add(persistStatement(commit, commitCount++));
+            commitsList.add(0, commit);
+        }
+
+        String[] statements = new String[commitsList.size()];
+        int commitCount = 0;
+        for (RevCommit commit : commitsList) {
+            statements[commitCount] = persistStatement(commit, commitCount++);
         }
         // This is better to add them together as it creates a batch insert.
-        persistence.addStatements(statements.toArray(new String[statements.size()]));
+        persistence.addStatements(statements);
         persistence.commit();
 
         finalizeRepository();
@@ -68,8 +74,9 @@ public class CommitsQuery implements Query {
         int authorId = insertAuthor(commit.getAuthorIdent().getEmailAddress());
         // TODO: commit size (addition, deletion)
         logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + new DateTime(commit.getCommitTime()) + ")");
+        DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
         String statement = "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date)" + // TODO: size
-                "VALUES ('" + projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + new DateTime(commit.getCommitTime() * 1000).toString() + "');";
+                "VALUES ('" + projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + commitDate.toString() + "');";
 
         return statement;
     }
