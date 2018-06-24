@@ -58,32 +58,31 @@ public class SmellQuery implements Query {
         QueryEngine queryEngine = new QueryEngine(db);
 
         for (neo4j.Query query : queries(queryEngine)) {
+            logger.info("Querying Smells of type: " + query.getSmellName());
             Result result = query.fetchResult(showDetails);
+            logger.debug("Got result: " + result);
             writeResults(result, query.getSmellName());
         }
     }
 
     private void writeResults(Result results, String smellName) {
-        List<String> columns = results.columns();
         while (results.hasNext()) {
             Map<String, Object> row = results.next();
             String instance = (String) row.get("instance");
             Object commitSha = row.get("sha1");
 
-            String smellQuery = "SELECT id FROM Smell WHERE instance = " + instance +
-                    "AND type = " + smellName;
-            String commitQuery = "SELECT id FROM `Commit` WHERE sha1 = " + commitSha +
-            "AND projectId = " + this.projectId;
+            String smellQuery = "SELECT id FROM Smell WHERE instance = '" + instance +
+                    "' AND type = '" + smellName + "'";
+            String commitQuery = "SELECT id FROM `Commit` WHERE sha1 = '" + commitSha +
+                    "' AND projectId = " + this.projectId;
 
             String smellInsert = "INSERT INTO Smell (instance, type) VALUES" +
-                    "(" + instance + ", " + smellName + ");";
+                    "('" + instance + "', '" + smellName + "');";
 
             String smellPresenceInsert = "INSERT INTO SmellPresence (smellId, commitId) VALUES" +
-                    "(" + smellQuery + ", " + commitQuery + ");";
+                    "('" + smellQuery + "', (" + commitQuery + "));";
             persistence.addStatements(smellInsert, smellPresenceInsert);
         }
-
-
         persistence.commit();
     }
 }

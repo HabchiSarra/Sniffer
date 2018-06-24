@@ -17,7 +17,7 @@ dependencies {
 }
 
 apply plugin: 'application'
-mainClassName = "org.tandoori.Main"
+mainClassName = "fr.inria.tandoori.analysis.Main"
 
 apply plugin: "com.github.johnrengelman.shadow"
 shadowJar {

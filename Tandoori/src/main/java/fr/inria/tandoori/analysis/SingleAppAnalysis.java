@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class handling a single app analysis process in Tandoori.
@@ -50,17 +51,14 @@ public class SingleAppAnalysis {
      * @return The project identifier in the database.
      */
     private static int persistApp(String appName, Persistence persistence) {
-        String projectInsert = "INSERT INTO Project (name) VALUES (" + appName + ");";
+        String projectInsert = "INSERT INTO Project (name) VALUES ('" + appName + "');";
         persistence.addStatements(projectInsert);
         persistence.commit();
 
-        String idQuery = "SELECT id FROM Smell WHERE name = '" + appName + "';";
-        ResultSet result = persistence.query(idQuery);
-        try {
-            return result.getInt("id");
-        } catch (SQLException e) {
-            throw new RuntimeException("Unable to retrieve project id (" + appName + ")", e);
-        }
+        String idQuery = "SELECT id FROM Project WHERE name = '" + appName + "';";
+        List<Map<String, Object>> result = persistence.query(idQuery);
+        // TODO: Maybe be less violent / test the returned data
+        return (int) result.get(0).get("id");
     }
 
     public void analyze() {

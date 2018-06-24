@@ -4,11 +4,21 @@ import fr.inria.tandoori.analysis.Main;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class SQLitePersistence implements Persistence {
@@ -33,6 +43,7 @@ public class SQLitePersistence implements Persistence {
                 sqlStatement = connection.createStatement();
             }
             for (String statement : statements) {
+                logger.debug("Adding new statement: " + statement);
                 sqlStatement.addBatch(statement);
             }
         } catch (SQLException e) {
@@ -46,22 +57,36 @@ public class SQLitePersistence implements Persistence {
             sqlStatement.executeBatch();
             sqlStatement.clearBatch();
         } catch (SQLException e) {
-            logger.error("Unable to commit transaction into database: " + path, e);
+            logger.warn("Unable to commit transaction into database: " + path, e);
         } finally {
             closeStatement();
         }
     }
 
     @Override
-    public ResultSet query(String statement) {
-        try {
-            return sqlStatement.executeQuery(statement);
+    public List<Map<String, Object>> query(String statement) {
+        try (Statement queryStatement = connection.createStatement()) {
+            ResultSet resultSet = queryStatement.executeQuery(statement);
+            return resultSetToArrayList(resultSet);
         } catch (SQLException e) {
             logger.error("Unable to query database: " + path, e);
-        } finally {
-            closeStatement();
         }
         return null;
+    }
+
+    private List<Map<String, Object>> resultSetToArrayList(ResultSet rs) throws SQLException {
+        ResultSetMetaData md = rs.getMetaData();
+        int columns = md.getColumnCount();
+        List<Map<String, Object>> list = new ArrayList<>(50);
+        Map<String, Object> row;
+        while (rs.next()) {
+            row = new HashMap<>(columns);
+            for (int i = 1; i <= columns; ++i) {
+                row.put(md.getColumnName(i), rs.getObject(i));
+            }
+            list.add(row);
+        }
+        return list;
     }
 
 
@@ -86,6 +111,38 @@ public class SQLitePersistence implements Persistence {
 
     @Override
     public void initialize() {
+        try (Statement initStatement = connection.createStatement()) {
+            List<String> initialization = loadSQLiteDatabase();
+            for (String statement : initialization) {
+                logger.debug("Adding initialization statement: " + statement);
+                initStatement.addBatch(statement);
+            }
+            initStatement.executeBatch();
+        } catch (SQLException e) {
+            logger.error("Unable to query database: " + path, e);
+        }
+    }
 
+    private List<String> loadSQLiteDatabase() {
+        List<String> output = new ArrayList<>();
+        StringBuilder statement = new StringBuilder();
+        InputStream resource = getClass().getResourceAsStream("/schema/tandoori-sqlite.sql");
+        try {
+            InputStreamReader streamReader = new InputStreamReader(resource, StandardCharsets.UTF_8);
+            BufferedReader reader = new BufferedReader(streamReader);
+            for (String line; (line = reader.readLine()) != null; ) {
+                statement.append(line).append("\n");
+
+                if (line.contains(";")) {
+                    output.add(statement.toString());
+                    statement = new StringBuilder();
+                }
+            }
+
+            return output;
+        } catch (IOException e) {
+            logger.error("Unable to read SQL definition file: " + path);
+        }
+        return output;
     }
 }

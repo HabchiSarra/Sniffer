@@ -1,6 +1,7 @@
 package fr.inria.tandoori.analysis.persistence;
 
-import java.sql.ResultSet;
+import java.util.List;
+import java.util.Map;
 
 public interface Persistence {
     /**
@@ -21,7 +22,7 @@ public interface Persistence {
      * @param statement
      * @return
      */
-    ResultSet query(String statement);
+    List<Map<String, Object>> query(String statement);
 
     /**
      * Close the database connection.

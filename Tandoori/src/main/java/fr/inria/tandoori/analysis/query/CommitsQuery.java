@@ -11,10 +11,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Fetch all commits and developers for a project.
@@ -65,41 +64,31 @@ public class CommitsQuery implements Query {
 
     private String persistStatement(RevCommit commit, int count) {
         int authorId = insertAuthor(commit.getAuthorIdent().getEmailAddress());
-        //TODO: How to retrieve the diff?!
-        StringBuilder statement =
-                new StringBuilder("INSERT INTO")
-                        .append("Commit ")
-                        .append("(projectId, developerId, sha1, ordinal, date)") // TODO: size
-                        .append("VALUES ")
-                        .append("(")
-                        .append(projectId).append(authorId)
-                        .append(commit.name()).append(count).append(commit.getCommitTime())
-                       // .append(commit.getTree()/*TODO: commit size (addition, deletion)*/)
-                        .append(")");
-        return statement.toString();
+        // TODO: commit size (addition, deletion)
+        String statement = "INSERT INTO `Commit` (projectId, developerId, sha1, ordinal, date)" + // TODO: size
+                "VALUES ('" + projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + commit.getCommitTime() + "')";
+
+        return statement;
     }
 
     private int insertAuthor(String emailAddress) {
-        String developerQuery = "SELECT FROM Developer where username = " + emailAddress;
+        String developerQuery = "SELECT id FROM Developer where username = '" + emailAddress + "'";
 
         // Try to insert the developer if not exist
-        String authorInsert = "INSERT INTO Developer (username) VALUES (" + emailAddress + ");";
+        String authorInsert = "INSERT INTO Developer (username) VALUES ('" + emailAddress + "');";
         persistence.addStatements(authorInsert);
         persistence.commit();
 
         // Try to insert the developer/project mapping if not exist
-        String authorProjectInsert = "INSERT INTO ProjectDeveloper (developerId, projectId) VALUES ("
-                + developerQuery + ", " + projectId + ");";
+        String authorProjectInsert = "INSERT INTO ProjectDeveloper (developerId, projectId) VALUES (("
+                + developerQuery + "), " + projectId + ");";
         persistence.addStatements(authorProjectInsert);
         persistence.commit();
 
         // Retrieve developer ID for further usage
-        ResultSet result = persistence.query(developerQuery);
-        try {
-            return result.getInt("id");
-        } catch (SQLException e) {
-            throw new RuntimeException("Unable to retrieve developer id (" + emailAddress + ")", e);
-        }
+        List<Map<String, Object>> result = persistence.query(developerQuery);
+        // TODO: Add more verification clauses
+        return (int) result.get(0).get("id");
     }
 
     private Git initializeRepository() throws QueryException {
@@ -107,7 +96,7 @@ public class CommitsQuery implements Query {
         try {
             gitRepo = Git.cloneRepository()
                     .setDirectory(cloneDir.toFile())
-                    .setURI(this.repository)
+                    .setURI("https://github.com/" + this.repository)
                     .call();
         } catch (GitAPIException e) {
             logger.error("Unable to clone repository: " + this.repository, e);
