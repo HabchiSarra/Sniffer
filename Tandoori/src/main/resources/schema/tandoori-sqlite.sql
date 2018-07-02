@@ -45,10 +45,11 @@ CREATE TABLE IF NOT EXISTS `CommitEntry` (
 
 CREATE TABLE IF NOT EXISTS `FileRename` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  projectId   INTEGER NOT NULL,
-  commitId    INTEGER NOT NULL,
-  oldFile     VARCHAR(256)     NOT NULL,
-  newFile      VARCHAR(256)     NOT NULL,
+  projectId   INTEGER         NOT NULL,
+  commitId    INTEGER         NOT NULL,
+  oldFile     VARCHAR(256)    NOT NULL,
+  newFile     VARCHAR(256)    NOT NULL,
+  similarity  INT             NOT NULL,
   UNIQUE (projectId, commitId, oldFile),
   FOREIGN KEY (projectId) REFERENCES Project (id),
   FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
