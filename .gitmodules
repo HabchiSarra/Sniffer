@@ -1,12 +1,16 @@
 [submodule "Harissa"]
 	path = Harissa
 	url = git@github.com:HSarah/Harissa.git
+	branch = develop
 [submodule "HarissaMetrics"]
 	path = HarissaMetrics
 	url = git@github.com:HSarah/HarissaMetrics.git
+	branch = master
 [submodule "HarissaGitHub"]
 	path = HarissaGitHub
 	url = git@github.com:HSarah/HarissaGitHub.git
+	branch = master
 [submodule "PaprikaCommitManager"]
 	path = PaprikaCommitManager
 	url = git@git.evilantrules.xyz:Tandoori/PaprikaCommitManager.git
+	branch = master

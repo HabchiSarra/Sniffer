@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS `Languages` (
   experience  INT              NOT NULL,
   UNIQUE (developerId, language),
   FOREIGN KEY (developerId) REFERENCES Developer (id)
-
 );
 
 CREATE TABLE IF NOT EXISTS `CommitEntry` (
@@ -42,6 +41,17 @@ CREATE TABLE IF NOT EXISTS `CommitEntry` (
   UNIQUE (projectId, sha1),
   FOREIGN KEY (projectId) REFERENCES Project (id),
   FOREIGN KEY (developerId) REFERENCES Developer (id)
+);
+
+CREATE TABLE IF NOT EXISTS `FileRename` (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  projectId   INTEGER NOT NULL,
+  commitId    INTEGER NOT NULL,
+  oldFile     VARCHAR(256)     NOT NULL,
+  newFile      VARCHAR(256)     NOT NULL,
+  UNIQUE (projectId, commitId, oldFile),
+  FOREIGN KEY (projectId) REFERENCES Project (id),
+  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
 );
 
 CREATE TABLE IF NOT EXISTS `CommitEntryTag` (
