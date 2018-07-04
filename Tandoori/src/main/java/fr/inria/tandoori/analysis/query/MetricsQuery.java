@@ -1,7 +1,7 @@
 package fr.inria.tandoori.analysis.query;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import org.tandoori.metrics.calculator.SmellsCalculator;
+//import org.tandoori.metrics.calculator.SmellsCalculator;
 
 import java.io.File;
 
@@ -17,11 +17,11 @@ public class MetricsQuery implements Query {
 
     @Override
     public void query() {
-        SmellsCalculator calculator = new SmellsCalculator();
-        calculator.commitFile = new File("");
-        calculator.dbPath = new File("");
-        calculator.inputDir = new File("");
-        // TODO: ...
-        calculator.generateReport();
+//        SmellsCalculator calculator = new SmellsCalculator();
+//        calculator.commitFile = new File("");
+//        calculator.dbPath = new File("");
+//        calculator.inputDir = new File("");
+//         TODO: ...
+//        calculator.generateReport();
     }
 }

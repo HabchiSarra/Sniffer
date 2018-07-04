@@ -1,10 +1,8 @@
 package fr.inria.tandoori.analysis;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import fr.inria.tandoori.analysis.persistence.SQLitePersistence;
+import fr.inria.tandoori.analysis.persistence.PostgresqlPersistence;
 import fr.inria.tandoori.analysis.query.CommitsQuery;
-import fr.inria.tandoori.analysis.query.DevelopersQuery;
-import fr.inria.tandoori.analysis.query.MetricsQuery;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import fr.inria.tandoori.analysis.query.SmellQuery;
@@ -12,8 +10,6 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.slf4j.LoggerFactory;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +22,8 @@ public class SingleAppAnalysis {
 
     private final List<Query> analysisProcess;
     // TODO: Configurable persistence
-    private final Persistence persistence = new SQLitePersistence("output.sqlite");
+//    private final Persistence persistence = new SQLitePersistence("output.sqlite");
+    private final Persistence persistence = new PostgresqlPersistence("localhost:5432/tandoori", "tandoori", "tandoori");
 
     SingleAppAnalysis(String appName, String appRepo, String db, String githubToken) {
         // TODO: Should we initialize it only once, in a more specific place?

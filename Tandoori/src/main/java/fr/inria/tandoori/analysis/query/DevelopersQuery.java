@@ -1,8 +1,8 @@
 package fr.inria.tandoori.analysis.query;
 
-import org.tandoori.gitminer.ContentFetcher;
-import org.tandoori.gitminer.model.Repository;
-import org.tandoori.gitminer.neo4j.ModelToGraph;
+//import org.tandoori.gitminer.ContentFetcher;
+//import org.tandoori.gitminer.model.Repository;
+//import org.tandoori.gitminer.neo4j.ModelToGraph;
 
 /**
  * Enhance developers data with start, contributors, and every available data.
@@ -19,13 +19,13 @@ public class DevelopersQuery implements Query {
 
     @Override
     public void query() {
-        ContentFetcher fetcher = new ContentFetcher(token);
-        Repository repository = fetcher.getRepository(getUrl(repo));
-
-        // TODO insert result in SQL Database
-        ModelToGraph modelToGraph = new ModelToGraph("developerDB");
-        modelToGraph.insertRepository(repository);
-        modelToGraph.closeDB();
+//        ContentFetcher fetcher = new ContentFetcher(token);
+//        Repository repository = fetcher.getRepository(getUrl(repo));
+//
+//         TODO insert result in SQL Database
+//        ModelToGraph modelToGraph = new ModelToGraph("developerDB");
+//        modelToGraph.insertRepository(repository);
+//        modelToGraph.closeDB();
 
         // Retrieve the developers and save them as CSV
 //        QueryEngine queryEngine = new QueryEngine(databasePath);
