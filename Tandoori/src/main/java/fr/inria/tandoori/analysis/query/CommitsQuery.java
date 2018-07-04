@@ -77,11 +77,14 @@ public class CommitsQuery implements Query {
 
     private String persistStatement(RevCommit commit, int count) {
         int authorId = insertAuthor(commit.getAuthorIdent().getEmailAddress());
+        GitDiffResult diff = GitDiffResult.fetch(repository, commit.name());
+
         // TODO: commit size (addition, deletion)
         logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + new DateTime(commit.getCommitTime()) + ")");
         DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
-        String statement = "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date) VALUES ('" + // TODO: size
-                projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + commitDate.toString() + "');";
+        String statement = "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged) VALUES ('" +
+                projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + commitDate.toString() +
+                "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() + ")";
 
         return statement;
     }
@@ -126,8 +129,14 @@ public class CommitsQuery implements Query {
         }
     }
 
+    /**
+     * Parse and add insertion statement in case of a renamed entry in the git diff.
+     *
+     * @param commitSelect Query to select the right commit id.
+     * @param line         Line to parse for rename.
+     */
     private void handleRenameLine(String commitSelect, String line) {
-        String statement;// If git announce a renaming line
+        // TODO: extract
         if (line.trim().startsWith("rename")) {
             GitRenameParser.RenameParsingResult result = null;
             try {
@@ -136,7 +145,7 @@ public class CommitsQuery implements Query {
                 logger.warn(e.getLocalizedMessage());
                 return;
             }
-            statement = "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
+            String statement = "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
                     projectId + "',(" + commitSelect + "), '" + result.oldFile + "', '" +
                     result.newFile + ", '" + result.similarity + "')";
             persistence.addStatements(statement);
