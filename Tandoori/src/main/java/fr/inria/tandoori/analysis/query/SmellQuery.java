@@ -2,7 +2,6 @@ package fr.inria.tandoori.analysis.query;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import neo4j.HashMapUsageQuery;
-import neo4j.IGSQuery;
 import neo4j.InitOnDrawQuery;
 import neo4j.InvalidateWithoutRectQuery;
 import neo4j.LICQuery;
@@ -37,7 +36,6 @@ public class SmellQuery implements Query {
 
     private List<neo4j.Query> queries(QueryEngine queryEngine) {
         ArrayList<neo4j.Query> queries = new ArrayList<>();
-        queries.add(IGSQuery.createIGSQuery(queryEngine));
         queries.add(MIMQuery.createMIMQuery(queryEngine));
         queries.add(LICQuery.createLICQuery(queryEngine));
         queries.add(NLMRQuery.createNLMRQuery(queryEngine));
@@ -67,6 +65,7 @@ public class SmellQuery implements Query {
     private void writeResults(List<Map<String, Object>> results, String smellName) {
         for (Map<String, Object> row : results) {
             String instance = (String) row.get("instance");
+            String filePath = (String) row.get("filePath");
             Object commitSha = row.get("key");
 
             String smellQuery = "SELECT id FROM Smell WHERE instance = '" + instance +
@@ -74,8 +73,8 @@ public class SmellQuery implements Query {
             String commitQuery = "SELECT id FROM CommitEntry WHERE sha1 = '" + commitSha +
                     "' AND projectId = " + this.projectId;
 
-            String smellInsert = "INSERT INTO Smell (instance, type) VALUES" +
-                    "('" + instance + "', '" + smellName + "');";
+            String smellInsert = "INSERT INTO Smell (instance, type, file) VALUES" +
+                    "('" + instance + "', '" + smellName + "', " + filePath + "');";
             persistence.addStatements(smellInsert);
             persistence.commit();
 

@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS `CommitEntryTag` (
 CREATE TABLE IF NOT EXISTS `Smell` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   instance VARCHAR(256) NOT NULL,
+  file     VARCHAR(256) NOT NULL,
   type     VARCHAR(5)   NOT NULL,
   UNIQUE (instance)
 );
