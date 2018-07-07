@@ -33,4 +33,12 @@ public interface Persistence {
      * Initialize database schema if necessary.
      */
     void initialize();
+
+    /**
+     * Execute a statement modifying the database content, either INSERT, UPDATE or DELETE.
+     *
+     * @param statement The statement to execute.
+     * @return -1 if an error occurred, 0 if no modification, the number of affected rows otherwise.
+     */
+    int execute(String statement);
 }

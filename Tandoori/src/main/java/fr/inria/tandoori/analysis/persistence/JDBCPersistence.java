@@ -131,8 +131,19 @@ public class JDBCPersistence implements Persistence {
             }
             initStatement.executeBatch();
         } catch (SQLException e) {
-            logger.error("Unable to query database: " + path, e);
+            logger.error("Unable to initialize database: " + path, e);
         }
+    }
+
+
+    @Override
+    public int execute(String statement) {
+        try (Statement executeStatement = connection.createStatement()){
+            return executeStatement.executeUpdate(statement);
+        } catch (SQLException e) {
+            logger.error("Unable to execute on database: " + path, e);
+        }
+        return -1;
     }
 
     private List<String> loadSQLiteDatabase() {
