@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS Smell (
   instance VARCHAR(256) NOT NULL,
   file     VARCHAR(256) NOT NULL,
   type     VARCHAR(5)   NOT NULL,
-  UNIQUE (instance)
+  UNIQUE (instance, type)
 );
 
 CREATE TABLE IF NOT EXISTS SmellPresence (

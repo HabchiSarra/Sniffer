@@ -2,3 +2,6 @@
 .gradle
 out/
 *.iml
+
+# Ignore test databases
+*.sqlite

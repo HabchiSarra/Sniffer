@@ -5,7 +5,6 @@ import fr.inria.tandoori.analysis.persistence.PostgresqlPersistence;
 import fr.inria.tandoori.analysis.query.CommitsQuery;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
-import fr.inria.tandoori.analysis.query.SmellDeduplicationQuery;
 import fr.inria.tandoori.analysis.query.SmellQuery;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
@@ -44,7 +43,8 @@ public class SingleAppAnalysis {
         analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
 
         // TODO: This is a global database state update. Not to launch on single app analysis!
-        analysisProcess.add(new SmellDeduplicationQuery(persistence));
+        // We won't use this method after all
+        // analysisProcess.add(new SmellDeduplicationQuery(persistence));
 //        analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
 //        analysisProcess.add(new MetricsQuery(persistence));
     }

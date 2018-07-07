@@ -1,8 +1,12 @@
 package fr.inria.tandoori.analysis.query;
 
+import fr.inria.tandoori.analysis.Main;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SmellDeduplicationQuery implements Query {
+    private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
     private final Persistence persistence;
 
     public SmellDeduplicationQuery(Persistence persistence) {
@@ -21,10 +25,10 @@ public class SmellDeduplicationQuery implements Query {
     }
 
     private static final String MERGE_SMELL_PRESENCE =
-            "UPDATE SmellPresence SET " +
-                    "smellId = subquery.oldId" +
-                    "WHERE smellId = subquery.newID" +
-                    "FROM (" + SmellDeduplicationQuery.QUERY_RENAMED_SMELLS + ") AS subquery";
+            "WITH subquery AS (" + SmellDeduplicationQuery.QUERY_RENAMED_SMELLS + ") " +
+                    "UPDATE SmellPresence SET " +
+                    "smellId = 'subquery.oldId' " +
+                    "WHERE smellId = 'subquery.newID' ";
 
 
     private static final String REMOVE_DUPLICATE_SMELLS =
@@ -33,13 +37,10 @@ public class SmellDeduplicationQuery implements Query {
 
 
     private static final String QUERY_RENAMED_SMELLS =
-            "SELECT id as oldId, newId " +
-                    "JOIN (" +
-                    "   FileRename" +
-                    "   JOIN Smell " +
-                    "       ON file = oldFile" +
-                    "   AND oldFile in (SELECT file FROM Smell)" +
-                    ")" +
-                    "ON file = newFile";
+            "SELECT Smell.id as newId, Smell.file as newFile, oldFile, oldId, oldType FROM Smell \n" +
+                    "\tINNER JOIN (\n" +
+                    "\tselect FileRename.newFile as newFile, FileRename.oldFile as oldFile, oldId, oldType from FileRename \n" +
+                    "\t\tINNER JOIN  (SELECT Smell.file as file, Smell.id as oldId, Smell.type as oldType FROM Smell) ON file = oldFile\n" +
+                    "\t) ON file = newFile WHERE oldType = Smell.type";
 
 }
