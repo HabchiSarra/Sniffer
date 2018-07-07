@@ -54,7 +54,7 @@ public class CommitsQuery implements Query {
         String[] statements = new String[commitsList.size()];
         int commitCount = 0;
         for (RevCommit commit : commitsList) {
-            statements[commitCount] = persistStatement(commit, commitCount++);
+            statements[commitCount] = commitPersistStatement(commit, commitCount++);
             // TODO: Handle multiple transactions ?
             insertFileModification(commit);
         }
@@ -75,11 +75,10 @@ public class CommitsQuery implements Query {
         return commits;
     }
 
-    private String persistStatement(RevCommit commit, int count) {
+    private String commitPersistStatement(RevCommit commit, int count) {
         int authorId = insertAuthor(commit.getAuthorIdent().getEmailAddress());
         GitDiffResult diff = GitDiffResult.fetch(repository, commit.name());
 
-        // TODO: commit size (addition, deletion)
         logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + new DateTime(commit.getCommitTime()) + ")");
         DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
         String statement = "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged) VALUES ('" +
