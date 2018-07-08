@@ -22,7 +22,7 @@ public class SingleAppAnalysis {
 
     private final List<Query> analysisProcess;
     // TODO: Configurable persistence
-//    private final Persistence persistence = new SQLitePersistence("output.sqlite");
+    // private final Persistence persistence = new SQLitePersistence("output.sqlite");
     private final Persistence persistence = new PostgresqlPersistence("//127.0.0.1:5432/tandoori", "tandoori", "tandoori");
 
     /**
@@ -41,12 +41,11 @@ public class SingleAppAnalysis {
         analysisProcess = new ArrayList<>();
         analysisProcess.add(new CommitsQuery(appId, appRepo, persistence));
         analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
+        // analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
 
         // TODO: This is a global database state update. Not to launch on single app analysis!
         // We won't use this method after all
         // analysisProcess.add(new SmellDeduplicationQuery(persistence));
-//        analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
-//        analysisProcess.add(new MetricsQuery(persistence));
     }
 
     /**

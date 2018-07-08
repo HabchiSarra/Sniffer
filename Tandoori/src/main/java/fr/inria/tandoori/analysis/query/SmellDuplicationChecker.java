@@ -24,7 +24,7 @@ public class SmellDuplicationChecker {
     private static String getFileRenameStatement(int projectId) {
         return "select  subquery.sha1, FileRename.oldFile as oldFile, FileRename.newFile as newFile from FileRename \n" +
                 "Inner join (select CommitEntry.sha1 as sha1, CommitEntry.id as commitEntryId from CommitEntry ) AS subquery \n" +
-                "On FileRename.commitId= 'subquery.commitEntryId'" +
+                "On FileRename.commitId= subquery.commitEntryId " +
                 "WHERE FileRename.projectId = '" + projectId + "'";
     }
 
@@ -77,6 +77,7 @@ public class SmellDuplicationChecker {
     private String guessInstanceName(String instance, String newFile, String oldFile) {
         String packagePath = instance.split("[$#]")[0];
         String ending = extractIdentifierEnding(instance);
+        String start = extractIdentifierStart(instance);
         List<String> packageParts = Arrays.asList(packagePath.split("."));
 
         for (String pathPart : newFile.split("/")) {
@@ -90,35 +91,38 @@ public class SmellDuplicationChecker {
         return newInstance + ending;
     }
 
-    private String extractIdentifierEnding(String instance) {
-        String[] innerClasses = instance.split("$");
-        String result = "$" + String.join("$", innerClasses);
-
+    /**
+     * Extract the ending identifier (i.e. the method name) from our smell id:
+     * open#eu.chainfire.libsuperuser.Shell$Interactive
+     *
+     * @param instance Instance to parse.
+     * @return The inner class part ending with a #.
+     */
+    private String extractIdentifierStart(String instance) {
+        String result = "";
         String[] methodSplit = instance.split("#");
         if (methodSplit.length > 1) {
-            result = result + "#" + methodSplit[1];
+            result = methodSplit[0] + "#";
         }
         return result;
     }
 
     /**
-     * This class is used for determining if a smell is a renamed version of another smell.
+     * Extract the ending identifier (i.e. the inner class) from our smell id:
+     * open#eu.chainfire.libsuperuser.Shell$Interactive
+     *
+     * @param instance Instance to parse.
+     * @return The inner class part starting with a $.
      */
-    private static class BoundSmell {
-        private final String identifier;
-        private final String file;
-
-        BoundSmell(String identifier, String file) {
-            this.identifier = identifier;
-            this.file = file;
+    private String extractIdentifierEnding(String instance) {
+        String result = "";
+        String[] innerClasses = instance.split("$");
+        if (innerClasses.length > 1) {
+            for (int i = 1; i < innerClasses.length; i++) {
+                result = "$" + innerClasses[i];
+            }
         }
-
-        static BoundSmell fromSmell(Map<String, Object> smell) {
-            String identifier = (String) smell.get("instance");
-            String file = (String) smell.get("filePath");
-            return new BoundSmell(identifier, file);
-
-        }
+        return result;
     }
 
     /**

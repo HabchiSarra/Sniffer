@@ -22,7 +22,7 @@ public class Smell {
     public static Smell fromInstance(Map<String, Object> smell, String type) {
         String sha1 = (String) smell.get("key");
         String identifier = (String) smell.get("instance");
-        String file = (String) smell.get("filePath");
+        String file = (String) smell.get("file_path");
         return new Smell(type, sha1, identifier, file);
     }
 
@@ -37,7 +37,6 @@ public class Smell {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(type, instance);
     }
 }
