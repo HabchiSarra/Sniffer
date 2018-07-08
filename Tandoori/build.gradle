@@ -10,6 +10,9 @@ dependencies {
     // Using Git API inside Java
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.11.0.201803080745-r'
 
+    // https://mvnrepository.com/artifact/org.postgresql/postgresql
+    compile group: 'org.postgresql', name: 'postgresql', version: '9.3-1100-jdbc4'
+
     // Logging
     compile 'log4j:log4j:1.2.17'
     compile 'org.slf4j:slf4j-log4j12:1.7.25'

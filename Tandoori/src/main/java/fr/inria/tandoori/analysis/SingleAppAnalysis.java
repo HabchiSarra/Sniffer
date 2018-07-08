@@ -23,7 +23,7 @@ public class SingleAppAnalysis {
     private final List<Query> analysisProcess;
     // TODO: Configurable persistence
 //    private final Persistence persistence = new SQLitePersistence("output.sqlite");
-    private final Persistence persistence = new PostgresqlPersistence("localhost:5432/tandoori", "tandoori", "tandoori");
+    private final Persistence persistence = new PostgresqlPersistence("//127.0.0.1:5432/tandoori", "tandoori", "tandoori");
 
     /**
      *

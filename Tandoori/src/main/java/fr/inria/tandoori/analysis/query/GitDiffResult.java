@@ -65,7 +65,7 @@ class GitDiffResult {
                     parsed = GitDiffResult.parse(line);
                 } catch (Exception e) {
                     // This is not an important failure since we expect it on each commit.
-                    logger.trace(e.getLocalizedMessage());
+                    logger.warn(e.getLocalizedMessage());
                 }
                 line = reader.readLine();
             }

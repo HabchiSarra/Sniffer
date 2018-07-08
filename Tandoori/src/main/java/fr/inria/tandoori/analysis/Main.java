@@ -28,6 +28,7 @@ public class Main {
             switch (res.getString(COMMAND_KEY)) {
                 case APP_ANALYSIS_COMMAND:
                     new SingleAppAnalysis(res).analyze();
+                    break;
                 default:
                     logger.error("Unable to find command: " + res.getString(COMMAND_KEY));
             }

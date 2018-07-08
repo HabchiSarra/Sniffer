@@ -26,7 +26,6 @@ public class SmellQuery implements Query {
     private final String db;
     private final Persistence persistence;
     private final int projectId;
-    private final SmellDuplicationChecker duplicationChecker;
     private final List<Smell> previousCommitSmells;
     private final List<Smell> currentCommitSmells;
     private final List<Smell> currentCommitRenamed;
@@ -36,7 +35,6 @@ public class SmellQuery implements Query {
         this.projectId = projectId;
         this.db = db;
         this.persistence = persistence;
-        duplicationChecker = new SmellDuplicationChecker(projectId, persistence);
         previousCommitSmells = new ArrayList<>();
         currentCommitSmells = new ArrayList<>();
         currentCommitRenamed = new ArrayList<>();
@@ -59,19 +57,21 @@ public class SmellQuery implements Query {
 
     @Override
     public void query() {
+        logger.info("### Starting Smell insertion ###");
         boolean showDetails = true;
         QueryEngine queryEngine = new QueryEngine(db);
+        SmellDuplicationChecker duplicationChecker = new SmellDuplicationChecker(projectId, persistence);
 
         for (neo4j.Query query : queries(queryEngine)) {
             logger.info("Querying Smells of type: " + query.getSmellName());
             List<Map<String, Object>> result = query.fetchResult(showDetails);
 
             logger.trace("Got result: " + result);
-            writeResults(result, query.getSmellName());
+            writeResults(result, query.getSmellName(), duplicationChecker);
         }
     }
 
-    private void writeResults(List<Map<String, Object>> results, String smellName) {
+    private void writeResults(List<Map<String, Object>> results, String smellName, SmellDuplicationChecker duplicationChecker) {
         Smell currentSmell;
         for (Map<String, Object> instance : results) {
             // We keep track of the smells present in our commit.
@@ -158,7 +158,7 @@ public class SmellQuery implements Query {
 
         for (Smell smell : refactoring) {
             if (!currentCommitRenamed.contains(smell)) {
-                insertSmellInCategory(smell, "SmellRefactoring");
+                insertSmellInCategory(smell, "SmellRefactor");
             }
         }
     }

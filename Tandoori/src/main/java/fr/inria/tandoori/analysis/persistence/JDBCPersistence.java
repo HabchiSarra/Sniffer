@@ -6,8 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,45 +27,32 @@ public class JDBCPersistence implements Persistence {
     private final Connection connection;
     private Statement sqlStatement;
     private final String path;
-    private final File schemaResourceFile;
-
-    // TODO: Reduce code duplication on constructors
-    public JDBCPersistence(String type, String path, File schemaResourceFile) {
-        this.path = path;
-        this.schemaResourceFile = schemaResourceFile;
-        try {
-            this.connection = DriverManager.getConnection("jdbc:" + type + ":" + path);
-        } catch (SQLException e) {
-            throw new RuntimeException("Unable to open connection to database: " + path, e);
-        }
-    }
-
-    public JDBCPersistence(String type, String path, File schemaResourceFile, String username, String password) {
-        this.path = path;
-        this.schemaResourceFile = schemaResourceFile;
-        try {
-            this.connection = DriverManager.getConnection("jdbc:" + type + ":" + path, username, password);
-        } catch (SQLException e) {
-            throw new RuntimeException("Unable to open connection to database: " + path, e);
-        }
-    }
+    private final String schemaResourcePath;
 
     public JDBCPersistence(String type, String path, String schemaResourcePath) {
         this.path = path;
-        this.schemaResourceFile = new File(getClass().getResource(schemaResourcePath).getFile());
+        this.schemaResourcePath = schemaResourcePath;
         try {
             this.connection = DriverManager.getConnection("jdbc:" + type + ":" + path);
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             throw new RuntimeException("Unable to open connection to database: " + path, e);
         }
     }
 
     public JDBCPersistence(String type, String path, String schemaResourcePath, String username, String password) {
         this.path = path;
-        this.schemaResourceFile = new File(getClass().getResource(schemaResourcePath).getFile());
+        this.schemaResourcePath = schemaResourcePath;
         try {
             this.connection = DriverManager.getConnection("jdbc:" + type + ":" + path, username, password);
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             throw new RuntimeException("Unable to open connection to database: " + path, e);
         }
     }
@@ -83,6 +68,10 @@ public class JDBCPersistence implements Persistence {
                 sqlStatement.addBatch(statement);
             }
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             logger.error("Unable to create statement for database: " + path, e);
         }
     }
@@ -93,6 +82,10 @@ public class JDBCPersistence implements Persistence {
             sqlStatement.executeBatch();
             sqlStatement.clearBatch();
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             logger.warn("Unable to commit transaction into database: " + path, e);
         } finally {
             closeStatement();
@@ -106,6 +99,10 @@ public class JDBCPersistence implements Persistence {
             ResultSet resultSet = queryStatement.executeQuery(statement);
             return resultSetToArrayList(resultSet);
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             logger.error("Unable to query database: " + path, e);
         }
         return new ArrayList<>();
@@ -139,7 +136,12 @@ public class JDBCPersistence implements Persistence {
         logger.trace("Closing statement");
         try {
             sqlStatement.close();
+            sqlStatement = null;
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             logger.warn("Unable to close statement from database: " + path, e);
         }
     }
@@ -151,6 +153,10 @@ public class JDBCPersistence implements Persistence {
             try {
                 connection.close();
             } catch (SQLException e) {
+                SQLException nextException = e.getNextException();
+                if (nextException != null) {
+                    e = nextException;
+                }
                 logger.warn("Unable to close connection to database: " + path, e);
             }
         }
@@ -167,6 +173,10 @@ public class JDBCPersistence implements Persistence {
             }
             initStatement.executeBatch();
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             logger.error("Unable to initialize database: " + path, e);
         }
     }
@@ -175,9 +185,13 @@ public class JDBCPersistence implements Persistence {
     @Override
     public int execute(String statement) {
         logger.debug("Executing on database: " + statement);
-        try (Statement executeStatement = connection.createStatement()){
+        try (Statement executeStatement = connection.createStatement()) {
             return executeStatement.executeUpdate(statement);
         } catch (SQLException e) {
+            SQLException nextException = e.getNextException();
+            if (nextException != null) {
+                e = nextException;
+            }
             logger.error("Unable to execute on database: " + path, e);
         }
         return -1;
@@ -215,11 +229,7 @@ public class JDBCPersistence implements Persistence {
      */
     private BufferedReader loadInputFile() {
         InputStream resource;
-        try {
-            resource = new FileInputStream(schemaResourceFile);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException("Unable to load resource file: " + schemaResourceFile);
-        }
+        resource = getClass().getResourceAsStream(schemaResourcePath);
         InputStreamReader streamReader = new InputStreamReader(resource, StandardCharsets.UTF_8);
         return new BufferedReader(streamReader);
     }

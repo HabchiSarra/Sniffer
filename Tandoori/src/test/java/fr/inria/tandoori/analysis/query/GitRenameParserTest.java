@@ -29,6 +29,17 @@ public class GitRenameParserTest {
     }
 
     @Test
+    public void parseEntryEndingingWithBraces() throws Exception {
+        String line = "rename aFWall/src/main/java/dev/ukanth/ufirewall/util/{CustomRule.java => CustomRuleOld.java} (90%)";
+
+        GitRenameParser.RenameParsingResult result = GitRenameParser.parseRenamed(line);
+
+        assertEquals("aFWall/src/main/java/dev/ukanth/ufirewall/util/CustomRule.java", result.oldFile);
+        assertEquals("aFWall/src/main/java/dev/ukanth/ufirewall/util/CustomRuleOld.java", result.newFile);
+        assertEquals(90, result.similarity);
+    }
+
+    @Test
     public void parseEntryWithBracesInTheMiddle() throws Exception {
         String line = "rename a/b/c/d/{z.txt => c.txt} (100%)";
 

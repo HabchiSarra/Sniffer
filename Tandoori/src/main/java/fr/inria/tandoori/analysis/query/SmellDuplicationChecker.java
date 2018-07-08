@@ -22,9 +22,9 @@ public class SmellDuplicationChecker {
     }
 
     private static String getFileRenameStatement(int projectId) {
-        return "select  sha1, FileRename.oldFile as oldFile, FileRename.newFile as newFile from FileRename \n" +
-                "Inner join (select CommitEntry.sha1 as sha1, CommitEntry.id as commitEntryId from CommitEntry )\n" +
-                "On FileRename.commitId=commitEntryId" +
+        return "select  subquery.sha1, FileRename.oldFile as oldFile, FileRename.newFile as newFile from FileRename \n" +
+                "Inner join (select CommitEntry.sha1 as sha1, CommitEntry.id as commitEntryId from CommitEntry ) AS subquery \n" +
+                "On FileRename.commitId= 'subquery.commitEntryId'" +
                 "WHERE FileRename.projectId = '" + projectId + "'";
     }
 

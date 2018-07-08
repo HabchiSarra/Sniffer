@@ -1,7 +1,18 @@
+CREATE SCHEMA tandoori;
+SET search_path TO tandoori;
+
 CREATE TABLE IF NOT EXISTS Project (
   id   SERIAL NOT NULL PRIMARY KEY,
   name VARCHAR(256) NOT NULL,
   UNIQUE (name)
+);
+
+CREATE TABLE IF NOT EXISTS Developer (
+  id        SERIAL NOT NULL PRIMARY KEY,
+  username  VARCHAR(256)      NOT NULL,
+  stars     INTEGER,
+  followers INTEGER,
+  UNIQUE (username)
 );
 
 CREATE TABLE IF NOT EXISTS ProjectDeveloper (
@@ -12,13 +23,6 @@ CREATE TABLE IF NOT EXISTS ProjectDeveloper (
   FOREIGN KEY (developerId) REFERENCES Developer (id)
 );
 
-CREATE TABLE IF NOT EXISTS Developer (
-  id        SERIAL NOT NULL PRIMARY KEY,
-  username  VARCHAR(256)      NOT NULL,
-  stars     INTEGER,
-  followers INTEGER,
-  UNIQUE (username)
-);
 
 CREATE TABLE IF NOT EXISTS Languages (
   id          SERIAL NOT NULL PRIMARY KEY,

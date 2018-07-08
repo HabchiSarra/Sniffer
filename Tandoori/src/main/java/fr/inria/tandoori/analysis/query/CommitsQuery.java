@@ -43,6 +43,7 @@ public class CommitsQuery implements Query {
 
     @Override
     public void query() throws QueryException {
+        logger.info("### Starting Commits insertion ###");
         Git gitRepo = initializeRepository();
         Iterable<RevCommit> commits = getCommits(gitRepo);
         List<RevCommit> commitsList = new ArrayList<>();
@@ -80,6 +81,7 @@ public class CommitsQuery implements Query {
         GitDiffResult diff = GitDiffResult.fetch(repository, commit.name());
 
         logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + new DateTime(commit.getCommitTime()) + ")");
+        logger.trace("Commit diff is +: " + diff.getAddition() + ", -: " + diff.getDeletion() + ", file: " + diff.getChangedFiles());
         DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
         String statement = "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged) VALUES ('" +
                 projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + commitDate.toString() +
@@ -111,19 +113,26 @@ public class CommitsQuery implements Query {
     private void insertFileModification(RevCommit commit) {
         // TODO: See if we can use Jgit instead of a raw call to git
         try {
-            String options = " -M" + SIMILARITY_THRESHOLD + "% --summary --format=''";
-            Process p = Runtime.getRuntime().exec("git -C " + repository + " show " + commit.name() + options);
-            p.waitFor();
+//            String[] command = {"git", "-C " + cloneDir, "show", commit.name(), "-M" + SIMILARITY_THRESHOLD + "%", "--summary", "--format=''"};
+            String command = "git -C "+cloneDir+" show "+commit.name()+" -M50% --summary --format=";
+            Process p = Runtime.getRuntime().exec(command);
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String commitSelect = "SELECT id from CommitEntry WHERE sha1 ='" + commit.name() + "'";
 
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+            String errLine;
+            while ((errLine = stdError.readLine()) != null) {
+                logger.error(errLine);
+            }
+
             String line = reader.readLine();
             while (line != null) {
+                logger.error("  current line => " + line);
                 handleRenameLine(commitSelect, line);
                 line = reader.readLine();
             }
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             logger.error("Unable to execute git command", e);
         }
     }
@@ -139,15 +148,18 @@ public class CommitsQuery implements Query {
         if (line.trim().startsWith("rename")) {
             GitRenameParser.RenameParsingResult result = null;
             try {
-                result = GitRenameParser.parseRenamed(line);
+                result = GitRenameParser.parseRenamed(line.trim());
             } catch (Exception e) {
-                logger.warn(e.getLocalizedMessage());
+                logger.warn("Unable to parse file rename: ", e.getMessage());
                 return;
             }
-            String statement = "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
-                    projectId + "',(" + commitSelect + "), '" + result.oldFile + "', '" +
-                    result.newFile + ", '" + result.similarity + "')";
-            persistence.addStatements(statement);
+            if (result.oldFile.endsWith(".java") && result.newFile.endsWith(".java")) {
+                String statement = "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
+                        projectId + "',(" + commitSelect + "), '" + result.oldFile + "', '" +
+                        result.newFile + "', " + result.similarity + ")";
+                persistence.addStatements(statement);
+                persistence.commit();
+            }
         }
     }
 

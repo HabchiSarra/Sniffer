@@ -11,8 +11,4 @@ public class SQLitePersistence extends JDBCPersistence {
     public SQLitePersistence(String path, String schemaResourcePath) {
         super("sqlite", path, schemaResourcePath);
     }
-
-    public SQLitePersistence(String path, File schemaResourceFile) {
-        super("sqlite", path, schemaResourceFile);
-    }
 }
