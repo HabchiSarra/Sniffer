@@ -67,11 +67,14 @@ CREATE TABLE IF NOT EXISTS `CommitEntryTag` (
 );
 
 CREATE TABLE IF NOT EXISTS `Smell` (
-  id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  instance VARCHAR(256) NOT NULL,
-  file     VARCHAR(256) NOT NULL,
-  type     VARCHAR(5)   NOT NULL,
-  UNIQUE (instance, type)
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  projectId   INTEGER NOT NULL,
+  instance    VARCHAR(256) NOT NULL,
+  file        VARCHAR(256) NOT NULL,
+  type        VARCHAR(5)   NOT NULL,
+  renamedFrom INTEGER UNSIGNED
+  FOREIGN KEY (projectId) REFERENCES Project (id),
+  FOREIGN KEY (renamedFrom) REFERENCES Smell (id)
 );
 
 CREATE TABLE IF NOT EXISTS `SmellPresence` (

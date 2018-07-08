@@ -66,10 +66,13 @@ CREATE TABLE IF NOT EXISTS CommitEntryTag (
 
 CREATE TABLE IF NOT EXISTS Smell (
   id       SERIAL NOT NULL PRIMARY KEY,
+  projectId INTEGER NOT NULL,
   instance VARCHAR(256) NOT NULL,
   file     VARCHAR(256) NOT NULL,
   type     VARCHAR(5)   NOT NULL,
-  UNIQUE (instance, type)
+  renamedFrom INTEGER,
+  FOREIGN KEY (projectId) REFERENCES Project (id),
+  FOREIGN KEY (renamedFrom) REFERENCES Smell (id)
 );
 
 CREATE TABLE IF NOT EXISTS SmellPresence (
