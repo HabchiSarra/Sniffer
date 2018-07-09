@@ -110,6 +110,9 @@ public class SmellQuery implements Query {
 
     private void insertSmellInCategory(Smell smell, String category) {
         String smellQuery = persistence.smellQueryStatement(projectId, smell.instance, smell.type);
+        // We fetch only the last matching inserted smell
+        // This helps us handling the case of Gaps between commits
+        smellQuery += " ORDER BY id desc LIMIT 1";
         String commitQuery = persistence.commitQueryStatement(this.projectId, smell.commitSha);
         String smellPresenceInsert = "INSERT INTO " + category + " (smellId, commitId) VALUES " +
                 "((" + smellQuery + "), (" + commitQuery + "));";
@@ -124,12 +127,8 @@ public class SmellQuery implements Query {
      */
     private void changeCurrentCommit(String commitSha) {
         logger.debug("==> Handling commit: " + commitSha);
-        String commitQuery = persistence.commitQueryStatement(this.projectId, commitSha);
-        List<Map<String, Object>> result = persistence.query(commitQuery);
-        if (!result.isEmpty()) {
-            logger.debug(String.valueOf(result.get(0).get("id")));
-        } else {
-            logger.debug("NO VALUE!");
+        if (logger.isTraceEnabled()) {
+            traceCommitIdentifier(commitSha);
         }
         insertSmellIntroductions();
         insertSmellRefactoring();
@@ -139,6 +138,21 @@ public class SmellQuery implements Query {
         previousCommitSmells.clear();
         previousCommitSmells.addAll(currentCommitSmells);
         currentCommitSmells.clear();
+    }
+
+    /**
+     * Trace the identifier of the currently analyzed commit.
+     *
+     * @param commitSha The sha to print ID for.
+     */
+    private void traceCommitIdentifier(String commitSha) {
+        String commitQuery = persistence.commitQueryStatement(this.projectId, commitSha);
+        List<Map<String, Object>> result = persistence.query(commitQuery);
+        if (!result.isEmpty()) {
+            logger.trace("  => commit id: " + String.valueOf(result.get(0).get("id")));
+        } else {
+            logger.trace("NO VALUE!");
+        }
     }
 
     private void insertSmellIntroductions() {

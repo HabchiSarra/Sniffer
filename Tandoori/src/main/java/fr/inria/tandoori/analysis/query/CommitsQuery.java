@@ -56,6 +56,7 @@ public class CommitsQuery implements Query {
         List<String> renameStatements = new ArrayList<>();
         int commitCount = 0;
         for (RevCommit commit : commitsList) {
+            logger.debug("=> Analyzing commit: " + commit.name());
             authorStatements.addAll(authorStatements(commit.getAuthorIdent().getEmailAddress()));
             commitStatements[commitCount] = commitStatement(commit, commitCount++);
             renameStatements.addAll(fileRenameStatements(commit));
@@ -164,9 +165,9 @@ public class CommitsQuery implements Query {
             return null;
         }
 
-        logger.debug("=> Found .java renamed: " + result.oldFile);
-        logger.trace("  => new file: " + result.newFile);
-        logger.trace("  => Similarity: " + result.similarity);
+        logger.debug("  => Found .java renamed: " + result.oldFile);
+        logger.trace("    => new file: " + result.newFile);
+        logger.trace("    => Similarity: " + result.similarity);
         return "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
                 projectId + "',(" + commitSelect + "), '" + result.oldFile + "', '" +
                 result.newFile + "', " + result.similarity + ") ON CONFLICT DO NOTHING";
