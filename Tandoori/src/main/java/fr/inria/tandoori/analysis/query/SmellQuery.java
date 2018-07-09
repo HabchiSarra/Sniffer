@@ -84,6 +84,8 @@ public class SmellQuery implements Query {
             Smell original = duplicationChecker.original(currentSmell);
             // If we correctly guessed the smell identifier, we will find it in the previous commit smells
             if (original != null && previousCommitSmells.contains(original)) {
+                logger.trace("=> Guessed rename for smell: " + currentSmell.instance);
+                logger.trace("  => potential parent: " + original.instance);
                 currentCommitRenamed.add(currentSmell);
                 currentSmell.parentInstance = original.instance;
             }
@@ -171,6 +173,7 @@ public class SmellQuery implements Query {
         refactoring.removeAll(currentCommitSmells);
 
         for (Smell smell : refactoring) {
+            //TODO: Test that smells equality is working
             if (!currentCommitRenamed.contains(smell)) {
                 insertSmellInCategory(smell, "SmellRefactor");
             }
