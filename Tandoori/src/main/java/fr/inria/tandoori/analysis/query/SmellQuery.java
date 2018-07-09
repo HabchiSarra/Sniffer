@@ -63,7 +63,7 @@ public class SmellQuery implements Query {
         SmellDuplicationChecker duplicationChecker = new SmellDuplicationChecker(projectId, persistence);
 
         for (neo4j.Query query : queries(queryEngine)) {
-            logger.info("Querying Smells of type: " + query.getSmellName());
+            logger.info("=> Querying Smells of type: " + query.getSmellName());
             List<Map<String, Object>> result = query.fetchResult(showDetails);
 
             logger.trace("Got result: " + result);
@@ -97,7 +97,8 @@ public class SmellQuery implements Query {
     }
 
     private void insertSmellInstance(Smell smell) {
-        String parentQuery = smell.parentInstance != null ? "(" + smellIdQuery(smell.parentInstance, smell.type) + ")" : null;
+        String parentSmellQuery = persistence.smellQueryStatement(projectId, smell.parentInstance, smell.type);
+        String parentQuery = smell.parentInstance != null ? "(" + parentSmellQuery + ")" : null;
         String smellInsert = "INSERT INTO Smell (projectId, instance, type, file, renamedFrom) VALUES" +
                 "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '" + smell.file + "', " + parentQuery + ");";
         persistence.addStatements(smellInsert);
@@ -108,20 +109,12 @@ public class SmellQuery implements Query {
     }
 
     private void insertSmellInCategory(Smell smell, String category) {
-        String smellQuery = smellIdQuery(smell.instance, smell.type);
-        String commitQuery = commitIdQuery(smell);
+        String smellQuery = persistence.smellQueryStatement(projectId, smell.instance, smell.type);
+        String commitQuery = persistence.commitQueryStatement(this.projectId, smell.commitSha);
         String smellPresenceInsert = "INSERT INTO " + category + " (smellId, commitId) VALUES " +
                 "((" + smellQuery + "), (" + commitQuery + "));";
         persistence.addStatements(smellPresenceInsert);
 
-    }
-
-    private String commitIdQuery(Smell smell) {
-        return "SELECT id FROM CommitEntry WHERE sha1 = '" + smell.commitSha + "' AND projectId = " + this.projectId;
-    }
-
-    private String smellIdQuery(String instance, String type) {
-        return "SELECT id FROM Smell WHERE instance = '" + instance + "' AND type = '" + type + "'";
     }
 
     /**
@@ -130,6 +123,14 @@ public class SmellQuery implements Query {
      * @param commitSha The new sha.
      */
     private void changeCurrentCommit(String commitSha) {
+        logger.debug("==> Handling commit: " + commitSha);
+        String commitQuery = persistence.commitQueryStatement(this.projectId, commitSha);
+        List<Map<String, Object>> result = persistence.query(commitQuery);
+        if (!result.isEmpty()) {
+            logger.debug(String.valueOf(result.get(0).get("id")));
+        } else {
+            logger.debug("NO VALUE!");
+        }
         insertSmellIntroductions();
         insertSmellRefactoring();
 

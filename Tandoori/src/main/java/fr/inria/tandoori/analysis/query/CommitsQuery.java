@@ -16,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Fetch all commits and developers for a project.
@@ -52,15 +51,21 @@ public class CommitsQuery implements Query {
             commitsList.add(0, commit);
         }
 
-        String[] statements = new String[commitsList.size()];
+        String[] commitStatements = new String[commitsList.size()];
+        List<String> authorStatements = new ArrayList<>();
+        List<String> renameStatements = new ArrayList<>();
         int commitCount = 0;
         for (RevCommit commit : commitsList) {
-            statements[commitCount] = commitPersistStatement(commit, commitCount++);
-            // TODO: Handle multiple transactions ?
-            insertFileModification(commit);
+            authorStatements.addAll(authorStatements(commit.getAuthorIdent().getEmailAddress()));
+            commitStatements[commitCount] = commitStatement(commit, commitCount++);
+            renameStatements.addAll(fileRenameStatements(commit));
         }
-        // This is better to add them together as it creates a batch insert.
-        persistence.addStatements(statements);
+
+        // We add everything in a bulk insert since we must have a coherent state.
+        // Warning, we have to insert authors, then commits, then renaming!
+        persistence.addStatements(authorStatements.toArray(new String[0]));
+        persistence.addStatements(commitStatements);
+        persistence.addStatements(renameStatements.toArray(new String[0]));
         persistence.commit();
 
         finalizeRepository();
@@ -76,48 +81,46 @@ public class CommitsQuery implements Query {
         return commits;
     }
 
-    private String commitPersistStatement(RevCommit commit, int count) {
-        int authorId = insertAuthor(commit.getAuthorIdent().getEmailAddress());
-        GitDiffResult diff = GitDiffResult.fetch(repository, commit.name());
-
-        logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + new DateTime(commit.getCommitTime()) + ")");
-        logger.trace("Commit diff is +: " + diff.getAddition() + ", -: " + diff.getDeletion() + ", file: " + diff.getChangedFiles());
-        DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
-        String statement = "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged) VALUES ('" +
-                projectId + "', '" + authorId + "', '" + commit.name() + "', " + count + ", '" + commitDate.toString() +
-                "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() + ")";
-
-        return statement;
-    }
-
-    private int insertAuthor(String emailAddress) {
-        String developerQuery = "SELECT id FROM Developer where username = '" + emailAddress + "'";
+    private List<String> authorStatements(String emailAddress) {
+        String developerQuery = persistence.developerQueryStatement(projectId, emailAddress);
+        List<String> statements = new ArrayList<>();
 
         // Try to insert the developer if not exist
-        String authorInsert = "INSERT INTO Developer (username) VALUES ('" + emailAddress + "');";
-        persistence.addStatements(authorInsert);
-        persistence.commit();
+        String authorInsert = "INSERT INTO Developer (username) VALUES ('" + emailAddress + "') ON CONFLICT DO NOTHING;";
+        statements.add(authorInsert);
 
         // Try to insert the developer/project mapping if not exist
-        String authorProjectInsert = "INSERT INTO ProjectDeveloper (developerId, projectId) VALUES (("
-                + developerQuery + "), " + projectId + ");";
-        persistence.addStatements(authorProjectInsert);
-        persistence.commit();
+        String projectDevQuery = persistence.projectDevQueryStatement(projectId, emailAddress);
+        String authorProjectInsert = "INSERT INTO ProjectDeveloper (developerId, projectId) VALUES (" +
+                "(" + developerQuery + "), " + projectId + ") ON CONFLICT DO NOTHING;";
+        statements.add(authorProjectInsert);
 
-        // Retrieve developer ID for further usage
-        List<Map<String, Object>> result = persistence.query(developerQuery);
-        // TODO: Add more verification clauses
-        return (int) result.get(0).get("id");
+        return statements;
     }
 
-    private void insertFileModification(RevCommit commit) {
+    private String commitStatement(RevCommit commit, int count) {
+        String authorEmail = commit.getAuthorIdent().getEmailAddress();
+        String developerQuery = persistence.developerQueryStatement(projectId, authorEmail);
+
+        GitDiffResult diff = GitDiffResult.fetch(repository, commit.name());
+        logger.trace("Commit diff is +: " + diff.getAddition() + ", -: " + diff.getDeletion() + ", file: " + diff.getChangedFiles());
+
+        DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
+        logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + commitDate + ")");
+
+        return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged) VALUES ('" +
+                projectId + "', (" + developerQuery + "), '" + commit.name() + "', " + count + ", '" + commitDate.toString() +
+                "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() + ") ON CONFLICT DO NOTHING";
+    }
+
+    private List<String> fileRenameStatements(RevCommit commit) {
         // TODO: See if we can use Jgit instead of a raw call to git
+        List<String> result = new ArrayList<>();
         try {
-//            String[] command = {"git", "-C " + cloneDir, "show", commit.name(), "-M" + SIMILARITY_THRESHOLD + "%", "--summary", "--format=''"};
-            String command = "git -C "+cloneDir+" show "+commit.name()+" -M50% --summary --format=";
+            String command = "git -C " + cloneDir + " show " + commit.name() + " -M50% --summary --format=";
             Process p = Runtime.getRuntime().exec(command);
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String commitSelect = "SELECT id from CommitEntry WHERE sha1 ='" + commit.name() + "'";
+            String commitSelect = persistence.commitQueryStatement(projectId, commit.name());
 
             BufferedReader stdError = new BufferedReader(new InputStreamReader(p.getErrorStream()));
             String errLine;
@@ -126,15 +129,23 @@ public class CommitsQuery implements Query {
             }
 
             String line = reader.readLine();
+            String rename;
             while (line != null) {
-                logger.error("  current line => " + line);
-                handleRenameLine(commitSelect, line);
-                line = reader.readLine();
+                try {
+                    rename = generateRenameStatement(commitSelect, line);
+                    if (rename != null) {
+                        result.add(rename);
+                    }
+                } catch (Exception e) {
+                    logger.warn("Unable to parse file rename: ", e);
+                } finally {
+                    line = reader.readLine();
+                }
             }
-
         } catch (IOException e) {
             logger.error("Unable to execute git command", e);
         }
+        return result;
     }
 
     /**
@@ -143,24 +154,22 @@ public class CommitsQuery implements Query {
      * @param commitSelect Query to select the right commit id.
      * @param line         Line to parse for rename.
      */
-    private void handleRenameLine(String commitSelect, String line) {
-        // TODO: extract
-        if (line.trim().startsWith("rename")) {
-            GitRenameParser.RenameParsingResult result = null;
-            try {
-                result = GitRenameParser.parseRenamed(line.trim());
-            } catch (Exception e) {
-                logger.warn("Unable to parse file rename: ", e.getMessage());
-                return;
-            }
-            if (result.oldFile.endsWith(".java") && result.newFile.endsWith(".java")) {
-                String statement = "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
-                        projectId + "',(" + commitSelect + "), '" + result.oldFile + "', '" +
-                        result.newFile + "', " + result.similarity + ")";
-                persistence.addStatements(statement);
-                persistence.commit();
-            }
+    private String generateRenameStatement(String commitSelect, String line) throws Exception {
+        if (!line.trim().startsWith("rename")) {
+            return null;
         }
+
+        GitRenameParser.RenameParsingResult result = GitRenameParser.parseRenamed(line.trim());
+        if (!(result.oldFile.endsWith(".java") && result.newFile.endsWith(".java"))) {
+            return null;
+        }
+
+        logger.debug("=> Found .java renamed: " + result.oldFile);
+        logger.trace("  => new file: " + result.newFile);
+        logger.trace("  => Similarity: " + result.similarity);
+        return "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
+                projectId + "',(" + commitSelect + "), '" + result.oldFile + "', '" +
+                result.newFile + "', " + result.similarity + ") ON CONFLICT DO NOTHING";
     }
 
     private Git initializeRepository() throws QueryException {

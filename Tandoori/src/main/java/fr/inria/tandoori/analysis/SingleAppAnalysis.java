@@ -26,10 +26,9 @@ public class SingleAppAnalysis {
     private final Persistence persistence = new PostgresqlPersistence("//127.0.0.1:5432/tandoori", "tandoori", "tandoori");
 
     /**
-     *
-     * @param appName Name of the application under analysis.
-     * @param appRepo Repository path on github.
-     * @param paprikaDB Path to paprika database.
+     * @param appName     Name of the application under analysis.
+     * @param appRepo     Repository path on github.
+     * @param paprikaDB   Path to paprika database.
      * @param githubToken
      */
     SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken) {
@@ -58,12 +57,12 @@ public class SingleAppAnalysis {
      * @return The project identifier in the database.
      */
     private static int persistApp(String appName, Persistence persistence) {
-        String projectInsert = "INSERT INTO Project (name) VALUES ('" + appName + "');";
+        String projectInsert = "INSERT INTO Project (name) VALUES ('" + appName + "') ON CONFLICT DO NOTHING;";
         persistence.addStatements(projectInsert);
         persistence.commit();
 
-        String idQuery = "SELECT id FROM Project WHERE name = '" + appName + "';";
-        List<Map<String, Object>> result = persistence.query(idQuery);
+        String idQuery = persistence.projectQueryStatement(appName);
+        List<Map<String, Object>> result = persistence.query(idQuery + ";");
         // TODO: Maybe be less violent / test the returned data
         return (int) result.get(0).get("id");
     }

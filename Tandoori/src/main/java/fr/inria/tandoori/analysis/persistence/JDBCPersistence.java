@@ -64,7 +64,7 @@ public class JDBCPersistence implements Persistence {
                 sqlStatement = connection.createStatement();
             }
             for (String statement : statements) {
-                logger.debug("Adding new statement: " + statement);
+                logger.trace("Adding new statement: " + statement);
                 sqlStatement.addBatch(statement);
             }
         } catch (SQLException e) {
@@ -168,7 +168,7 @@ public class JDBCPersistence implements Persistence {
         try (Statement initStatement = connection.createStatement()) {
             List<String> initialization = loadDatabaseSchema();
             for (String statement : initialization) {
-                logger.debug("Adding initialization statement: " + statement);
+                logger.trace("Adding initialization statement: " + statement);
                 initStatement.addBatch(statement);
             }
             initStatement.executeBatch();
@@ -196,6 +196,34 @@ public class JDBCPersistence implements Persistence {
         }
         return -1;
     }
+
+    @Override
+    public String projectQueryStatement(String name) {
+        return "SELECT id FROM Project WHERE name = '" + name + "'";
+    }
+
+    @Override
+    public String commitQueryStatement(int projectId, String sha) {
+        return "SELECT id FROM CommitEntry WHERE sha1 = '" + sha + "' AND projectId = " + projectId;
+    }
+
+    @Override
+    public String developerQueryStatement(int projectId, String email) {
+        return "SELECT id FROM Developer WHERE username = '" + email + "'";
+    }
+
+    @Override
+    public String smellQueryStatement(int projectId, String instance, String type) {
+        return "SELECT id FROM Smell WHERE instance = '" + instance + "' " +
+                "AND type = '" + type + "' AND projectId = " + projectId;
+    }
+
+    @Override
+    public String projectDevQueryStatement(int projectId, String email) {
+        String devQuery = developerQueryStatement(projectId, email);
+        return "SELECT id FROM ProjectDeveloper WHERE developerId = (" + devQuery + ") AND projectId = " + projectId;
+    }
+
 
     /**
      * Load the database schema.
