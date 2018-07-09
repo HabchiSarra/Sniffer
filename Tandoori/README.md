@@ -28,6 +28,6 @@ To ensure that you will be able to connect to your postgres database, please use
 During the insertion process, Tandoori will create a schema named 'tandoori'.
 
 1. You can then dump it using: `pg_dump --schema tandoori tandoori > my_dump.sql`...
-2. ...And restore it whenever you want using `psql postgres://localhost:5432/tandoori -U tandoori < path/db.sql`
+2. ...And restore it whenever you want using `psql postgres://localhost:5432/tandoori -U tandoori < my_dump.sql`
 3. You can also remove all data by deleting the tandoori schema: `tandoori=> DROP SCHEMA tandoori CASCADE;`
 
