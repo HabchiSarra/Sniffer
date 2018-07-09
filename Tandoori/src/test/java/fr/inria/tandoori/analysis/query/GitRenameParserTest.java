@@ -40,13 +40,34 @@ public class GitRenameParserTest {
     }
 
     @Test
-    public void parseEntryWithBracesInTheMiddle() throws Exception {
-        String line = "rename a/b/c/d/{z.txt => c.txt} (100%)";
+    public void parseEntryWithEmptyOldBody() throws Exception {
+        String line = "rename app/src/main/java/com/nbossard/packlist/{ => dui}/AboutActivity.java (94%)";
 
         GitRenameParser.RenameParsingResult result = GitRenameParser.parseRenamed(line);
 
-        assertEquals("a/b/c/d/z.txt", result.oldFile);
-        assertEquals("a/b/c/d/c.txt", result.newFile);
+        assertEquals("app/src/main/java/com/nbossard/packlist/AboutActivity.java", result.oldFile);
+        assertEquals("app/src/main/java/com/nbossard/packlist/dui/AboutActivity.java", result.newFile);
+        assertEquals(94, result.similarity);
+    }
+    @Test
+    public void parseEntryWithEmptyNewBody() throws Exception {
+        String line = "rename app/src/main/java/com/nbossard/packlist/{dui => }/AboutActivity.java (94%)";
+
+        GitRenameParser.RenameParsingResult result = GitRenameParser.parseRenamed(line);
+
+        assertEquals("app/src/main/java/com/nbossard/packlist/dui/AboutActivity.java", result.oldFile);
+        assertEquals("app/src/main/java/com/nbossard/packlist/AboutActivity.java", result.newFile);
+        assertEquals(94, result.similarity);
+    }
+
+    @Test
+    public void parseEntryWithBracesInTheMiddle() throws Exception {
+        String line = "rename app/src/main/{groovy => java}/com/nbossard/packlist/gui/NewTripFragment.java (100%)";
+
+        GitRenameParser.RenameParsingResult result = GitRenameParser.parseRenamed(line);
+
+        assertEquals("app/src/main/groovy/com/nbossard/packlist/gui/NewTripFragment.java", result.oldFile);
+        assertEquals("app/src/main/java/com/nbossard/packlist/gui/NewTripFragment.java", result.newFile);
         assertEquals(100, result.similarity);
     }
 

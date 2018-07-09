@@ -26,9 +26,13 @@ class GitRenameParser {
             Matcher matcher = RENAME_WITH_BRACKETS.matcher(line);
 
             if (matcher.find()) {
+                // Handle edge case where the entry is like 'a/b/{ => d}/C.java', or the other way around
+                String oldfourthGroup = matcher.group(2).isEmpty() ? matcher.group(4).substring(1): matcher.group(4);
+                String newfourthGroup = matcher.group(3).isEmpty() ? matcher.group(4).substring(1): matcher.group(4);
+
                 // Taking respectively the left and right arguments in the braces for old and new file.
-                String oldFile = matcher.group(1) + matcher.group(2) + matcher.group(4);
-                String newFile = matcher.group(1) + matcher.group(3) + matcher.group(4);
+                String oldFile = matcher.group(1) + matcher.group(2) + oldfourthGroup;
+                String newFile = matcher.group(1) + matcher.group(3) + newfourthGroup;
                 return new RenameParsingResult(oldFile, newFile, Integer.valueOf(matcher.group(5)));
             }
         } else {
