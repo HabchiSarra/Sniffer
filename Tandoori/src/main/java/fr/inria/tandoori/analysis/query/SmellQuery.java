@@ -77,7 +77,6 @@ public class SmellQuery implements Query {
             // We keep track of the smells present in our commit.
             currentSmell = Smell.fromInstance(instance, smellName);
             if (!currentSha.equals(currentSmell.commitSha)) {
-                //TODO add sort by app_key in paprika
                 changeCurrentCommit(currentSmell.commitSha);
             }
             currentCommitSmells.add(currentSmell);
