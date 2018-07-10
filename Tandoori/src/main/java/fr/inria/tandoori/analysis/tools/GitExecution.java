@@ -31,7 +31,7 @@ public class GitExecution {
                 logger.error(line);
             }
 
-            while ((line = stdError.readLine()) != null) {
+            while ((line = stdIn.readLine()) != null) {
                 result.add(line);
             }
         } catch (IOException e) {

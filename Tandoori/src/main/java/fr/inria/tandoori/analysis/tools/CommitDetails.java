@@ -25,12 +25,14 @@ public class CommitDetails {
             try {
                 renames.add(GitRenameParser.parseRenamed(line));
             } catch (Exception e) {
-                logger.warn(e.getMessage(), e);
+                // This is an expected behavior
+                logger.trace("[Rename] " + e.getMessage(), e);
             }
             try {
                 diff = GitDiff.parse(line);
             } catch (Exception e) {
-                logger.warn(e.getMessage(), e);
+                // This is an expected behavior
+                logger.trace("[Diff] " + e.getMessage(), e);
             }
 
         }
