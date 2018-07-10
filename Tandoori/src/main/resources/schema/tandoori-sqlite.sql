@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS `CommitEntry` (
   additions   INTEGER UNSIGNED NOT NULL,
   deletions   INTEGER UNSIGNED NOT NULL,
   filesChanged INTEGER UNSIGNED NOT NULL,
+  message      TEXT NOT NULL,
   date        DATE             NOT NULL,
   UNIQUE (projectId, sha1),
   FOREIGN KEY (projectId) REFERENCES Project (id),

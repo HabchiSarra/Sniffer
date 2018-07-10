@@ -104,9 +104,9 @@ public class CommitsQuery implements Query {
         DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
         logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + commitDate + ")");
 
-        return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged) VALUES ('" +
+        return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged, message) VALUES ('" +
                 projectId + "', (" + developerQuery + "), '" + commit.name() + "', " + count + ", '" + commitDate.toString() +
-                "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() + ") ON CONFLICT DO NOTHING";
+                "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() + ", $$" + commit.getFullMessage() + "$$) ON CONFLICT DO NOTHING";
     }
 
     private List<String> fileRenameStatements(RevCommit commit, CommitDetails details) {
