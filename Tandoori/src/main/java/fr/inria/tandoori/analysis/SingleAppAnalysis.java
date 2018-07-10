@@ -26,10 +26,12 @@ public class SingleAppAnalysis {
     private final Persistence persistence = new PostgresqlPersistence("//127.0.0.1:5432/tandoori", "tandoori", "tandoori");
 
     /**
+     * Compute a single project analysis.
+     *
      * @param appName     Name of the application under analysis.
-     * @param appRepo     Repository path on github.
+     * @param appRepo     Github repository as "username/repository" or local path.
      * @param paprikaDB   Path to paprika database.
-     * @param githubToken
+     * @param githubToken Github API token to query on developers.
      */
     SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken) {
         // TODO: Should we initialize it only once, in a more specific place?
@@ -40,7 +42,9 @@ public class SingleAppAnalysis {
         analysisProcess = new ArrayList<>();
         analysisProcess.add(new CommitsQuery(appId, appRepo, persistence));
         analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
-        // analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
+        // if (githubToken != null) {
+        //     analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
+        // }
 
         // TODO: This is a global database state update. Not to launch on single app analysis!
         // We won't use this method after all
@@ -104,18 +108,18 @@ public class SingleAppAnalysis {
                 .required(true);
 
         parser.addArgument("-r", "--repository")
-                .help("Github repository as \"username/repository\"")
+                .help("Github repository as \"username/repository\" or local path")
                 .type(String.class)
                 .required(true);
 
         parser.addArgument("-db", "--database")
-                .help("Paprika analysis database")
+                .help("Path to Paprika database")
                 .type(String.class)
                 .required(true);
 
         parser.addArgument("-k", "--githubToken")
-                .help("Paprika analysis database")
+                .help("Github API token to query on developers")
                 .type(String.class)
-                .required(true);
+                .required(false);
     }
 }
