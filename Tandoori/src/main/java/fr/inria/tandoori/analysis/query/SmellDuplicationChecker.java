@@ -52,14 +52,18 @@ public class SmellDuplicationChecker {
         // If the smell is already a known renaming, return it instantly
         Smell mergedSmell = renamedSmells.get(instance);
         if (mergedSmell != null) {
+            logger.trace("  ==> Found an already guessed smell");
             return mergedSmell;
         }
 
         // If we find a renaming of the smell file in this specific commit, try to guess the original smell.
         int index = fileRenamings.indexOf(FileRenameEntry.fromSmell(instance));
         if (index > -1) {
+            logger.trace("  ==> Guessed new original smell!");
             return guessOriginalSmell(instance, fileRenamings.get(index));
         }
+
+        logger.trace("  ==> No original smell found");
 
         return null;
     }
