@@ -1,5 +1,6 @@
-package fr.inria.tandoori.analysis;
+package fr.inria.tandoori.analysis.tools;
 
+import fr.inria.tandoori.analysis.FilesUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
