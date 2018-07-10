@@ -71,10 +71,23 @@ public class GitRenameParserTest {
         assertEquals(100, result.similarity);
     }
 
+    @Test
+    public void parsePathInBraces() throws Exception {
+        String line = "rename app/src/main/{groovy/com/nbossard/packlist/gui/AboutActivity.groovy => java/com/nbossard/packlist/gui/AboutActivity.java} (59%)";
+
+        GitRenameParser.RenameParsingResult result = GitRenameParser.parseRenamed(line);
+
+        assertEquals("app/src/main/groovy/com/nbossard/packlist/gui/AboutActivity.groovy", result.oldFile);
+        assertEquals("app/src/main/java/com/nbossard/packlist/gui/AboutActivity.java", result.newFile);
+        assertEquals(59, result.similarity);
+    }
+
     @Test(expected = Exception.class)
     public void parseWrongEntry() throws Exception {
         String line = "Diff a/b/c/d/{z.txt => c.txt} (100%)";
 
         GitRenameParser.parseRenamed(line);
     }
+
+
 }

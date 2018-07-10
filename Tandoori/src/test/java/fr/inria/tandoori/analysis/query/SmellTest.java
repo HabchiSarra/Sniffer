@@ -3,6 +3,11 @@ package fr.inria.tandoori.analysis.query;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.Assert.*;
 
 public class SmellTest {
@@ -60,5 +65,24 @@ public class SmellTest {
         Smell differentSmell = new Smell(anotherType, anotherCommit, anotherInstance, anotherFile);
 
         assertNotEquals(smell, differentSmell);
+    }
+
+    @Test
+    public void testListContains() {
+        List<Smell> smellList = new ArrayList<>();
+        smellList.add(smell);
+        Smell sameSmell = new Smell(smell.type, smell.commitSha, smell.instance, smell.file);
+
+        assertTrue(smellList.contains(sameSmell));
+    }
+
+    @Test
+    public void testMapContains() {
+        Map<Smell, Smell> smellList = new HashMap<>();
+        smellList.put(smell, smell);
+        Smell sameSmell = new Smell(smell.type, smell.commitSha, smell.instance, smell.file);
+
+        assertTrue(smellList.containsKey(sameSmell));
+        assertTrue(smellList.containsValue(sameSmell));
     }
 }

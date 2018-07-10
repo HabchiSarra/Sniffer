@@ -22,7 +22,8 @@ public class Smell {
     public static Smell fromInstance(Map<String, Object> smell, String type) {
         String sha1 = (String) smell.get("key");
         String identifier = (String) smell.get("instance");
-        String file = (String) smell.get("file_path");
+        // The files given by paprika will have a leading '/'
+        String file = ((String) smell.get("file_path")).substring(1);
         return new Smell(type, sha1, identifier, file);
     }
 
@@ -38,5 +39,16 @@ public class Smell {
     @Override
     public int hashCode() {
         return Objects.hash(type, instance);
+    }
+
+    @Override
+    public String toString() {
+        return "Smell{" +
+                "type='" + type + '\'' +
+                ", commitSha='" + commitSha + '\'' +
+                ", instance='" + instance + '\'' +
+                ", file='" + file + '\'' +
+                ", parentInstance='" + parentInstance + '\'' +
+                '}';
     }
 }

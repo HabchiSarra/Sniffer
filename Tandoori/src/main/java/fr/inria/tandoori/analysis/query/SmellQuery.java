@@ -81,11 +81,15 @@ public class SmellQuery implements Query {
             }
             currentCommitSmells.add(currentSmell);
 
+            /* In this test we have a smell with its file directing to a newly renamed file.
+             * We will have to guess the previous smell instance by rewriting its instance id with the file before being renamed.
+             * This instance ID will then be compared with the list of instances from the previous smell to find a match.
+             */
             Smell original = duplicationChecker.original(currentSmell);
             // If we correctly guessed the smell identifier, we will find it in the previous commit smells
             if (original != null && previousCommitSmells.contains(original)) {
-                logger.trace("=> Guessed rename for smell: " + currentSmell.instance);
-                logger.trace("  => potential parent: " + original.instance);
+                logger.debug("=> Guessed rename for smell: " + currentSmell);
+                logger.trace("  => potential parent: " + original);
                 currentCommitRenamed.add(currentSmell);
                 currentSmell.parentInstance = original.instance;
             }
