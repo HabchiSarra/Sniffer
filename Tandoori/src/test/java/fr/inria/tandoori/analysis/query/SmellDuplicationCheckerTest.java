@@ -28,25 +28,27 @@ public class SmellDuplicationCheckerTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        fileRename = new SmellDuplicationChecker.FileRenameEntry("commit", "a/b/c.java", "a/b/d.java");
-        sameCommit = new SmellDuplicationChecker.FileRenameEntry("commit", "d/e/f.java", "g/h/i.java");
+        fileRename = new SmellDuplicationChecker.FileRenameEntry("commit", "app/src/main/java/a/b/c.java", "app/src/main/java/a/b/d.java");
+        sameCommit = new SmellDuplicationChecker.FileRenameEntry("commit", "java/d/e/f.java", "java/g/h/i.java");
+        sameOldFile = new SmellDuplicationChecker.FileRenameEntry("commit2", "java/a/b/c.java", "java/d/e/f.java");
+        // No java directory should go until root path
         sameOldFile = new SmellDuplicationChecker.FileRenameEntry("commit2", "a/b/c.java", "d/e/f.java");
         Map<String, Object> rename = new HashMap<>();
         rename.put("sha1", fileRename.sha1);
-        rename.put("oldFile", fileRename.oldFile);
-        rename.put("newFile", fileRename.newFile);
+        rename.put("oldfile", fileRename.oldFile);
+        rename.put("newfile", fileRename.newFile);
         FILE_RENAMES.add(rename);
 
         rename = new HashMap<>();
         rename.put("sha1", sameCommit.sha1);
-        rename.put("oldFile", sameCommit.oldFile);
-        rename.put("newFile", sameCommit.newFile);
+        rename.put("oldfile", sameCommit.oldFile);
+        rename.put("newfile", sameCommit.newFile);
         FILE_RENAMES.add(rename);
 
         rename = new HashMap<>();
         rename.put("sha1", sameOldFile.sha1);
-        rename.put("oldFile", sameOldFile.oldFile);
-        rename.put("newFile", sameOldFile.newFile);
+        rename.put("oldfile", sameOldFile.oldFile);
+        rename.put("newfile", sameOldFile.newFile);
         FILE_RENAMES.add(rename);
     }
 
@@ -90,7 +92,7 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void parsingErrorWillNotBeGuessed() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameOldFile.sha1, "method#a.b.c$myInnerClass$AnotherInnerClass", "anyOtherFile");
+        Smell instance = new Smell("MIM", sameOldFile.sha1, "method#a.b.d$myInnerClass$AnotherInnerClass", "anyOtherFile");
 
         Smell original = checker.original(instance);
 
@@ -100,48 +102,48 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void oldInstanceNameIsCorrectlyGuessedBothInnerClassAndMethod() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", fileRename.sha1, "method#a.b.c$myInnerClass$AnotherInnerClass", fileRename.newFile);
+        Smell instance = new Smell("MIM", fileRename.sha1, "method#a.b.d$myInnerClass$AnotherInnerClass", fileRename.newFile);
 
         Smell original = checker.original(instance);
 
         assertNotNull(original);
-        assertEquals("method#a.b.d$myInnerClass$AnotherInnerClass", original.instance);
+        assertEquals("method#a.b.c$myInnerClass$AnotherInnerClass", original.instance);
         assertEquals(fileRename.oldFile, original.file);
     }
 
     @Test
     public void oldInstanceNameIsCorrectlyGuessedNoInnerClass() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameOldFile.sha1, "method#a.b.c", sameOldFile.newFile);
+        Smell instance = new Smell("MIM", sameOldFile.sha1, "method#d.e.f", sameOldFile.newFile);
 
         Smell original = checker.original(instance);
 
         assertNotNull(original);
-        assertEquals("method#d.e.f", original.instance);
+        assertEquals("method#a.b.c", original.instance);
         assertEquals(sameOldFile.oldFile, original.file);
     }
 
     @Test
     public void oldInstanceNameIsCorrectlyGuessedNoMethod() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameOldFile.sha1, "a.b.c$myInnerClass$AnotherInnerClass", sameOldFile.newFile);
+        Smell instance = new Smell("MIM", sameOldFile.sha1, "d.e.f$myInnerClass$AnotherInnerClass", sameOldFile.newFile);
 
         Smell original = checker.original(instance);
 
         assertNotNull(original);
-        assertEquals("d.e.f$myInnerClass$AnotherInnerClass", original.instance);
+        assertEquals("a.b.c$myInnerClass$AnotherInnerClass", original.instance);
         assertEquals(sameOldFile.oldFile, original.file);
     }
 
     @Test
     public void oldInstanceNameIsCorrectlyGuessedNoMethodNoInnerClass() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameCommit.sha1, "d.e.f", sameCommit.newFile);
+        Smell instance = new Smell("MIM", sameCommit.sha1, "g.h.i", sameCommit.newFile);
 
         Smell original = checker.original(instance);
 
         assertNotNull(original);
-        assertEquals("g.h.i", original.instance);
+        assertEquals("d.e.f", original.instance);
         assertEquals(sameCommit.oldFile, original.file);
     }
 
@@ -167,6 +169,7 @@ public class SmellDuplicationCheckerTest {
 
         Smell secondOriginal = checker.original(newInstanceFurtherCommit);
 
+        assertNotNull(original);
         assertNull(secondOriginal);
     }
 }

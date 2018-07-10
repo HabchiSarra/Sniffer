@@ -213,9 +213,13 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
-    public String smellQueryStatement(int projectId, String instance, String type) {
-        return "SELECT id FROM Smell WHERE instance = '" + instance + "' " +
+    public String smellQueryStatement(int projectId, String instance, String type, boolean onlyLast) {
+        String statement = "SELECT id FROM Smell WHERE instance = '" + instance + "' " +
                 "AND type = '" + type + "' AND projectId = " + projectId;
+        if (onlyLast) {
+            statement += " ORDER BY id desc LIMIT 1";
+        }
+        return statement;
     }
 
     @Override

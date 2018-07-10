@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +25,7 @@ public class SmellDuplicationChecker {
     }
 
     private static String getFileRenameStatement(int projectId) {
-        return "select  subquery.sha1 as sha1, FileRename.oldFile as oldFile, FileRename.newFile as newFile from FileRename \n" +
+        return "select  subquery.sha1 as sha1, FileRename.oldFile as oldfile, FileRename.newFile as newfile from FileRename \n" +
                 "Inner join (select CommitEntry.sha1 as sha1, CommitEntry.id as commitEntryId from CommitEntry ) AS subquery \n" +
                 "On FileRename.commitId= subquery.commitEntryId " +
                 "WHERE FileRename.projectId = '" + projectId + "'";
@@ -78,7 +78,7 @@ public class SmellDuplicationChecker {
      * @return The guessed original smell.
      */
     private Smell guessOriginalSmell(Smell instance, FileRenameEntry renaming) {
-        String guessOldInstance = guessInstanceName(instance.instance, renaming.newFile);
+        String guessOldInstance = guessInstanceName(instance.instance, renaming.oldFile);
         Smell original = new Smell(instance.type, instance.commitSha, guessOldInstance, renaming.oldFile);
 
         // Cache the original smell into renamedSmells to find it for the next instances.
@@ -88,15 +88,15 @@ public class SmellDuplicationChecker {
 
     /**
      * @param instance identifier of the current smell instance.
-     * @param newFile  New smell file.
+     * @param oldFile  Old smell file.
      * @return Replace the current smell instance by an instance guessed from the file name.
      */
-    private String guessInstanceName(String instance, String newFile) {
+    private String guessInstanceName(String instance, String oldFile) {
         String packagePath = extractPackageIdentifier(instance);
         String ending = extractIdentifierEnding(instance);
         String start = extractIdentifierStart(instance);
 
-        String newPackagePath = transformPackageIdentifier(packagePath, newFile);
+        String newPackagePath = transformPackageIdentifier(oldFile);
 
         return start + newPackagePath + ending;
     }
@@ -104,21 +104,26 @@ public class SmellDuplicationChecker {
     /**
      * Replace the package path content with the newFile path.
      *
-     * We iterate from the end of the packagePath (i.e. the class name) to its start
-     * to only use the usefull part of the newFile path.
+     * We iterate from the end of the oldFile (i.e. the class name) to its "java" directory
+     * to only use the useful part of the file path.
      *
-     * @param packagePath Package identifier to replace.
-     * @param newFile File containing the new package ID to set.
+     * @param oldFile File containing the old package ID to set.
      * @return The newly created package identifier of the original smell.
      */
-    private String transformPackageIdentifier(String packagePath, String newFile) {
-        List<String> packageParts = Arrays.asList(packagePath.split("\\."));
+    private String transformPackageIdentifier(String oldFile) {
+        List<String> packageParts = new ArrayList<>();
         // Remove .java extension from file before using it as identifier
-        newFile = newFile.split("\\.java$")[0];
-        String[] pathPart = newFile.split("/");
-        for (int i = packageParts.size() - 1; i >= 0; i--) {
-            packageParts.set(i, pathPart[i]);
-        }
+        oldFile = oldFile.split("\\.java$")[0];
+        String[] pathPart = oldFile.split("/");
+        int pathPartIndex = pathPart.length - 1;
+        String currentPart;
+        do {
+            currentPart = pathPart[pathPartIndex--];
+            if (!currentPart.equals("java")) {
+                packageParts.add(currentPart);
+            }
+        } while(!currentPart.equals("java") && pathPartIndex >= 0);
+        Collections.reverse(packageParts);
         return String.join(".", packageParts);
     }
 
@@ -203,9 +208,10 @@ public class SmellDuplicationChecker {
          * @return The created {@link FileRenameEntry}
          */
         static FileRenameEntry fromDBEntry(Map<String, Object> renameEntry) {
+            // FIelds returned  by postgresql are always lowercase!
             String sha1 = (String) renameEntry.get("sha1");
-            String oldFile = (String) renameEntry.get("oldFile");
-            String newFile = (String) renameEntry.get("newFile");
+            String oldFile = (String) renameEntry.get("oldfile");
+            String newFile = (String) renameEntry.get("newfile");
             return new FileRenameEntry(sha1, oldFile, newFile);
         }
 

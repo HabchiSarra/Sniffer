@@ -75,9 +75,10 @@ public interface Persistence {
      * @param projectId Project to look into.
      * @param instance Smell instance name.
      * @param type Smell type.
+     * @param onlyLast Ensure that only the last matching smell is returned.
      * @return The generated query statement.
      */
-    String smellQueryStatement(int projectId, String instance, String type);
+    String smellQueryStatement(int projectId, String instance, String type, boolean onlyLast);
 
 
     /**

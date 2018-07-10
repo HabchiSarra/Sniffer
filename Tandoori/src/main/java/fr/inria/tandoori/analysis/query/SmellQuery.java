@@ -103,7 +103,8 @@ public class SmellQuery implements Query {
     }
 
     private void insertSmellInstance(Smell smell) {
-        String parentSmellQuery = persistence.smellQueryStatement(projectId, smell.parentInstance, smell.type);
+        // We know that the parent smell is the last inserted one.
+        String parentSmellQuery = persistence.smellQueryStatement(projectId, smell.parentInstance, smell.type, true);
         String parentQuery = smell.parentInstance != null ? "(" + parentSmellQuery + ")" : null;
         String smellInsert = "INSERT INTO Smell (projectId, instance, type, file, renamedFrom) VALUES" +
                 "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '" + smell.file + "', " + parentQuery + ");";
@@ -115,10 +116,9 @@ public class SmellQuery implements Query {
     }
 
     private void insertSmellInCategory(Smell smell, String category) {
-        String smellQuery = persistence.smellQueryStatement(projectId, smell.instance, smell.type);
         // We fetch only the last matching inserted smell
         // This helps us handling the case of Gaps between commits
-        smellQuery += " ORDER BY id desc LIMIT 1";
+        String smellQuery = persistence.smellQueryStatement(projectId, smell.instance, smell.type, true);
         String commitQuery = persistence.commitQueryStatement(this.projectId, smell.commitSha);
         String smellPresenceInsert = "INSERT INTO " + category + " (smellId, commitId) VALUES " +
                 "((" + smellQuery + "), (" + commitQuery + "));";
