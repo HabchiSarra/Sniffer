@@ -1,12 +1,8 @@
 package fr.inria.tandoori.analysis.query;
 
-import fr.inria.tandoori.analysis.Main;
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SmellDeduplicationQuery implements Query {
-    private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
     private final Persistence persistence;
 
     public SmellDeduplicationQuery(Persistence persistence) {

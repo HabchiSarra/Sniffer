@@ -1,6 +1,7 @@
 package fr.inria.tandoori.analysis.query;
 
 import fr.inria.tandoori.analysis.FilesUtils;
+import fr.inria.tandoori.analysis.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -10,10 +11,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,27 +26,26 @@ import java.util.List;
 public class CommitsQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(CommitsQuery.class.getName());
     private int projectId;
-    private String repository;
+    private final Repository repository;
     private Persistence persistence;
-    private final Path cloneDir;
 
     private static final int SIMILARITY_THRESHOLD = 50;
 
     public CommitsQuery(int projectId, String repository, Persistence persistence) {
         this.projectId = projectId;
-        this.repository = repository;
+        this.repository = new Repository(repository);
         this.persistence = persistence;
-        try {
-            this.cloneDir = Files.createTempDirectory("tandoori");
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to create temporary directory", e);
-        }
     }
 
     @Override
     public void query() throws QueryException {
         logger.info("### Starting Commits insertion ###");
-        Git gitRepo = initializeRepository();
+        Git gitRepo = null;
+        try {
+            gitRepo = repository.initializeRepository();
+        } catch (Repository.RepositoryException e) {
+            throw new QueryException(logger.getName(), e);
+        }
         Iterable<RevCommit> commits = getCommits(gitRepo);
         List<RevCommit> commitsList = new ArrayList<>();
         // Reverse our commit list.
@@ -69,7 +71,7 @@ public class CommitsQuery implements Query {
         persistence.addStatements(renameStatements.toArray(new String[0]));
         persistence.commit();
 
-        finalizeRepository();
+        repository.finalizeRepository();
     }
 
     private static Iterable<RevCommit> getCommits(Git gitRepo) throws QueryException {
@@ -103,7 +105,7 @@ public class CommitsQuery implements Query {
         String authorEmail = commit.getAuthorIdent().getEmailAddress();
         String developerQuery = persistence.developerQueryStatement(projectId, authorEmail);
 
-        GitDiffResult diff = GitDiffResult.fetch(repository, commit.name());
+        GitDiffResult diff = GitDiffResult.fetch(repository.getRepoDir().toString(), commit.name());
         logger.trace("Commit diff is +: " + diff.getAddition() + ", -: " + diff.getDeletion() + ", file: " + diff.getChangedFiles());
 
         DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
@@ -118,7 +120,7 @@ public class CommitsQuery implements Query {
         // TODO: See if we can use Jgit instead of a raw call to git
         List<String> result = new ArrayList<>();
         try {
-            String command = "git -C " + cloneDir + " show " + commit.name() + " -M50% --summary --format=";
+            String command = "git -C " + repository.getRepoDir().toString() + " show " + commit.name() + " -M50% --summary --format=";
             Process p = Runtime.getRuntime().exec(command);
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String commitSelect = persistence.commitQueryStatement(projectId, commit.name());
@@ -171,23 +173,5 @@ public class CommitsQuery implements Query {
         return "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
                 projectId + "',(" + commitSelect + "), '" + result.oldFile + "', '" +
                 result.newFile + "', " + result.similarity + ") ON CONFLICT DO NOTHING";
-    }
-
-    private Git initializeRepository() throws QueryException {
-        Git gitRepo;
-        try {
-            gitRepo = Git.cloneRepository()
-                    .setDirectory(cloneDir.toFile())
-                    .setURI("https://github.com/" + this.repository)
-                    .call();
-        } catch (GitAPIException e) {
-            logger.error("Unable to clone repository: " + this.repository, e);
-            throw new QueryException(logger.getName(), e);
-        }
-        return gitRepo;
-    }
-
-    private void finalizeRepository() {
-        FilesUtils.recursiveDeletion(cloneDir);
     }
 }

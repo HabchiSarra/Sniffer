@@ -31,7 +31,7 @@ class GitDiffResult {
      * @param line Line to parse.
      * @return found {@link GitDiffResult}, null if could not parse.
      */
-    public static GitDiffResult parse(String line) throws Exception {
+    static GitDiffResult parse(String line) throws Exception {
         Matcher matcher = DIFF_PATTERN.matcher(line);
 
         if (matcher.find()) {

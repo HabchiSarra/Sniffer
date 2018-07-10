@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class SmellDuplicationChecker {
-    private static final Logger logger = LoggerFactory.getLogger(SmellQuery.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(SmellDuplicationChecker.class.getName());
     private final List<FileRenameEntry> fileRenamings;
     /**
      * Binding renamed smells to their original ones.
