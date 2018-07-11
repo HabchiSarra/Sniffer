@@ -57,18 +57,20 @@ public class SmellQuery implements Query {
 
     @Override
     public void query() {
-        logger.info("### Starting Smell insertion ###");
+        logger.info("[" + projectId + "] Starting Smells insertion");
         boolean showDetails = true;
         QueryEngine queryEngine = new QueryEngine(db);
         SmellDuplicationChecker duplicationChecker = new SmellDuplicationChecker(projectId, persistence);
 
         for (neo4j.Query query : queries(queryEngine)) {
-            logger.info("=> Querying Smells of type: " + query.getSmellName());
+            logger.info("[" + projectId + "] => Querying Smells of type: " + query.getSmellName());
             List<Map<String, Object>> result = query.fetchResult(showDetails);
 
-            logger.trace("Got result: " + result);
+            logger.trace("[" + projectId + "]   ==> Found smells: " + result);
             writeResults(result, query.getSmellName(), duplicationChecker);
         }
+
+        persistence.commit();
     }
 
     private void writeResults(List<Map<String, Object>> results, String smellName, SmellDuplicationChecker duplicationChecker) {
@@ -88,8 +90,8 @@ public class SmellQuery implements Query {
             Smell original = duplicationChecker.original(currentSmell);
             // If we correctly guessed the smell identifier, we will find it in the previous commit smells
             if (original != null && previousCommitSmells.contains(original)) {
-                logger.debug("=> Guessed rename for smell: " + currentSmell);
-                logger.trace("  => potential parent: " + original);
+                logger.debug("[" + projectId + "] => Guessed rename for smell: " + currentSmell);
+                logger.trace("[" + projectId + "]   => potential parent: " + original);
                 currentCommitRenamed.add(currentSmell);
                 currentSmell.parentInstance = original.instance;
             }
@@ -97,8 +99,6 @@ public class SmellQuery implements Query {
                 insertSmellInstance(currentSmell);
             }
             insertSmellPresence(currentSmell);
-
-            persistence.commit();
         }
     }
 
@@ -132,7 +132,7 @@ public class SmellQuery implements Query {
      * @param commitSha The new sha.
      */
     private void changeCurrentCommit(String commitSha) {
-        logger.debug("==> Handling commit: " + commitSha);
+        logger.debug("[" + projectId + "] ==> Handling commit: " + commitSha);
         if (logger.isTraceEnabled()) {
             traceCommitIdentifier(commitSha);
         }
@@ -155,9 +155,9 @@ public class SmellQuery implements Query {
         String commitQuery = persistence.commitQueryStatement(this.projectId, commitSha);
         List<Map<String, Object>> result = persistence.query(commitQuery);
         if (!result.isEmpty()) {
-            logger.trace("  => commit id: " + String.valueOf(result.get(0).get("id")));
+            logger.trace("[" + projectId + "]  => commit id: " + String.valueOf(result.get(0).get("id")));
         } else {
-            logger.trace("NO VALUE!");
+            logger.trace("[" + projectId + "] NO FOUND COMMIT!");
         }
     }
 

@@ -23,7 +23,7 @@ import java.util.Map;
 
 
 public class JDBCPersistence implements Persistence {
-    private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(JDBCPersistence.class.getName());
     private final Connection connection;
     private Statement sqlStatement;
     private final String path;
@@ -78,6 +78,7 @@ public class JDBCPersistence implements Persistence {
 
     @Override
     public void commit() {
+        logger.info("Committing transaction");
         try {
             sqlStatement.executeBatch();
             sqlStatement.clearBatch();
@@ -94,8 +95,9 @@ public class JDBCPersistence implements Persistence {
 
     @Override
     public List<Map<String, Object>> query(String statement) {
+        logger.debug("Querying database: " + statement);
+
         try (Statement queryStatement = connection.createStatement()) {
-            logger.debug("Querying database: " + statement);
             ResultSet resultSet = queryStatement.executeQuery(statement);
             return resultSetToArrayList(resultSet);
         } catch (SQLException e) {

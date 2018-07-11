@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class handling a single app analysis process in Tandoori.
@@ -70,18 +71,24 @@ public class MultiAppAnalysis {
     }
 
     public void analyze() throws InterruptedException {
+        logger.info("Starting multi application analysis using " + threadsCount + " threads");
         ExecutorService executorService = Executors.newFixedThreadPool(threadsCount);
         String repository;
         String paprikaDB;
 
+        SingleAnalysisTask analysis;
         List<SingleAnalysisTask> tasks = new ArrayList<>();
         for (String app : applications) {
             repository = chooseRepository(app);
-            paprikaDB = Paths.get(paprikaDBs, app).toString();
-            tasks.add(new SingleAnalysisTask(app, repository, paprikaDB, githubToken));
+            paprikaDB = Paths.get(paprikaDBs, app, "databases", "graph.db").toString();
+            analysis = new SingleAnalysisTask(app, repository, paprikaDB, githubToken);
+            logger.info("New app analysis: " + analysis);
+            tasks.add(analysis);
         }
 
         executorService.invokeAll(tasks);
+        executorService.shutdown();
+        executorService.awaitTermination(24, TimeUnit.HOURS);
     }
 
     private String chooseRepository(String app) {
@@ -110,6 +117,16 @@ public class MultiAppAnalysis {
             new SingleAppAnalysis(application, repository, paprikaDB, githubToken).analyze();
             return null;
         }
+
+        @Override
+        public String toString() {
+            return "SingleAnalysisTask{" +
+                    "application='" + application + '\'' +
+                    ", repository='" + repository + '\'' +
+                    ", paprikaDB='" + paprikaDB + '\'' +
+                    ", githubToken='" + (githubToken == null ? null : "XXXX (is set)") + '\'' +
+                    '}';
+        }
     }
 
     /**
@@ -119,11 +136,11 @@ public class MultiAppAnalysis {
      */
     MultiAppAnalysis(Namespace arguments) {
         this(
-                arguments.getString("name"),
+                arguments.getString("apps"),
                 arguments.getString("databases"),
                 arguments.getString("githubToken"),
                 arguments.getInt("threads"),
-                arguments.getString("repository")
+                arguments.getString("repositories")
         );
     }
 
@@ -152,6 +169,7 @@ public class MultiAppAnalysis {
         parser.addArgument("-t", "--threads")
                 .help("Number of threads to allocate")
                 .type(Integer.class)
+                .setDefault(1)
                 .required(false);
 
         parser.addArgument("-r", "--repositories")

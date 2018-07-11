@@ -25,6 +25,10 @@ public class SingleAppAnalysis {
     // private final Persistence persistence = new SQLitePersistence("output.sqlite");
     private final Persistence persistence = new PostgresqlPersistence("//127.0.0.1:5432/tandoori", "tandoori", "tandoori");
 
+    // Used for logging purpose
+    private final String appName;
+    private final int appId;
+
     /**
      * Compute a single project analysis.
      *
@@ -37,7 +41,8 @@ public class SingleAppAnalysis {
         // TODO: Should we initialize it only once, in a more specific place?
         persistence.initialize();
 
-        int appId = persistApp(appName, persistence);
+        this.appName = appName;
+        appId = persistApp(appName, persistence);
 
         analysisProcess = new ArrayList<>();
         analysisProcess.add(new CommitsQuery(appId, appRepo, persistence));
@@ -72,6 +77,7 @@ public class SingleAppAnalysis {
     }
 
     public void analyze() {
+        logger.info("[" + appId + "] Analyzing application: " + appName);
         for (Query process : analysisProcess) {
             try {
                 process.query();

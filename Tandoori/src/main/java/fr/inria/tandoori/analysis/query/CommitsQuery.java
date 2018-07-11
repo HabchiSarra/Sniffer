@@ -32,13 +32,14 @@ public class CommitsQuery implements Query {
 
     @Override
     public void query() throws QueryException {
-        logger.info("### Starting Commits insertion ###");
+        logger.info("[" + projectId + "] Starting Commits insertion");
         Git gitRepository;
         try {
             gitRepository = repository.initializeRepository();
         } catch (Repository.RepositoryException e) {
             throw new QueryException(logger.getName(), e);
         }
+
         Iterable<RevCommit> commits = getCommits(gitRepository);
         List<RevCommit> commitsList = new ArrayList<>();
         // Reverse our commit list.
@@ -52,7 +53,7 @@ public class CommitsQuery implements Query {
         int commitCount = 0;
         CommitDetails details;
         for (RevCommit commit : commitsList) {
-            logger.debug("=> Analyzing commit: " + commit.name());
+            logger.debug("[" + projectId + "] => Analyzing commit: " + commit.name());
             details = CommitDetails.fetch(repository.getRepoDir().toString(), commit.name());
 
             authorStatements.addAll(authorStatements(commit.getAuthorIdent().getEmailAddress()));
@@ -102,7 +103,7 @@ public class CommitsQuery implements Query {
         GitDiff diff = details.diff;
 
         DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
-        logger.trace("Commit time is: " + commit.getCommitTime() + "(datetime: " + commitDate + ")");
+        logger.trace("[" + projectId + "] Commit time is: " + commit.getCommitTime() + "(datetime: " + commitDate + ")");
 
         return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged, message) VALUES ('" +
                 projectId + "', (" + developerQuery + "), '" + commit.name() + "', " + count + ", '" + commitDate.toString() +
@@ -118,9 +119,9 @@ public class CommitsQuery implements Query {
                 continue;
             }
 
-            logger.debug("  => Found .java renamed: " + rename.oldFile);
-            logger.trace("    => new file: " + rename.newFile);
-            logger.trace("    => Similarity: " + rename.similarity);
+            logger.debug("[" + projectId + "]  => Found .java renamed: " + rename.oldFile);
+            logger.trace("[" + projectId + "]    => new file: " + rename.newFile);
+            logger.trace("[" + projectId + "]    => Similarity: " + rename.similarity);
 
             result.add(renameInsertStatement(commitSelect, rename));
         }
