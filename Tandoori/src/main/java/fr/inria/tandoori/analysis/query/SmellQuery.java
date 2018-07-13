@@ -28,6 +28,7 @@ public class SmellQuery implements Query {
     private final int projectId;
     private final List<Smell> previousCommitSmells;
     private final List<Smell> currentCommitSmells;
+    private final List<Smell> currentCommitOriginal;
     private final List<Smell> currentCommitRenamed;
     private String currentSha;
 
@@ -37,6 +38,7 @@ public class SmellQuery implements Query {
         this.persistence = persistence;
         previousCommitSmells = new ArrayList<>();
         currentCommitSmells = new ArrayList<>();
+        currentCommitOriginal = new ArrayList<>();
         currentCommitRenamed = new ArrayList<>();
         currentSha = "";
     }
@@ -63,6 +65,7 @@ public class SmellQuery implements Query {
         SmellDuplicationChecker duplicationChecker = new SmellDuplicationChecker(projectId, persistence);
 
         for (neo4j.Query query : queries(queryEngine)) {
+            // TODO: Use another class to manage per smell type query.
             logger.info("[" + projectId + "] => Querying Smells of type: " + query.getSmellName());
             List<Map<String, Object>> result = query.fetchResult(showDetails);
 
@@ -94,6 +97,7 @@ public class SmellQuery implements Query {
             if (original != null && previousCommitSmells.contains(original)) {
                 logger.debug("[" + projectId + "] => Guessed rename for smell: " + currentSmell);
                 logger.trace("[" + projectId + "]   => potential parent: " + original);
+                currentCommitOriginal.add(original);
                 currentCommitRenamed.add(currentSmell);
                 currentSmell.parentInstance = original.instance;
             }
@@ -102,6 +106,12 @@ public class SmellQuery implements Query {
             }
             insertSmellPresence(currentSmell);
         }
+
+        // We clean all data, it would be better to not use global state...x
+        currentCommitOriginal.clear();
+        currentCommitRenamed.clear();
+        previousCommitSmells.clear();
+        currentCommitSmells.clear();
     }
 
     private void insertSmellInstance(Smell smell) {
@@ -142,6 +152,7 @@ public class SmellQuery implements Query {
         insertSmellRefactoring();
 
         currentSha = commitSha;
+        currentCommitOriginal.clear();
         currentCommitRenamed.clear();
         previousCommitSmells.clear();
         previousCommitSmells.addAll(currentCommitSmells);
@@ -179,8 +190,7 @@ public class SmellQuery implements Query {
         refactoring.removeAll(currentCommitSmells);
 
         for (Smell smell : refactoring) {
-            //TODO: Test that smells equality is working
-            if (!currentCommitRenamed.contains(smell)) {
+            if (!currentCommitOriginal.contains(smell)) {
                 insertSmellInCategory(smell, "SmellRefactor");
             }
         }
