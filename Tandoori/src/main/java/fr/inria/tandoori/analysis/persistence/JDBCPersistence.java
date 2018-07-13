@@ -85,6 +85,10 @@ public class JDBCPersistence implements Persistence {
     @Override
     public void commit() {
         logger.info("Committing transaction");
+        if (sqlStatement == null) {
+            logger.debug("Nothing to commit, skipping");
+            return;
+        }
         try {
             sqlStatement.executeBatch();
             sqlStatement.clearBatch();

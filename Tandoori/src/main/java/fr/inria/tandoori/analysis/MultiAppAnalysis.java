@@ -90,9 +90,10 @@ public class MultiAppAnalysis {
     private DataSource initializeConnectionPool() {
         DataSource ds_unpooled = null;
         try {
+
             ds_unpooled = DataSources.unpooledDataSource("jdbc:postgresql:" + DATABASE_URL,
                     DATABASE_USERNAME, DATABASE_PASSWORD);
-            return ds_unpooled;//DataSources.pooledDataSource(ds_unpooled);
+            return DataSources.pooledDataSource(ds_unpooled);
         } catch (SQLException e) {
             throw new RuntimeException("Unable to create DataSource", e);
         }

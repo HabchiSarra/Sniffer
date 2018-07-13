@@ -68,9 +68,11 @@ public class SmellQuery implements Query {
 
             logger.trace("[" + projectId + "]   ==> Found smells: " + result);
             writeResults(result, query.getSmellName(), duplicationChecker);
+
+            // Calling commit for each smell type to avoid too big request.
+            persistence.commit();
         }
 
-        persistence.commit();
     }
 
     private void writeResults(List<Map<String, Object>> results, String smellName, SmellDuplicationChecker duplicationChecker) {

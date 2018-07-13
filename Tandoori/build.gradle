@@ -11,7 +11,7 @@ dependencies {
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.11.0.201803080745-r'
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    compile group: 'org.postgresql', name: 'postgresql', version: '9.3-1100-jdbc4'
+    compile group: 'org.postgresql', name: 'postgresql', version: '42.2.2'
 
     // Logging
     compile 'log4j:log4j:1.2.17'
