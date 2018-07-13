@@ -20,6 +20,7 @@ import java.util.List;
  */
 public class CommitsQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(CommitsQuery.class.getName());
+    public static final int BATCH_SIZE = 200;
     private int projectId;
     private final Repository repository;
     private Persistence persistence;
@@ -47,7 +48,7 @@ public class CommitsQuery implements Query {
             commitsList.add(0, commit);
         }
 
-        String[] commitStatements = new String[commitsList.size()];
+        List<String> commitStatements = new ArrayList<>(commitsList.size());
         List<String> authorStatements = new ArrayList<>();
         List<String> renameStatements = new ArrayList<>();
         int commitCount = 0;
@@ -57,18 +58,36 @@ public class CommitsQuery implements Query {
             details = CommitDetails.fetch(repository.getRepoDir().toString(), commit.name());
 
             authorStatements.addAll(authorStatements(commit.getAuthorIdent().getEmailAddress()));
-            commitStatements[commitCount] = commitStatement(commit, commitCount++, details);
+            commitStatements.add(commitStatement(commit, commitCount++, details));
             renameStatements.addAll(fileRenameStatements(commit, details));
-        }
 
-        // We add everything in a bulk insert since we must have a coherent state.
-        // Warning, we have to insert authors, then commits, then renaming!
-        persistence.addStatements(authorStatements.toArray(new String[0]));
-        persistence.addStatements(commitStatements);
-        persistence.addStatements(renameStatements.toArray(new String[0]));
-        persistence.commit();
+            if (commitCount % BATCH_SIZE == 0) {
+                logger.info("[" + projectId + "] Persist commit batch of size: " + BATCH_SIZE);
+                persistBatch(commitStatements, authorStatements, renameStatements);
+                authorStatements.clear();
+                commitStatements.clear();
+                renameStatements.clear();
+            }
+        }
+        persistBatch(commitStatements, authorStatements, renameStatements);
 
         repository.finalizeRepository();
+    }
+
+    /**
+     * Persist the current commit state.
+     * We add everything in a bulk insert since we must have a coherent state.
+     * Warning, we have to insert authors, then commits, then renaming!
+     *
+     * @param commitStatements CommitEntry to persists.
+     * @param authorStatements Developer to persist.
+     * @param renameStatements FileRename to persist.
+     */
+    private void persistBatch(List<String> commitStatements, List<String> authorStatements, List<String> renameStatements) {
+        persistence.addStatements(authorStatements.toArray(new String[0]));
+        persistence.addStatements(commitStatements.toArray(new String[0]));
+        persistence.addStatements(renameStatements.toArray(new String[0]));
+        persistence.commit();
     }
 
     private static Iterable<RevCommit> getCommits(Git gitRepo) throws QueryException {
