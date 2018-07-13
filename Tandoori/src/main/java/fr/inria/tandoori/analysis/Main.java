@@ -10,6 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Main {
+    // TODO: tidy up this part
+    public static final String DATABASE_URL = "//127.0.0.1:5432/tandoori";
+    public static final String DATABASE_USERNAME = "tandoori";
+    public static final String DATABASE_PASSWORD = "tandoori";
     private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
     private static final String COMMAND_KEY = "sub_command";
     private static final String APP_ANALYSIS_COMMAND = "singleAnalysis";

@@ -57,6 +57,12 @@ public class JDBCPersistence implements Persistence {
         }
     }
 
+    public JDBCPersistence(Connection connection, String schemaResourcePath) {
+        this.connection = connection;
+        this.schemaResourcePath = schemaResourcePath;
+        this.path = connection.toString();
+    }
+
     @Override
     public void addStatements(String... statements) {
         try {

@@ -14,6 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static fr.inria.tandoori.analysis.Main.DATABASE_PASSWORD;
+import static fr.inria.tandoori.analysis.Main.DATABASE_URL;
+import static fr.inria.tandoori.analysis.Main.DATABASE_USERNAME;
+
 /**
  * Class handling a single app analysis process in Tandoori.
  */
@@ -23,7 +27,7 @@ public class SingleAppAnalysis {
     private final List<Query> analysisProcess;
     // TODO: Configurable persistence
     // private final Persistence persistence = new SQLitePersistence("output.sqlite");
-    private final Persistence persistence = new PostgresqlPersistence("//127.0.0.1:5432/tandoori", "tandoori", "tandoori");
+    private final Persistence persistence;
 
     // Used for logging purpose
     private final String appName;
@@ -36,12 +40,12 @@ public class SingleAppAnalysis {
      * @param appRepo     Github repository as "username/repository" or local path.
      * @param paprikaDB   Path to paprika database.
      * @param githubToken Github API token to query on developers.
+     * @param persistence Persistence to set, the connection will be closed at the end of the analysis.
      */
-    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken) {
-        // TODO: Should we initialize it only once, in a more specific place?
+    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken, Persistence persistence) {
         persistence.initialize();
-
         this.appName = appName;
+        this.persistence = persistence;
         appId = persistApp(appName, persistence);
 
         analysisProcess = new ArrayList<>();
@@ -50,10 +54,18 @@ public class SingleAppAnalysis {
         // if (githubToken != null) {
         //     analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
         // }
+    }
 
-        // TODO: This is a global database state update. Not to launch on single app analysis!
-        // We won't use this method after all
-        // analysisProcess.add(new SmellDeduplicationQuery(persistence));
+    /**
+     * Compute a single project analysis.
+     *
+     * @param appName     Name of the application under analysis.
+     * @param appRepo     Github repository as "username/repository" or local path.
+     * @param paprikaDB   Path to paprika database.
+     * @param githubToken Github API token to query on developers.
+     */
+    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken) {
+        this(appName, appRepo, paprikaDB, githubToken, new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD));
     }
 
     /**
@@ -77,6 +89,7 @@ public class SingleAppAnalysis {
     }
 
     public void analyze() {
+
         logger.info("[" + appId + "] Analyzing application: " + appName);
         for (Query process : analysisProcess) {
             try {
@@ -86,6 +99,8 @@ public class SingleAppAnalysis {
             }
         }
 
+
+        persistence.close();
     }
 
     /**
