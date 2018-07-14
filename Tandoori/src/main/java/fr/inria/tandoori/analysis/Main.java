@@ -14,6 +14,8 @@ public class Main {
     public static final String DATABASE_URL = "//127.0.0.1:5432/tandoori";
     public static final String DATABASE_USERNAME = "tandoori";
     public static final String DATABASE_PASSWORD = "tandoori";
+    public static final String GITHUB_URL = "https://github.com/";
+
     private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
     private static final String COMMAND_KEY = "sub_command";
     private static final String APP_ANALYSIS_COMMAND = "singleAnalysis";

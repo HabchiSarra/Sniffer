@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import static fr.inria.tandoori.analysis.Main.DATABASE_PASSWORD;
 import static fr.inria.tandoori.analysis.Main.DATABASE_URL;
 import static fr.inria.tandoori.analysis.Main.DATABASE_USERNAME;
+import static fr.inria.tandoori.analysis.Main.GITHUB_URL;
 
 /**
  * Class handling a single app analysis process in Tandoori.
@@ -119,7 +120,7 @@ public class MultiAppAnalysis {
 
             repository = chooseRepository(app);
             paprikaDB = Paths.get(paprikaDBs, app, "databases", "graph.db").toString();
-            analysis = new SingleAnalysisTask(app, repository, paprikaDB, githubToken, connection);
+            analysis = new SingleAnalysisTask(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connection);
             logger.info("New app analysis: " + analysis);
             tasks.add(analysis);
         }
@@ -142,19 +143,28 @@ public class MultiAppAnalysis {
         private String repository;
         private String paprikaDB;
         private String githubToken;
+        private String url;
         private Connection connection;
 
-        public SingleAnalysisTask(String application, String repository, String paprikaDB, String githubToken, Connection connection) {
+        public SingleAnalysisTask(String application, String repository, String paprikaDB,
+                                  String githubToken, String url, Connection connection) {
             this.application = application;
             this.repository = repository;
             this.paprikaDB = paprikaDB;
             this.githubToken = githubToken;
+            // Set null if no url, else join the GITHUB_URL with the given 'owner/project' path.
+            if (url == null) {
+                this.url = null;
+            } else {
+                url = url.trim();
+                this.url = GITHUB_URL + (url.startsWith("/") ? url.substring(1) : url);
+            }
             this.connection = connection;
         }
 
         @Override
         public Void call() throws Exception {
-            new SingleAppAnalysis(application, repository, paprikaDB, githubToken, new PostgresqlPersistence(connection)).analyze();
+            new SingleAppAnalysis(application, repository, paprikaDB, githubToken, url, new PostgresqlPersistence(connection)).analyze();
             return null;
         }
 
@@ -164,6 +174,7 @@ public class MultiAppAnalysis {
                     "application='" + application + '\'' +
                     ", repository='" + repository + '\'' +
                     ", paprikaDB='" + paprikaDB + '\'' +
+                    ", url='" + url + '\'' +
                     ", githubToken='" + (githubToken == null ? null : "XXXX (is set)") + '\'' +
                     '}';
         }
@@ -192,7 +203,7 @@ public class MultiAppAnalysis {
     static void setArguments(Subparser parser) {
 
         parser.addArgument("-a", "--apps")
-                .help("CSV containing the list of applications to analyze")
+                .help("CSV containing the list of applications to analyze and their Github path")
                 .type(String.class)
                 .required(true);
 

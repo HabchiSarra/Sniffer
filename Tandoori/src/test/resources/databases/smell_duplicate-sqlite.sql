@@ -3,6 +3,7 @@ BEGIN TRANSACTION;
 CREATE TABLE `Project` (
   id   INTEGER PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(256) NOT NULL,
+  url         VARCHAR(256),
   UNIQUE (name)
 );
 INSERT INTO Project VALUES(1,'project');

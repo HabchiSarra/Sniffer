@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS `Project` (
   id   INTEGER PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(256) NOT NULL,
+  url         VARCHAR(256),
   UNIQUE (name)
 );
 

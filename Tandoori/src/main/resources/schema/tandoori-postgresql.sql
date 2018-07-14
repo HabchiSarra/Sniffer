@@ -4,6 +4,7 @@ SET search_path TO tandoori;
 CREATE TABLE IF NOT EXISTS Project (
   id   SERIAL NOT NULL PRIMARY KEY,
   name VARCHAR(256) NOT NULL,
+  url         VARCHAR(256),
   UNIQUE (name)
 );
 

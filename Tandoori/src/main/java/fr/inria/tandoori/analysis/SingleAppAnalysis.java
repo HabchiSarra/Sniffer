@@ -42,11 +42,11 @@ public class SingleAppAnalysis {
      * @param githubToken Github API token to query on developers.
      * @param persistence Persistence to set, the connection will be closed at the end of the analysis.
      */
-    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken, Persistence persistence) {
+    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken, String url, Persistence persistence) {
         persistence.initialize();
         this.appName = appName;
         this.persistence = persistence;
-        appId = persistApp(appName, persistence);
+        appId = persistApp(appName, url, persistence);
 
         analysisProcess = new ArrayList<>();
         analysisProcess.add(new CommitsQuery(appId, appRepo, persistence));
@@ -64,8 +64,8 @@ public class SingleAppAnalysis {
      * @param paprikaDB   Path to paprika database.
      * @param githubToken Github API token to query on developers.
      */
-    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken) {
-        this(appName, appRepo, paprikaDB, githubToken, new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD));
+    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken, String url) {
+        this(appName, appRepo, paprikaDB, githubToken, url, new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD));
     }
 
     /**
@@ -74,11 +74,12 @@ public class SingleAppAnalysis {
      * then always fetch and return the project ID.
      *
      * @param appName     The project to persist.
+     * @param url
      * @param persistence The persistence to use.
      * @return The project identifier in the database.
      */
-    private static int persistApp(String appName, Persistence persistence) {
-        String projectInsert = "INSERT INTO Project (name) VALUES ('" + appName + "') ON CONFLICT DO NOTHING;";
+    private static int persistApp(String appName, String url, Persistence persistence) {
+        String projectInsert = "INSERT INTO Project (name, url) VALUES ('" + appName + "', '" + url + "') ON CONFLICT DO NOTHING;";
         persistence.addStatements(projectInsert);
         persistence.commit();
 
@@ -89,7 +90,6 @@ public class SingleAppAnalysis {
     }
 
     public void analyze() {
-
         logger.info("[" + appId + "] Analyzing application: " + appName);
         for (Query process : analysisProcess) {
             try {
@@ -98,7 +98,6 @@ public class SingleAppAnalysis {
                 logger.warn("An error occurred during query!", e);
             }
         }
-
 
         persistence.close();
     }
@@ -113,7 +112,8 @@ public class SingleAppAnalysis {
                 arguments.getString("name"),
                 arguments.getString("repository"),
                 arguments.getString("database"),
-                arguments.getString("githubToken")
+                arguments.getString("githubToken"),
+                arguments.getString("url")
         );
     }
 
@@ -140,6 +140,11 @@ public class SingleAppAnalysis {
 
         parser.addArgument("-k", "--githubToken")
                 .help("Github API token to query on developers")
+                .type(String.class)
+                .required(false);
+
+        parser.addArgument("-u", "--url")
+                .help("Repository complete path to log in database")
                 .type(String.class)
                 .required(false);
     }

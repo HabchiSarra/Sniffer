@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class CommitsQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(CommitsQuery.class.getName());
-    public static final int BATCH_SIZE = 200;
+    public static final int BATCH_SIZE = 1000;
     private int projectId;
     private final Repository repository;
     private Persistence persistence;
