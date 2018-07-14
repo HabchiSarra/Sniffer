@@ -2,7 +2,7 @@ This repository embed every tool needed to analyse projects using Tandoori.
 
 # Content 
 
-## Tandoori / Harissa
+## Tandoori / Harissa (Previously Paprika)
 
 Main tool used for creating databases with application analysis and querying databases content.
 
@@ -13,6 +13,10 @@ Retrieve data about the GitHub project associated with the android application (
 ## MetricsCalculator / HarissaMetrics
 
 Perform metrics calculation about the given project (e.g. the number of introduced smells per commit, per devs, ...)
+
+## Tandoori
+
+New module handling all analysis (currently only commits and smells) from Paprika databases and inserting the results in a `PostgreSQL` or an `sqlite` database. 
 
 ## Scripts
 
