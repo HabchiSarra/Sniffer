@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Execute a command using the host 'git' command.
@@ -23,17 +24,19 @@ public class GitExecution {
             String command = gitCommand(repository, query);
             Process p = Runtime.getRuntime().exec(command);
             BufferedReader stdIn = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            BufferedReader stdError = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 
-            String line;
-            // Log git error from stderr
-            while ((line = stdError.readLine()) != null) {
-                logger.error(line);
+            try {
+                p.waitFor(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                logger.error("Git execution took too much time, skipping", e);
+                return result;
             }
+            String line;
 
             while ((line = stdIn.readLine()) != null) {
                 result.add(line);
             }
+            stdIn.close();
         } catch (IOException e) {
             logger.error("Unable to execute git command", e);
         }
