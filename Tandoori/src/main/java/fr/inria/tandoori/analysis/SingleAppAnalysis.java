@@ -99,6 +99,7 @@ public class SingleAppAnalysis {
             }
         }
 
+        logger.info("[" + appId + "] Analysis done for: " + appName);
         persistence.close();
     }
 

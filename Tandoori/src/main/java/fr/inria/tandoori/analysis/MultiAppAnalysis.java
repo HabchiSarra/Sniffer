@@ -128,6 +128,8 @@ public class MultiAppAnalysis {
         executorService.invokeAll(tasks);
         executorService.shutdown();
         executorService.awaitTermination(24, TimeUnit.HOURS);
+
+        logger.info("Done.");
     }
 
     private String chooseRepository(String app) {
