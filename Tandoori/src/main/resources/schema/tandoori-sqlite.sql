@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS `SmellIntroduction` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   smellId  INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
+  ignored BOOLEAN NOT NULL DEFAULT FALSE,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
   FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
@@ -101,17 +102,8 @@ CREATE TABLE IF NOT EXISTS `SmellRefactor` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   smellId  INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
+  ignored BOOLEAN NOT NULL DEFAULT FALSE,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
   FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
 );
-
-CREATE TABLE IF NOT EXISTS `SmellDeletion` (
-  id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
-);
-

@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS Smell (
   file     VARCHAR(256) NOT NULL,
   type     VARCHAR(5)   NOT NULL,
   renamedFrom INTEGER,
+  UNIQUE (instance, file, type, projectId),
   FOREIGN KEY (projectId) REFERENCES Project (id),
   FOREIGN KEY (renamedFrom) REFERENCES Smell (id)
 );
@@ -93,6 +94,7 @@ CREATE TABLE IF NOT EXISTS SmellPresence (
 CREATE TABLE IF NOT EXISTS SmellIntroduction (
   id       SERIAL NOT NULL PRIMARY KEY,
   smellId  INTEGER NOT NULL,
+  ignored BOOLEAN NOT NULL DEFAULT FALSE,
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
@@ -103,17 +105,8 @@ CREATE TABLE IF NOT EXISTS SmellRefactor (
   id       SERIAL NOT NULL PRIMARY KEY,
   smellId  INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
+  ignored BOOLEAN NOT NULL DEFAULT FALSE,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
   FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
 );
-
-CREATE TABLE IF NOT EXISTS SmellDeletion (
-  id       SERIAL NOT NULL PRIMARY KEY,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
-);
-

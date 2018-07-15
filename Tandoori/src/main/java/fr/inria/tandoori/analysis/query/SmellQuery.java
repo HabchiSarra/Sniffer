@@ -119,7 +119,7 @@ public class SmellQuery implements Query {
         String parentSmellQuery = persistence.smellQueryStatement(projectId, smell.parentInstance, smell.type, true);
         String parentQuery = smell.parentInstance != null ? "(" + parentSmellQuery + ")" : null;
         String smellInsert = "INSERT INTO Smell (projectId, instance, type, file, renamedFrom) VALUES" +
-                "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '" + smell.file + "', " + parentQuery + ");";
+                "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '" + smell.file + "', " + parentQuery + ") ON CONFLICT DO NOTHING;";
         persistence.addStatements(smellInsert);
     }
 
