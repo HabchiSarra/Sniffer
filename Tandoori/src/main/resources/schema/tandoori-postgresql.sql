@@ -1,4 +1,4 @@
-CREATE SCHEMA tandoori;
+CREATE SCHEMA IF NOT EXISTS tandoori;
 SET search_path TO tandoori;
 
 CREATE TABLE IF NOT EXISTS Project (
