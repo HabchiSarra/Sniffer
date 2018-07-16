@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.tools;
+package fr.inria.tandoori.analysis.query.commit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,31 +64,6 @@ public class GitDiff {
         int addition = modifications.getOrDefault("+", 0);
         int deletion = modifications.getOrDefault("-", 0);
         return new GitDiff(addition, deletion, changedFiles);
-    }
-
-    /**
-     * Check for the git diff --stat on the commit of the given repository.
-     *
-     * @param repository The repository to check.
-     * @param sha1       The commit to check.
-     * @return a {@link GitDiff} holding the additions and deletions.
-     */
-    static GitDiff fetch(String repository, String sha1) {
-        List<String> diffs = GitExecution.commitDiff(repository, sha1);
-
-        GitDiff parsed = null;
-        Iterator<String> diffIterator = diffs.iterator();
-        while (diffIterator.hasNext() && parsed == null) {
-            try {
-                parsed = GitDiff.parse(diffIterator.next());
-            } catch (Exception e) {
-                // This is not an important failure since we expect it on each commit.
-                logger.warn(e.getMessage());
-            }
-        }
-        parsed = parsed == null ? GitDiff.EMPTY : parsed;
-        logger.trace("=> Commit diff is: " + parsed);
-        return parsed;
     }
 
     public int getAddition() {

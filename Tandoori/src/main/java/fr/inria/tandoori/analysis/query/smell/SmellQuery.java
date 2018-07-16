@@ -1,6 +1,7 @@
-package fr.inria.tandoori.analysis.query;
+package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.query.Query;
 import neo4j.HashMapUsageQuery;
 import neo4j.InitOnDrawQuery;
 import neo4j.InvalidateWithoutRectQuery;

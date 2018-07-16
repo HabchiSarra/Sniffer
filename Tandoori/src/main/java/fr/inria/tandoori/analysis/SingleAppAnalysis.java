@@ -2,10 +2,10 @@ package fr.inria.tandoori.analysis;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.PostgresqlPersistence;
-import fr.inria.tandoori.analysis.query.CommitsQuery;
+import fr.inria.tandoori.analysis.query.commit.CommitsQuery;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
-import fr.inria.tandoori.analysis.query.SmellQuery;
+import fr.inria.tandoori.analysis.query.smell.SmellQuery;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.slf4j.LoggerFactory;

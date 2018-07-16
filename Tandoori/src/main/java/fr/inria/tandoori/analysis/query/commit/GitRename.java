@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.tools;
+package fr.inria.tandoori.analysis.query.commit;
 
 public final class GitRename {
     public final String oldFile;

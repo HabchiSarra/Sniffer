@@ -1,6 +1,8 @@
-package fr.inria.tandoori.analysis.query;
+package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.query.smell.Smell;
+import fr.inria.tandoori.analysis.query.smell.SmellDuplicationChecker;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -72,9 +74,10 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void wrongCommitWillNotBeGuessed() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", "anyothercommit", "d.e.f", sameCommit.newFile);
+        Smell instance = new Smell("MIM", "d.e.f", sameCommit.newFile);
+        Commit commit = new Commit("anyothercommit", 1);
 
-        Smell original = checker.original(instance);
+        Smell original = checker.original(instance, commit);
 
         assertNull(original);
     }
@@ -82,9 +85,10 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void wrongFileWillNotBeGuessed() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameCommit.sha1, "d.e.f", "anyFile");
+        Smell instance = new Smell("MIM", "d.e.f", "anyFile");
+        Commit commit = new Commit(sameCommit.sha1, 1);
 
-        Smell original = checker.original(instance);
+        Smell original = checker.original(instance, commit);
 
         assertNull(original);
     }
@@ -92,9 +96,10 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void parsingErrorWillNotBeGuessed() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameOldFile.sha1, "method#a.b.d$myInnerClass$AnotherInnerClass", "anyOtherFile");
+        Smell instance = new Smell("MIM", "method#a.b.d$myInnerClass$AnotherInnerClass", "anyOtherFile");
+        Commit commit = new Commit(sameCommit.sha1, 1);
 
-        Smell original = checker.original(instance);
+        Smell original = checker.original(instance, commit);
 
         assertNull(original);
     }
@@ -102,9 +107,10 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void oldInstanceNameIsCorrectlyGuessedBothInnerClassAndMethod() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", fileRename.sha1, "method#a.b.d$myInnerClass$AnotherInnerClass", fileRename.newFile);
+        Smell instance = new Smell("MIM", "method#a.b.d$myInnerClass$AnotherInnerClass", fileRename.newFile);
+        Commit commit = new Commit(sameCommit.sha1, 1);
 
-        Smell original = checker.original(instance);
+        Smell original = checker.original(instance, commit);
 
         assertNotNull(original);
         assertEquals("method#a.b.c$myInnerClass$AnotherInnerClass", original.instance);
@@ -114,9 +120,10 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void oldInstanceNameIsCorrectlyGuessedNoInnerClass() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameOldFile.sha1, "method#d.e.f", sameOldFile.newFile);
+        Smell instance = new Smell("MIM", "method#d.e.f", sameOldFile.newFile);
+        Commit commit = new Commit(sameOldFile.sha1, 1);
 
-        Smell original = checker.original(instance);
+        Smell original = checker.original(instance, commit);
 
         assertNotNull(original);
         assertEquals("method#a.b.c", original.instance);
@@ -126,9 +133,10 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void oldInstanceNameIsCorrectlyGuessedNoMethod() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameOldFile.sha1, "d.e.f$myInnerClass$AnotherInnerClass", sameOldFile.newFile);
+        Smell instance = new Smell("MIM", "d.e.f$myInnerClass$AnotherInnerClass", sameOldFile.newFile);
+        Commit commit = new Commit(sameOldFile.sha1, 1);
 
-        Smell original = checker.original(instance);
+        Smell original = checker.original(instance, commit);
 
         assertNotNull(original);
         assertEquals("a.b.c$myInnerClass$AnotherInnerClass", original.instance);
@@ -138,9 +146,10 @@ public class SmellDuplicationCheckerTest {
     @Test
     public void oldInstanceNameIsCorrectlyGuessedNoMethodNoInnerClass() {
         // The instance name format is critical there.
-        Smell instance = new Smell("MIM", sameCommit.sha1, "g.h.i", sameCommit.newFile);
+        Smell instance = new Smell("MIM", "g.h.i", sameCommit.newFile);
+        Commit commit = new Commit(sameCommit.sha1, 1);
 
-        Smell original = checker.original(instance);
+        Smell original = checker.original(instance, commit);
 
         assertNotNull(original);
         assertEquals("d.e.f", original.instance);
@@ -149,12 +158,15 @@ public class SmellDuplicationCheckerTest {
 
     @Test
     public void sameRenamingInAnotherCommitWillBeFound() {
-        Smell instance = new Smell("MIM", sameCommit.sha1, "d.e.f", sameCommit.newFile);
-        Smell newInstanceFurtherCommit = new Smell(instance.type, "newSha", instance.instance, instance.file);
-        // The original guess will create a cache that is used between commits
-        Smell original = checker.original(instance);
+        Smell instance = new Smell("MIM", "d.e.f", sameCommit.newFile);
+        Smell newInstanceFurtherCommit = new Smell(instance.type, instance.instance, instance.file);
+        Commit commit = new Commit(sameCommit.sha1, 1);
 
-        Smell secondOriginal = checker.original(newInstanceFurtherCommit);
+        // The original guess will create a cache that is used between commits
+        Smell original = checker.original(instance, commit);
+
+        commit = new Commit("newSha", 2);
+        Smell secondOriginal = checker.original(newInstanceFurtherCommit, commit);
 
         assertNotNull(secondOriginal);
         assertEquals(original, secondOriginal);
@@ -162,12 +174,15 @@ public class SmellDuplicationCheckerTest {
 
     @Test
     public void sameRenamingInAnotherIsTypeDependant() {
-        Smell instance = new Smell("MIM", sameCommit.sha1, "d.e.f", sameCommit.newFile);
-        Smell newInstanceFurtherCommit = new Smell("HMU", "newSha", instance.instance, instance.file);
-        // The original guess will create a cache that is used between commits
-        Smell original = checker.original(instance);
+        Smell instance = new Smell("MIM","d.e.f", sameCommit.newFile);
+        Smell newInstanceFurtherCommit = new Smell("HMU", instance.instance, instance.file);
+        Commit commit = new Commit(sameCommit.sha1, 1);
 
-        Smell secondOriginal = checker.original(newInstanceFurtherCommit);
+        // The original guess will create a cache that is used between commits
+        Smell original = checker.original(instance, commit);
+
+        commit = new Commit("newSha", 2);
+        Smell secondOriginal = checker.original(newInstanceFurtherCommit, commit);
 
         assertNotNull(original);
         assertNull(secondOriginal);

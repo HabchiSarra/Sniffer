@@ -1,18 +1,16 @@
-package fr.inria.tandoori.analysis.query;
+package fr.inria.tandoori.analysis.query.smell;
 
 import java.util.Map;
 import java.util.Objects;
 
 public class Smell {
     public final String type;
-    public final String commitSha;
     public final String instance;
     public final String file;
     public String parentInstance;
 
-    public Smell(String type, String commitSha, String instance, String file) {
+    public Smell(String type, String instance, String file) {
         this.type = type;
-        this.commitSha = commitSha;
         this.instance = instance;
         this.file = file;
         this.parentInstance = null;
@@ -20,11 +18,10 @@ public class Smell {
 
 
     public static Smell fromInstance(Map<String, Object> smell, String type) {
-        String sha1 = (String) smell.get("key");
         String identifier = (String) smell.get("instance");
         // The files given by paprika will have a leading '/'
         String file = ((String) smell.get("file_path")).substring(1);
-        return new Smell(type, sha1, identifier, file);
+        return new Smell(type, identifier, file);
     }
 
     @Override
@@ -45,7 +42,6 @@ public class Smell {
     public String toString() {
         return "Smell{" +
                 "type='" + type + '\'' +
-                ", commitSha='" + commitSha + '\'' +
                 ", instance='" + instance + '\'' +
                 ", file='" + file + '\'' +
                 ", parentInstance='" + parentInstance + '\'' +

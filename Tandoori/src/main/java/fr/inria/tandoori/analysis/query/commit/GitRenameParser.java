@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.tools;
+package fr.inria.tandoori.analysis.query.commit;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

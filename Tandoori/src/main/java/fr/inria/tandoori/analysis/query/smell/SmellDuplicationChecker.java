@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.query;
+package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import org.slf4j.Logger;
@@ -46,7 +46,7 @@ public class SmellDuplicationChecker {
      * @param instance The instance to check.
      * @return The original instance, null if not a renamed instance.
      */
-    public Smell original(Smell instance) {
+    public Smell original(Smell instance, Commit commit) {
         logger.trace("==> Trying to guess original smell for: " + instance);
 
         // If the smell is already a known renaming, return it instantly
@@ -57,10 +57,10 @@ public class SmellDuplicationChecker {
         }
 
         // If we find a renaming of the smell file in this specific commit, try to guess the original smell.
-        int index = fileRenamings.indexOf(FileRenameEntry.fromSmell(instance));
+        int index = fileRenamings.indexOf(FileRenameEntry.fromSmell(instance, commit));
         if (index > -1) {
             logger.trace("  ==> Guessed new original smell!");
-            return guessOriginalSmell(instance, fileRenamings.get(index));
+            return guessOriginalSmell(instance, commit, fileRenamings.get(index));
         }
 
         logger.trace("  ==> No original smell found");
@@ -77,9 +77,9 @@ public class SmellDuplicationChecker {
      * @param renaming Matching renaming entry.
      * @return The guessed original smell.
      */
-    private Smell guessOriginalSmell(Smell instance, FileRenameEntry renaming) {
+    private Smell guessOriginalSmell(Smell instance, Commit commit, FileRenameEntry renaming) {
         String guessOldInstance = guessInstanceName(instance.instance, renaming.oldFile);
-        Smell original = new Smell(instance.type, instance.commitSha, guessOldInstance, renaming.oldFile);
+        Smell original = new Smell(instance.type, guessOldInstance, renaming.oldFile);
 
         // Cache the original smell into renamedSmells to find it for the next instances.
         renamedSmells.put(instance, original);
@@ -103,7 +103,7 @@ public class SmellDuplicationChecker {
 
     /**
      * Replace the package path content with the newFile path.
-     *
+     * <p>
      * We iterate from the end of the oldFile (i.e. the class name) to its "java" directory
      * to only use the useful part of the file path.
      *
@@ -122,7 +122,7 @@ public class SmellDuplicationChecker {
             if (!currentPart.equals("java")) {
                 packageParts.add(currentPart);
             }
-        } while(!currentPart.equals("java") && pathPartIndex >= 0);
+        } while (!currentPart.equals("java") && pathPartIndex >= 0);
         Collections.reverse(packageParts);
         return String.join(".", packageParts);
     }
@@ -197,8 +197,8 @@ public class SmellDuplicationChecker {
          * @param smell The smell to create an entry for.
          * @return The created {@link FileRenameEntry}
          */
-        static FileRenameEntry fromSmell(Smell smell) {
-            return new FileRenameEntry(smell.commitSha, "", smell.file);
+        static FileRenameEntry fromSmell(Smell smell, Commit commit) {
+            return new FileRenameEntry(commit.sha, "", smell.file);
         }
 
         /**

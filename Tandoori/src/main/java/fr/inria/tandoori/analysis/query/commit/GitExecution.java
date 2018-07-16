@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.tools;
+package fr.inria.tandoori.analysis.query.commit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,12 +49,7 @@ public class GitExecution {
         return "git -C " + repository + " " + query;
     }
 
-
     public static List<String> commitSummary(String repository, String commit) {
         return execute(repository, " show " + commit + " -M50% --stat --summary --format=");
-    }
-
-    public static List<String> commitDiff(String repository, String commit) {
-        return execute(repository, "show " + commit + " --stat --format=");
     }
 }

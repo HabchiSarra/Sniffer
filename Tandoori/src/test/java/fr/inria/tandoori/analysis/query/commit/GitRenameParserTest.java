@@ -1,7 +1,7 @@
-package fr.inria.tandoori.analysis.tools;
+package fr.inria.tandoori.analysis.query.commit;
 
-import fr.inria.tandoori.analysis.tools.GitRenameParser;
-import fr.inria.tandoori.analysis.tools.GitRename;
+import fr.inria.tandoori.analysis.query.commit.GitRenameParser;
+import fr.inria.tandoori.analysis.query.commit.GitRename;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

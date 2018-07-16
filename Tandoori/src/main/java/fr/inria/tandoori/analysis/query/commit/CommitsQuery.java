@@ -1,10 +1,8 @@
-package fr.inria.tandoori.analysis.query;
+package fr.inria.tandoori.analysis.query.commit;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import fr.inria.tandoori.analysis.tools.CommitDetails;
-import fr.inria.tandoori.analysis.tools.GitDiff;
-import fr.inria.tandoori.analysis.tools.GitRename;
-import fr.inria.tandoori.analysis.tools.Repository;
+import fr.inria.tandoori.analysis.query.Query;
+import fr.inria.tandoori.analysis.query.QueryException;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;

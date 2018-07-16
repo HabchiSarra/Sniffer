@@ -1,6 +1,8 @@
 package fr.inria.tandoori.analysis.query;
 
 import fr.inria.tandoori.analysis.persistence.SQLitePersistence;
+import fr.inria.tandoori.analysis.query.QueryException;
+import fr.inria.tandoori.analysis.query.SmellDeduplicationQuery;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;

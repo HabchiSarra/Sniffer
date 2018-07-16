@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.tools;
+package fr.inria.tandoori.analysis.query.commit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
