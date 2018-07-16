@@ -3,6 +3,9 @@ package fr.inria.tandoori.analysis.query.smell;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Represents a commit.
+ */
 public class Commit {
 
     public static final Commit EMPTY = new Commit("", 0);

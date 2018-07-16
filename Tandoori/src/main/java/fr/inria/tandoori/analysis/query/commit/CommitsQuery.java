@@ -3,13 +3,19 @@ package fr.inria.tandoori.analysis.query.commit;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
+import fr.inria.tandoori.analysis.query.smell.Commit;
+import neo4j.QueryEngine;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.joda.time.DateTime;
+import org.neo4j.graphdb.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,12 +25,14 @@ import java.util.List;
 public class CommitsQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(CommitsQuery.class.getName());
     public static final int BATCH_SIZE = 1000;
-    private int projectId;
+    private final int projectId;
+    private final String paprikaDB;
     private final Repository repository;
-    private Persistence persistence;
+    private final Persistence persistence;
 
-    public CommitsQuery(int projectId, String repository, Persistence persistence) {
+    public CommitsQuery(int projectId, String paprikaDB, String repository, Persistence persistence) {
         this.projectId = projectId;
+        this.paprikaDB = paprikaDB;
         this.repository = new Repository(repository);
         this.persistence = persistence;
     }
@@ -32,26 +40,21 @@ public class CommitsQuery implements Query {
     @Override
     public void query() throws QueryException {
         logger.info("[" + projectId + "] Starting Commits insertion");
-        Git gitRepository;
-        try {
-            gitRepository = repository.initializeRepository();
-        } catch (Repository.RepositoryException e) {
-            throw new QueryException(logger.getName(), e);
-        }
+        Git gitRepository = initializeJGitRepository();
 
-        Iterable<RevCommit> commits = getCommits(gitRepository);
-        List<RevCommit> commitsList = new ArrayList<>();
-        // Reverse our commit list.
-        for (RevCommit commit : commits) {
-            commitsList.add(0, commit);
-        }
+        QueryEngine engine = new QueryEngine(paprikaDB);
+        Result commits = getCommits(engine);
 
-        List<String> commitStatements = new ArrayList<>(commitsList.size());
+        List<String> commitStatements = new ArrayList<>();
         List<String> authorStatements = new ArrayList<>();
         List<String> renameStatements = new ArrayList<>();
+
         int commitCount = 0;
         CommitDetails details;
-        for (RevCommit commit : commitsList) {
+        RevCommit commit;
+        while (commits.hasNext()) {
+            commit = findJGitCommit(gitRepository, Commit.fromInstance(commits.next()));
+
             logger.debug("[" + projectId + "] => Analyzing commit: " + commit.name());
             details = CommitDetails.fetch(repository.getRepoDir().toString(), commit.name());
 
@@ -69,7 +72,33 @@ public class CommitsQuery implements Query {
         }
         persistBatch(commitStatements, authorStatements, renameStatements);
 
+        engine.shutDown();
         repository.finalizeRepository();
+    }
+
+    /**
+     * We use the {@link RevCommit} to easily access Author and Commit message.
+     *
+     * @param repo   The {@link Git} repository.
+     * @param commit The {@link Commit} definition.
+     * @return The found {@link RevCommit}
+     */
+    private RevCommit findJGitCommit(Git repo, Commit commit) throws QueryException {
+        try (RevWalk revWalk = new RevWalk(repo.getRepository())) {
+            ObjectId commitId = ObjectId.fromString(commit.sha);
+            return revWalk.parseCommit(commitId);
+        } catch (IOException e) {
+            throw new QueryException(logger.getName(),
+                    "Unable to retrieve commit " + commit.sha + " in git repository " + repo);
+        }
+    }
+
+    private Git initializeJGitRepository() throws QueryException {
+        try {
+            return repository.initializeRepository();
+        } catch (Repository.RepositoryException e) {
+            throw new QueryException(logger.getName(), e);
+        }
     }
 
     /**
@@ -86,6 +115,10 @@ public class CommitsQuery implements Query {
         persistence.addStatements(commitStatements.toArray(new String[0]));
         persistence.addStatements(renameStatements.toArray(new String[0]));
         persistence.commit();
+    }
+
+    private static Result getCommits(QueryEngine engine) throws QueryException {
+        return new neo4j.CommitsQuery(engine).streamResult(true, true);
     }
 
     private static Iterable<RevCommit> getCommits(Git gitRepo) throws QueryException {

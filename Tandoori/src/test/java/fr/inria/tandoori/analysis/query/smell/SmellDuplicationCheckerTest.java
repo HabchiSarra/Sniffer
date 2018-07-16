@@ -1,8 +1,6 @@
 package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import fr.inria.tandoori.analysis.query.smell.Smell;
-import fr.inria.tandoori.analysis.query.smell.SmellDuplicationChecker;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

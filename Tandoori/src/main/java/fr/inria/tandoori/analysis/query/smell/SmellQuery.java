@@ -13,25 +13,25 @@ import neo4j.OverdrawQuery;
 import neo4j.QueryEngine;
 import neo4j.UnsuitedLRUCacheSizeQuery;
 import neo4j.UnsupportedHardwareAccelerationQuery;
+import org.neo4j.graphdb.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Retrieve all the smells of a given project for each commits, through Paprika.
  */
 public class SmellQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(SmellQuery.class.getName());
-    private final String db;
+    private final String paprikaDB;
     private final Persistence persistence;
     private final int projectId;
 
-    public SmellQuery(int projectId, String db, Persistence persistence) {
+    public SmellQuery(int projectId, String paprikaDB, Persistence persistence) {
         this.projectId = projectId;
-        this.db = db;
+        this.paprikaDB = paprikaDB;
         this.persistence = persistence;
     }
 
@@ -52,14 +52,13 @@ public class SmellQuery implements Query {
     @Override
     public void query() throws QueryException {
         logger.info("[" + projectId + "] Starting Smells insertion");
-        boolean showDetails = true;
-        QueryEngine queryEngine = new QueryEngine(db);
+        QueryEngine queryEngine = new QueryEngine(paprikaDB);
         SmellDuplicationChecker duplicationChecker = new SmellDuplicationChecker(projectId, persistence);
 
         for (neo4j.Query query : queries(queryEngine)) {
             logger.info("[" + projectId + "] => Querying Smells of type: " + query.getSmellName());
 
-            List<Map<String, Object>> result = query.fetchResult(showDetails);
+            Result result = query.streamResult(true, true);
             logger.trace("[" + projectId + "]   ==> Found smells: " + result);
 
             new SmellTypeAnalysis(projectId, persistence, result, query.getSmellName(), duplicationChecker).query();
@@ -68,5 +67,6 @@ public class SmellQuery implements Query {
             persistence.commit();
         }
 
+        queryEngine.shutDown();
     }
 }

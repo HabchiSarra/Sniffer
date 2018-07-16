@@ -3,6 +3,7 @@ package fr.inria.tandoori.analysis.query.smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
+import org.neo4j.graphdb.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +16,7 @@ public class SmellTypeAnalysis implements Query {
 
     private final int projectId;
     private final Persistence persistence;
-    private final List<Map<String, Object>> smells;
+    private final Result smells;
     private String smellType;
     private final SmellDuplicationChecker duplicationChecker;
 
@@ -26,7 +27,7 @@ public class SmellTypeAnalysis implements Query {
     private final List<Smell> currentCommitRenamed;
 
 
-    public SmellTypeAnalysis(int projectId, Persistence persistence, List<Map<String, Object>> smells,
+    public SmellTypeAnalysis(int projectId, Persistence persistence, Result smells,
                              String smellType, SmellDuplicationChecker duplicationChecker) {
         this.projectId = projectId;
         this.persistence = persistence;
@@ -49,7 +50,9 @@ public class SmellTypeAnalysis implements Query {
         // Current smell commit, most of the time equals to 'underAnalysis'
         Commit commit = Commit.EMPTY;
 
-        for (Map<String, Object> instance : smells) {
+        Map<String, Object> instance;
+        while (smells.hasNext()) {
+            instance = smells.next();
             smell = Smell.fromInstance(instance, smellType);
             commit = Commit.fromInstance(instance);
 

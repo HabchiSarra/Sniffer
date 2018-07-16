@@ -32,7 +32,7 @@ public class SingleAppAnalysis {
 
     private List<Query> getAnalysisProcess(int appId, Persistence persistence) {
         List<Query> analysisProcess = new ArrayList<>();
-        analysisProcess.add(new CommitsQuery(appId, appRepo, persistence));
+        analysisProcess.add(new CommitsQuery(appId, paprikaDB, appRepo, persistence));
         analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
         // if (githubToken != null) {
         //     analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
