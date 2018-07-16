@@ -90,5 +90,12 @@ public interface Persistence {
      */
     String projectDevQueryStatement(int projectId, String email);
 
+    /**
+     * Returns the sha1 of the last project's commit.
+     *
+     * @param projectId Project to look into.
+     * @return The generated query statement.
+     */
+    String lastProjectCommitSha1QueryStatement(int projectId);
     // TODO: insertion statement generation should be here to override behaviour per persistence basis.
 }

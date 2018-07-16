@@ -240,6 +240,11 @@ public class JDBCPersistence implements Persistence {
         return "SELECT id FROM ProjectDeveloper WHERE developerId = (" + devQuery + ") AND projectId = " + projectId;
     }
 
+    @Override
+    public String lastProjectCommitSha1QueryStatement(int projectId) {
+        return "SELECT sha1 FROM CommitEntry WHERE projectId = '" + projectId + "' ORDER BY ordinal DESC LIMIT 1";
+    }
+
 
     /**
      * Load the database schema.

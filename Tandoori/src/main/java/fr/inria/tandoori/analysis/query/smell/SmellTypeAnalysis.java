@@ -2,6 +2,7 @@ package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.Query;
+import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,12 +42,12 @@ public class SmellTypeAnalysis implements Query {
 
 
     @Override
-    public void query() {
+    public void query() throws QueryException {
         Smell smell;
         // Analyzed commit
         Commit underAnalysis = Commit.EMPTY;
         // Current smell commit, most of the time equals to 'underAnalysis'
-        Commit commit;
+        Commit commit = Commit.EMPTY;
 
         for (Map<String, Object> instance : smells) {
             smell = Smell.fromInstance(instance, smellType);
@@ -69,6 +70,34 @@ public class SmellTypeAnalysis implements Query {
                 insertSmellInstance(smell);
             }
             insertSmellPresence(smell, commit);
+        }
+
+        handleAllRefactoredBeforeLastCommit(commit);
+    }
+
+    /**
+     * Handle the fact that we could refactor all our smells before the last commit, and not
+     *
+     * @param commit The last commit referencing smells.
+     */
+    private void handleAllRefactoredBeforeLastCommit(Commit commit) {
+        List<Map<String, Object>> result = persistence.query(persistence.lastProjectCommitSha1QueryStatement(projectId));
+        String lastProjectSha1 = (String) result.get(0).get("sha1");
+        if (result.isEmpty()) {
+            logger.warn("Unable to fetch last commit for project: " + projectId);
+        } else {
+            // If we didn't reach the last project, it means we have refactored our smells
+            // In a commit prior to it.
+            // TODO: What if PaprikaDB and Postgresql commits are not synchronized?! --> Wrong
+            if (!commit.sha.equals(lastProjectSha1)) {
+                try {
+                    commit = createNoSmellCommit(commit.ordinal + 1);
+                    updateCommitTrackingCounters();
+                } catch (Exception e) {
+                    logger.warn("An error occurred while treating gap, skipping", e);
+                }
+                persistCommitChanges(commit);
+            }
         }
     }
 
@@ -102,7 +131,7 @@ public class SmellTypeAnalysis implements Query {
                 // We consider a new commit with no smell in it.
                 updateCommitTrackingCounters();
             } catch (Exception e) {
-                logger.error("An error occurred while treating gap, skipping", e);
+                logger.warn("An error occurred while treating gap, skipping", e);
             }
         }
 
@@ -118,7 +147,8 @@ public class SmellTypeAnalysis implements Query {
      * @param ordinal The missing commit ordinal.
      */
     private Commit createNoSmellCommit(int ordinal) throws Exception {
-        List<Map<String, Object>> result = persistence.query("SELECT sha1 FROM Commit WHERE ordinal = '" + ordinal + "' AND projectid = '" + projectId + "'");
+        List<Map<String, Object>> result = persistence.query("SELECT sha1 FROM CommitEntry " +
+                "WHERE ordinal = '" + ordinal + "' AND projectid = '" + projectId + "'");
         if (result.isEmpty()) {
             throw new Exception("[" + projectId + "] ==> Unable to fetch commit n°: " + ordinal);
         }

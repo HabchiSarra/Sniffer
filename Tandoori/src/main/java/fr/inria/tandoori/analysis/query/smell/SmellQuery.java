@@ -2,6 +2,7 @@ package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.Query;
+import fr.inria.tandoori.analysis.query.QueryException;
 import neo4j.HashMapUsageQuery;
 import neo4j.InitOnDrawQuery;
 import neo4j.InvalidateWithoutRectQuery;
@@ -49,7 +50,7 @@ public class SmellQuery implements Query {
     }
 
     @Override
-    public void query() {
+    public void query() throws QueryException {
         logger.info("[" + projectId + "] Starting Smells insertion");
         boolean showDetails = true;
         QueryEngine queryEngine = new QueryEngine(db);
