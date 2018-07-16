@@ -59,12 +59,19 @@ public class SmellTypeAnalysis implements Query {
             // We handle the commit change in our result dataset.
             // This dataset MUST be ordered by commit_number to have right results.
             if (!underAnalysis.equals(commit)) {
-                underAnalysis = updateCurrentCommit(underAnalysis, commit);
+                // Compare the two commits ordinal to find a gap.
+                if (underAnalysis.hasGap(commit)) {
+                    handleCommitGap(underAnalysis);
+                } else {
+                    handleCommitChanges(commit);
+                }
+                underAnalysis = commit;
             }
 
             // We keep track of the smells present in our commit.
             currentCommitSmells.add(smell);
 
+            // Update smell with parent instance, if any
             handleSmellRename(smell, underAnalysis);
 
             // Check if we already inserted smell previously to avoid having too much insert statements.
@@ -75,7 +82,25 @@ public class SmellTypeAnalysis implements Query {
             insertSmellPresence(smell, commit);
         }
 
-        handleAllRefactoredBeforeLastCommit(commit);
+        // If we didn't reach the last project, it means we have refactored our smells
+        // In a commit prior to it.
+        String lastProjectSha1 = fetchLastProjectCommitSha();
+        if (lastProjectSha1 != null && !commit.sha.equals(lastProjectSha1)) {
+            PersistEmptyCommit(commit);
+        }
+    }
+
+    /**
+     * If we found a gap, it means that we have to smell of this type in the next commit.
+     * Thus we consider that every smells has been refactored.
+     *
+     * @param underAnalysis The currently analyzed commit that has no direct child with smells.
+     */
+    private void handleCommitGap(Commit underAnalysis) {
+        PersistEmptyCommit(underAnalysis);
+
+        // We reset the counters since we will be doing next commit analysis compared to this one.
+        updateCommitTrackingCounters();
     }
 
     /**
@@ -84,24 +109,28 @@ public class SmellTypeAnalysis implements Query {
      * @param commit The last commit referencing smells.
      */
     private void handleAllRefactoredBeforeLastCommit(Commit commit) {
+
+    }
+
+    private void PersistEmptyCommit(Commit commit) {
+        try {
+            commit = createNoSmellCommit(commit.ordinal + 1);
+        } catch (Exception e) {
+            logger.warn("An error occurred while treating gap, skipping", e);
+            return;
+        }
+
+        updateCommitTrackingCounters();
+        persistCommitChanges(commit);
+    }
+
+    private String fetchLastProjectCommitSha() {
         List<Map<String, Object>> result = persistence.query(persistence.lastProjectCommitSha1QueryStatement(projectId));
-        String lastProjectSha1 = (String) result.get(0).get("sha1");
         if (result.isEmpty()) {
             logger.warn("Unable to fetch last commit for project: " + projectId);
-        } else {
-            // If we didn't reach the last project, it means we have refactored our smells
-            // In a commit prior to it.
-            // TODO: What if PaprikaDB and Postgresql commits are not synchronized?! --> Wrong
-            if (!commit.sha.equals(lastProjectSha1)) {
-                try {
-                    commit = createNoSmellCommit(commit.ordinal + 1);
-                    updateCommitTrackingCounters();
-                } catch (Exception e) {
-                    logger.warn("An error occurred while treating gap, skipping", e);
-                }
-                persistCommitChanges(commit);
-            }
+            return null;
         }
+        return (String) result.get(0).get("sha1");
     }
 
     /**
@@ -125,22 +154,9 @@ public class SmellTypeAnalysis implements Query {
         }
     }
 
-    private Commit updateCurrentCommit(Commit underAnalysis, Commit commit) {
-        // If we found a gap, it means that we have to smell of this type in the next commit.
-        // Thus we consider that every smells has been refactored.
-        if (underAnalysis.hasGap(commit)) {
-            try {
-                commit = createNoSmellCommit(commit.ordinal + 1);
-                // We consider a new commit with no smell in it.
-                updateCommitTrackingCounters();
-            } catch (Exception e) {
-                logger.warn("An error occurred while treating gap, skipping", e);
-            }
-        }
-
-        persistCommitChanges(commit);
+    private void handleCommitChanges(Commit next) {
+        persistCommitChanges(next);
         updateCommitTrackingCounters();
-        return commit;
     }
 
     /**
