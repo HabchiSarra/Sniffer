@@ -24,7 +24,6 @@ public class GitExecution {
             String command = gitCommand(repository, query);
             Process p = Runtime.getRuntime().exec(command);
             BufferedReader stdIn = new BufferedReader(new InputStreamReader(p.getInputStream()));
-
             try {
                 p.waitFor(2, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -36,8 +35,11 @@ public class GitExecution {
             while ((line = stdIn.readLine()) != null) {
                 result.add(line);
             }
+
             stdIn.close();
-        } catch (IOException e) {
+            p.waitFor(10, TimeUnit.SECONDS);
+            p.destroy();
+        } catch (IOException | InterruptedException e) {
             logger.error("Unable to execute git command", e);
         }
         return result;
