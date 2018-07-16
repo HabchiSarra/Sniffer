@@ -109,18 +109,9 @@ public class MultiAppAnalysis {
         SingleAnalysisTask analysis;
         List<SingleAnalysisTask> tasks = new ArrayList<>();
         for (String app : applications) {
-
-            Connection connection = null;
-            try {
-                connection = connectionPool.getConnection();
-            } catch (SQLException e) {
-                logger.error("Unable to open connection to database", e);
-                continue;
-            }
-
             repository = chooseRepository(app);
             paprikaDB = Paths.get(paprikaDBs, app, "databases", "graph.db").toString();
-            analysis = new SingleAnalysisTask(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connection);
+            analysis = new SingleAnalysisTask(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool);
             logger.info("New app analysis: " + analysis);
             tasks.add(analysis);
         }
@@ -146,10 +137,10 @@ public class MultiAppAnalysis {
         private String paprikaDB;
         private String githubToken;
         private String url;
-        private Connection connection;
+        DataSource connections;
 
         public SingleAnalysisTask(String application, String repository, String paprikaDB,
-                                  String githubToken, String url, Connection connection) {
+                                  String githubToken, String url, DataSource connections) {
             this.application = application;
             this.repository = repository;
             this.paprikaDB = paprikaDB;
@@ -161,12 +152,13 @@ public class MultiAppAnalysis {
                 url = url.trim();
                 this.url = GITHUB_URL + (url.startsWith("/") ? url.substring(1) : url);
             }
-            this.connection = connection;
+            this.connections = connections;
         }
 
         @Override
         public Void call() throws Exception {
-            new SingleAppAnalysis(application, repository, paprikaDB, githubToken, url, new PostgresqlPersistence(connection)).analyze();
+            new SingleAppAnalysis(application, repository, paprikaDB, githubToken, url)
+                    .analyze(new PostgresqlPersistence(connections.getConnection()));
             return null;
         }
 

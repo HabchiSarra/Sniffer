@@ -24,36 +24,20 @@ import static fr.inria.tandoori.analysis.Main.DATABASE_USERNAME;
 public class SingleAppAnalysis {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(SingleAppAnalysis.class.getName());
 
-    private final List<Query> analysisProcess;
-    // TODO: Configurable persistence
-    // private final Persistence persistence = new SQLitePersistence("output.sqlite");
-    private final Persistence persistence;
-
-    // Used for logging purpose
     private final String appName;
-    private final int appId;
+    private final String appRepo;
+    private final String paprikaDB;
+    private final String githubToken;
+    private final String projectUrl;
 
-    /**
-     * Compute a single project analysis.
-     *
-     * @param appName     Name of the application under analysis.
-     * @param appRepo     Github repository as "username/repository" or local path.
-     * @param paprikaDB   Path to paprika database.
-     * @param githubToken Github API token to query on developers.
-     * @param persistence Persistence to set, the connection will be closed at the end of the analysis.
-     */
-    SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken, String url, Persistence persistence) {
-        persistence.initialize();
-        this.appName = appName;
-        this.persistence = persistence;
-        appId = persistApp(appName, url, persistence);
-
-        analysisProcess = new ArrayList<>();
+    private List<Query> getAnalysisProcess(int appId, Persistence persistence) {
+        List<Query> analysisProcess = new ArrayList<>();
         analysisProcess.add(new CommitsQuery(appId, appRepo, persistence));
         analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
         // if (githubToken != null) {
         //     analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
         // }
+        return analysisProcess;
     }
 
     /**
@@ -65,7 +49,11 @@ public class SingleAppAnalysis {
      * @param githubToken Github API token to query on developers.
      */
     SingleAppAnalysis(String appName, String appRepo, String paprikaDB, String githubToken, String url) {
-        this(appName, appRepo, paprikaDB, githubToken, url, new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD));
+        this.appName = appName;
+        this.appRepo = appRepo;
+        this.paprikaDB = paprikaDB;
+        this.githubToken = githubToken;
+        projectUrl = url;
     }
 
     /**
@@ -74,7 +62,7 @@ public class SingleAppAnalysis {
      * then always fetch and return the project ID.
      *
      * @param appName     The project to persist.
-     * @param url
+     * @param url         The project URL.
      * @param persistence The persistence to use.
      * @return The project identifier in the database.
      */
@@ -90,8 +78,17 @@ public class SingleAppAnalysis {
     }
 
     public void analyze() {
+        // Persistence persistence = new SQLitePersistence("output.sqlite");
+        Persistence persistence = new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
+        this.analyze(persistence);
+    }
+
+    public void analyze(Persistence persistence) {
+        persistence.initialize();
+        int appId = persistApp(appName, projectUrl, persistence);
+
         logger.info("[" + appId + "] Analyzing application: " + appName);
-        for (Query process : analysisProcess) {
+        for (Query process : getAnalysisProcess(appId, persistence)) {
             try {
                 process.query();
             } catch (QueryException e) {
