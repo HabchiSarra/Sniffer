@@ -215,8 +215,13 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
-    public String commitQueryStatement(int projectId, String sha) {
+    public String commitIdQueryStatement(int projectId, String sha) {
         return "SELECT id FROM CommitEntry WHERE sha1 = '" + sha + "' AND projectId = " + projectId;
+    }
+
+    @Override
+    public String commitSha1QueryStatement(int projectId, int ordinal) {
+        return "SELECT sha1 FROM CommitEntry WHERE ordinal = '" + ordinal + "' AND projectId = " + projectId;
     }
 
     @Override

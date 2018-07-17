@@ -57,7 +57,16 @@ public interface Persistence {
      * @param sha Commit sha.
      * @return The generated query statement.
      */
-    String commitQueryStatement(int projectId, String sha);
+    String commitIdQueryStatement(int projectId, String sha);
+
+    /**
+     * Query the identifier of a commit.
+     *
+     * @param projectId Project to look into.
+     * @param ordinal Commit ordinal in the project.
+     * @return The generated query statement.
+     */
+    String commitSha1QueryStatement(int projectId, int ordinal);
 
     /**
      * Query the identifier of a developer.

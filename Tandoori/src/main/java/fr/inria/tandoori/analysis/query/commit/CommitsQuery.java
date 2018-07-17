@@ -161,7 +161,7 @@ public class CommitsQuery implements Query {
     }
 
     private List<String> fileRenameStatements(RevCommit commit, CommitDetails details) {
-        String commitSelect = persistence.commitQueryStatement(projectId, commit.name());
+        String commitSelect = persistence.commitIdQueryStatement(projectId, commit.name());
         List<String> result = new ArrayList<>();
 
         for (GitRename rename : details.renames) {

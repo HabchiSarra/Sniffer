@@ -3,11 +3,11 @@ package fr.inria.tandoori.analysis.query.smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
-import org.neo4j.graphdb.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +16,7 @@ public class SmellTypeAnalysis implements Query {
 
     private final int projectId;
     private final Persistence persistence;
-    private final Result smells;
+    private final Iterator<Map<String, Object>> smells;
     private String smellType;
     private final SmellDuplicationChecker duplicationChecker;
 
@@ -27,7 +27,7 @@ public class SmellTypeAnalysis implements Query {
     private final List<Smell> currentCommitRenamed;
 
 
-    public SmellTypeAnalysis(int projectId, Persistence persistence, Result smells,
+    public SmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
                              String smellType, SmellDuplicationChecker duplicationChecker) {
         this.projectId = projectId;
         this.persistence = persistence;
@@ -59,13 +59,13 @@ public class SmellTypeAnalysis implements Query {
             // We handle the commit change in our result dataset.
             // This dataset MUST be ordered by commit_number to have right results.
             if (!underAnalysis.equals(commit)) {
+                handleCommitChanges(commit);
                 // Compare the two commits ordinal to find a gap.
                 if (underAnalysis.hasGap(commit)) {
                     handleCommitGap(underAnalysis);
-                } else {
-                    handleCommitChanges(commit);
                 }
                 underAnalysis = commit;
+                logger.debug("[" + projectId + "] => Now analysing commit: " + underAnalysis);
             }
 
             // We keep track of the smells present in our commit.
@@ -82,11 +82,17 @@ public class SmellTypeAnalysis implements Query {
             insertSmellPresence(smell, commit);
         }
 
+        // We persist the introduction and refactoring of the last commit.
+        handleCommitChanges(commit);
+
         // If we didn't reach the last project, it means we have refactored our smells
         // In a commit prior to it.
         String lastProjectSha1 = fetchLastProjectCommitSha();
-        if (lastProjectSha1 != null && !commit.sha.equals(lastProjectSha1)) {
-            PersistEmptyCommit(commit);
+        if (lastProjectSha1 == null) {
+            logger.error("[" + projectId + "] ==> Could not find last commit sha1!");
+        } else if (!commit.sha.equals(lastProjectSha1)) {
+            // The ordinal is unused here, so we can safely put current + 1
+            handleCommitChanges(new Commit(lastProjectSha1, commit.ordinal + 1));
         }
     }
 
@@ -94,12 +100,18 @@ public class SmellTypeAnalysis implements Query {
      * If we found a gap, it means that we have to smell of this type in the next commit.
      * Thus we consider that every smells has been refactored.
      *
-     * @param underAnalysis The currently analyzed commit that has no direct child with smells.
+     * @param commit The currently analyzed commit that has no direct child with smells.
      */
-    private void handleCommitGap(Commit underAnalysis) {
-        PersistEmptyCommit(underAnalysis);
-
-        // We reset the counters since we will be doing next commit analysis compared to this one.
+    private void handleCommitGap(Commit commit) {
+        logger.info("[" + projectId + "] ==> Handling gap after commit: " + commit);
+        try {
+            commit = createNoSmellCommit(commit.ordinal + 1);
+        } catch (Exception e) {
+            logger.warn("An error occurred while treating gap, skipping", e);
+            return;
+        }
+        // If we found the gap commit, we insert it as any other before continuing
+        persistCommitChanges(commit);
         updateCommitTrackingCounters();
     }
 
@@ -110,18 +122,6 @@ public class SmellTypeAnalysis implements Query {
      */
     private void handleAllRefactoredBeforeLastCommit(Commit commit) {
 
-    }
-
-    private void PersistEmptyCommit(Commit commit) {
-        try {
-            commit = createNoSmellCommit(commit.ordinal + 1);
-        } catch (Exception e) {
-            logger.warn("An error occurred while treating gap, skipping", e);
-            return;
-        }
-
-        updateCommitTrackingCounters();
-        persistCommitChanges(commit);
     }
 
     private String fetchLastProjectCommitSha() {
@@ -166,8 +166,7 @@ public class SmellTypeAnalysis implements Query {
      * @param ordinal The missing commit ordinal.
      */
     private Commit createNoSmellCommit(int ordinal) throws Exception {
-        List<Map<String, Object>> result = persistence.query("SELECT sha1 FROM CommitEntry " +
-                "WHERE ordinal = '" + ordinal + "' AND projectid = '" + projectId + "'");
+        List<Map<String, Object>> result = persistence.query(persistence.commitSha1QueryStatement(projectId, ordinal));
         if (result.isEmpty()) {
             throw new Exception("[" + projectId + "] ==> Unable to fetch commit n°: " + ordinal);
         }
@@ -189,8 +188,6 @@ public class SmellTypeAnalysis implements Query {
     }
 
     private void updateCommitTrackingCounters() {
-        currentCommitOriginal.clear();
-        currentCommitRenamed.clear();
         previousCommitSmells.clear();
         previousCommitSmells.addAll(currentCommitSmells);
         currentCommitSmells.clear();
@@ -211,7 +208,7 @@ public class SmellTypeAnalysis implements Query {
      * @param commitSha The sha to print ID for.
      */
     private void traceCommitIdentifier(String commitSha) {
-        String commitQuery = persistence.commitQueryStatement(this.projectId, commitSha);
+        String commitQuery = persistence.commitIdQueryStatement(this.projectId, commitSha);
         List<Map<String, Object>> result = persistence.query(commitQuery);
         if (!result.isEmpty()) {
             logger.trace("[" + projectId + "]  => commit id: " + String.valueOf(result.get(0).get("id")));
@@ -257,7 +254,7 @@ public class SmellTypeAnalysis implements Query {
         // We fetch only the last matching inserted smell
         // This helps us handling the case of Gaps between commits
         String smellQuery = persistence.smellQueryStatement(projectId, smell.instance, smell.type, true);
-        String commitQuery = persistence.commitQueryStatement(this.projectId, commit.sha);
+        String commitQuery = persistence.commitIdQueryStatement(this.projectId, commit.sha);
         String smellPresenceInsert = "INSERT INTO " + category + " (smellId, commitId) VALUES " +
                 "((" + smellQuery + "), (" + commitQuery + "));";
         persistence.addStatements(smellPresenceInsert);
