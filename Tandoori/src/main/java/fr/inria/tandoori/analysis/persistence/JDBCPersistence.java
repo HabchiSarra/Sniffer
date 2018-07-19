@@ -250,6 +250,24 @@ public class JDBCPersistence implements Persistence {
         return "SELECT sha1 FROM CommitEntry WHERE projectId = '" + projectId + "' ORDER BY ordinal DESC LIMIT 1";
     }
 
+    @Override
+    public String branchInsertionStatement(int projectId, int ordinal, boolean master) {
+        return "INSERT INTO Branch (projectId, ordinal, master) VALUES ('"
+                + projectId + "', '" + ordinal + "', '" + master + "') ON CONFLICT DO NOTHING";
+    }
+
+    @Override
+    public String branchCommitInsertionQuery(int projectId, int branchOrdinal, String commitSha) {
+        return "INSERT INTO BranchCommit (branchId, commitId) VALUES (" +
+                "("+branchIdQueryStatement(projectId, branchOrdinal)+"), " +
+                "(" + commitIdQueryStatement(projectId, commitSha) + ")) ON CONFLICT DO NOTHING";
+    }
+
+    @Override
+    public String branchIdQueryStatement(int projectId, int branchOrdinal) {
+        return "SELECT if FROM Branch WHERE projectId='" + projectId + "' AND ordinal=" + branchOrdinal;
+    }
+
 
     /**
      * Load the database schema.

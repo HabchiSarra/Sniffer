@@ -2,9 +2,11 @@ package fr.inria.tandoori.analysis;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.PostgresqlPersistence;
+import fr.inria.tandoori.analysis.query.branch.BranchQuery;
 import fr.inria.tandoori.analysis.query.commit.CommitsQuery;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
+import fr.inria.tandoori.analysis.query.commit.Repository;
 import fr.inria.tandoori.analysis.query.smell.SmellQuery;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
@@ -30,9 +32,11 @@ public class SingleAppAnalysis {
     private final String githubToken;
     private final String projectUrl;
 
-    private List<Query> getAnalysisProcess(int appId, Persistence persistence) {
+    private List<Query> getAnalysisProcess(int appId, Repository repository, Persistence persistence) {
         List<Query> analysisProcess = new ArrayList<>();
-        analysisProcess.add(new CommitsQuery(appId, paprikaDB, appRepo, persistence));
+
+        analysisProcess.add(new CommitsQuery(appId, paprikaDB, repository, persistence));
+        analysisProcess.add(new BranchQuery(appId, repository, persistence));
         analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
         // if (githubToken != null) {
         //     analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
@@ -77,24 +81,32 @@ public class SingleAppAnalysis {
         return (int) result.get(0).get("id");
     }
 
-    public void analyze() {
+    public void analyze() throws AnalysisException {
         // Persistence persistence = new SQLitePersistence("output.sqlite");
         Persistence persistence = new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
         this.analyze(persistence);
     }
 
-    public void analyze(Persistence persistence) {
+    public void analyze(Persistence persistence) throws AnalysisException {
         persistence.initialize();
         int appId = persistApp(appName, projectUrl, persistence);
 
+        Repository repository = new Repository(appRepo);
+        try {
+            repository.initializeRepository();
+        } catch (Repository.RepositoryException e) {
+            throw new AnalysisException("Unable to open repository", e);
+        }
         logger.info("[" + appId + "] Analyzing application: " + appName);
-        for (Query process : getAnalysisProcess(appId, persistence)) {
+        for (Query process : getAnalysisProcess(appId, repository, persistence)) {
             try {
                 process.query();
             } catch (QueryException e) {
                 logger.warn("An error occurred during query!", e);
             }
         }
+
+        repository.finalizeRepository();
 
         logger.info("[" + appId + "] Analysis done for: " + appName);
         persistence.close();

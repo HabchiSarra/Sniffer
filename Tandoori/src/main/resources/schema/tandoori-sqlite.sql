@@ -48,6 +48,23 @@ CREATE TABLE IF NOT EXISTS `CommitEntry` (
   FOREIGN KEY (developerId) REFERENCES Developer (id)
 );
 
+CREATE TABLE IF NOT EXISTS Branch (
+  id          SERIAL NOT NULL PRIMARY KEY,
+  projectId   INTEGER NOT NULL,
+  ordinal     INTEGER NOT NULL,
+  master      BOOLEAN NOT NULL,
+  FOREIGN KEY (projectId) REFERENCES Project (id),
+);
+
+CREATE TABLE IF NOT EXISTS BranchCommit (
+  id         SERIAL NOT NULL PRIMARY KEY,
+  branchId   INTEGER NOT NULL,
+  commitId   INTEGER NOT NULL,
+  UNIQUE (branchId, commitId)
+  FOREIGN KEY (branchId) REFERENCES Branch (id),
+  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
+);
+
 CREATE TABLE IF NOT EXISTS `FileRename` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   projectId   INTEGER         NOT NULL,

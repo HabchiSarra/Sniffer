@@ -30,10 +30,10 @@ public class CommitsQuery implements Query {
     private final Repository repository;
     private final Persistence persistence;
 
-    public CommitsQuery(int projectId, String paprikaDB, String repository, Persistence persistence) {
+    public CommitsQuery(int projectId, String paprikaDB, Repository repository, Persistence persistence) {
         this.projectId = projectId;
         this.paprikaDB = paprikaDB;
-        this.repository = new Repository(repository);
+        this.repository = repository;
         this.persistence = persistence;
     }
 

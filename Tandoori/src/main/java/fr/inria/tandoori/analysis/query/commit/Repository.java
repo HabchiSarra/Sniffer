@@ -19,6 +19,7 @@ public class Repository {
     private String repository;
     private Path cloneDir;
     private boolean isRemote = false;
+    private Git git;
 
     /**
      * Initialize a new repository.
@@ -31,6 +32,21 @@ public class Repository {
         this.repository = repository;
     }
 
+
+    /**
+     * Return the current Git repository.
+     *
+     * @return The git repository.
+     */
+    public Git getGitRepository() {
+        if (this.git == null) {
+            logger.warn("You must call Repository#initializeRepository before calling this method");
+            return null;
+        }
+        return this.git;
+    }
+
+
     /**
      * Initialize the repository, either by opening the local path or by cloning the remote repository from github.
      *
@@ -42,9 +58,11 @@ public class Repository {
             logger.warn("Repository already initialized, doing nothing (" + repository + ")");
         }
         if (Files.exists(Paths.get(this.repository))) {
-            return initializeLocalRepository();
+            this.git = initializeLocalRepository();
+        } else {
+            this.git = initializeRemoteRepository();
         }
-        return initializeRemoteRepository();
+        return this.git;
     }
 
     /**

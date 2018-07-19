@@ -46,7 +46,7 @@ public class Main {
             }
         } catch (ArgumentParserException e) {
             analyseParser.handleError(e);
-        } catch (Exception e) {
+        } catch (Exception | AnalysisException e) {
             logger.error("Error on analysis!", e);
         }
     }

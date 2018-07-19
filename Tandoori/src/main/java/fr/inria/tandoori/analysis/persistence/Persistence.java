@@ -107,4 +107,33 @@ public interface Persistence {
      */
     String lastProjectCommitSha1QueryStatement(int projectId);
     // TODO: insertion statement generation should be here to override behaviour per persistence basis.
+
+    /**
+     * Create a Branch insertion query.
+     *
+     * @param projectId Current project.
+     * @param ordinal Branch ordinal.
+     * @param master branch is the main branch.
+     * @return The string to insert in persistence.
+     */
+    String branchInsertionStatement(int projectId, int ordinal, boolean master);
+
+    /**
+     * Create a BranchCommit insertion query.
+     *
+     * @param projectId Current project.
+     * @param branchOrdinal Branch ordinal.
+     * @param commitSha Sha1 of the commit to insert.
+     * @return The string to insert in persistence.
+     */
+    String branchCommitInsertionQuery(int projectId, int branchOrdinal, String commitSha);
+
+    /**
+     * Query the identifier of a Branch.
+     *
+     * @param projectId Current project.
+     * @param branchOrdinal Branch ordinal.
+     * @return The string to insert in persistence.
+     */
+    String branchIdQueryStatement(int projectId, int branchOrdinal);
 }

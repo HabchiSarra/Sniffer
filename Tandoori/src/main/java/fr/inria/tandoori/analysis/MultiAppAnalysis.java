@@ -13,6 +13,7 @@ import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -157,8 +158,12 @@ public class MultiAppAnalysis {
 
         @Override
         public Void call() throws Exception {
-            new SingleAppAnalysis(application, repository, paprikaDB, githubToken, url)
-                    .analyze(new PostgresqlPersistence(connections.getConnection()));
+            try {
+                new SingleAppAnalysis(application, repository, paprikaDB, githubToken, url)
+                        .analyze(new PostgresqlPersistence(connections.getConnection()));
+            } catch (AnalysisException e) {
+                logger.error("Unable to perform analysis on project " + application, e);
+            }
             return null;
         }
 
