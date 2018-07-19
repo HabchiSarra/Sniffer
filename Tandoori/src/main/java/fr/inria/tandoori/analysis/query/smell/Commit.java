@@ -8,7 +8,7 @@ import java.util.Objects;
  */
 public class Commit {
 
-    public static final Commit EMPTY = new Commit("", 0);
+    public static final Commit EMPTY = new Commit("", -1);
     public final String sha;
     public final int ordinal;
 

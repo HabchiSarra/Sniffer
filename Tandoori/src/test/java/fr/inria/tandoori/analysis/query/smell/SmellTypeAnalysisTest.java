@@ -37,6 +37,7 @@ public class SmellTypeAnalysisTest {
     private final Smell secondSmell = new Smell(smellType, "anotherInstance", "/file");
     private final Commit firstCommit = new Commit("sha1", 0);
     private final Commit secondCommit = new Commit("sha1-2", 1);
+    private final Commit thirdCommit = new Commit("sha1-3", 2);
 
     private List<Map<String, Object>> smellList;
     private Persistence persistence;
@@ -193,7 +194,6 @@ public class SmellTypeAnalysisTest {
 
     @Test
     public void handleCommitGap() throws QueryException {
-        Commit thirdCommit = new Commit("thirdSha", 2);
         addSmell(firstSmell, firstCommit);
         addSmell(secondSmell, firstCommit);
         addSmell(secondSmell, thirdCommit);
@@ -214,15 +214,15 @@ public class SmellTypeAnalysisTest {
 
     @Test
     public void handleMultipleMissingCommits() throws QueryException {
-        Commit thirdCommit = new Commit("thirdSha", 24);
+        Commit anotherCommit = new Commit("thirdSha", 24);
         addSmell(firstSmell, firstCommit);
         addSmell(secondSmell, firstCommit);
-        addSmell(secondSmell, thirdCommit);
+        addSmell(secondSmell, anotherCommit);
         SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
                 smellType, duplicationChecker);
 
         mockGapCommit("someSha");
-        mockEndCommit(thirdCommit.sha);
+        mockEndCommit(anotherCommit.sha);
         analysis.query();
 
         verify(persistence, times(11)).addStatements(statementsCaptor.capture());
@@ -235,7 +235,6 @@ public class SmellTypeAnalysisTest {
 
     @Test
     public void handleMissingGapCommit() throws QueryException {
-        Commit thirdCommit = new Commit("thirdSha", 2);
         addSmell(firstSmell, firstCommit);
         addSmell(secondSmell, firstCommit);
         addSmell(secondSmell, thirdCommit);
@@ -271,9 +270,9 @@ public class SmellTypeAnalysisTest {
                 SMELL, PRESENCE // We introduce the new smell instance definition with renamedFrom filled in.
         );
     }
+
     @Test
     public void handleRenamedSmellMultipleCommits() throws QueryException {
-        Commit thirdCommit = new Commit("thirdSha", 2);
         addSmell(firstSmell, firstCommit);
         addSmell(secondSmell, secondCommit);
         addSmell(secondSmell, thirdCommit);
@@ -290,6 +289,23 @@ public class SmellTypeAnalysisTest {
                 SMELL, PRESENCE, INTRODUCTION,
                 SMELL, PRESENCE,
                 PRESENCE // We won't introduce the same rename multiple times, as before.
+        );
+    }
+
+    @Test
+    public void handleFirstCommitIsNotTheFirstOrdinal() throws QueryException {
+        addSmell(firstSmell, thirdCommit);
+        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
+                smellType, duplicationChecker);
+
+        mockGapCommit(firstCommit.sha);
+        mockEndCommit(thirdCommit.sha);
+        analysis.query();
+
+        verify(persistence, times(3)).addStatements(statementsCaptor.capture());
+        checkActionSuite(statementsCaptor.getAllValues(),
+                // We should have the same sequence as if it was the first commit ordinal.
+                SMELL, PRESENCE, INTRODUCTION
         );
     }
 }

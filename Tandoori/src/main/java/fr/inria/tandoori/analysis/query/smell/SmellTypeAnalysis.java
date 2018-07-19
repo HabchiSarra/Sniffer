@@ -91,8 +91,12 @@ public class SmellTypeAnalysis implements Query {
         if (lastProjectSha1 == null) {
             logger.error("[" + projectId + "] ==> Could not find last commit sha1!");
         } else if (!commit.sha.equals(lastProjectSha1)) {
+            logger.info("[" + projectId + "] Last analyzed commit is not last present commit: "
+                    + commit.sha + " / " + lastProjectSha1);
             // The ordinal is unused here, so we can safely put current + 1
             handleCommitChanges(new Commit(lastProjectSha1, commit.ordinal + 1));
+        } else {
+            logger.info("[" + projectId + "] Last analysed commit is last project commit: " + commit.sha);
         }
     }
 
