@@ -55,14 +55,14 @@ CREATE TABLE IF NOT EXISTS Branch (
   projectId   INTEGER NOT NULL,
   ordinal     INTEGER NOT NULL,
   master      BOOLEAN NOT NULL,
-  FOREIGN KEY (projectId) REFERENCES Project (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
 );
 
 CREATE TABLE IF NOT EXISTS BranchCommit (
   id         SERIAL NOT NULL PRIMARY KEY,
   branchId   INTEGER NOT NULL,
   commitId   INTEGER NOT NULL,
-  UNIQUE (branchId, commitId)
+  UNIQUE (branchId, commitId),
   FOREIGN KEY (branchId) REFERENCES Branch (id),
   FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
 );

@@ -1,6 +1,5 @@
 package fr.inria.tandoori.analysis.persistence;
 
-import fr.inria.tandoori.analysis.Main;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
