@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -26,11 +26,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class SmellTypeAnalysisTest {
-    public static final String SMELL = " Smell ";
-    public static final String PRESENCE = " SmellPresence ";
-    public static final String INTRODUCTION = " SmellIntroduction ";
-    public static final String REFACTOR = " SmellRefactor ";
-
     public static final String END_COMMIT_STATEMENT = "EndCommitStatement";
     public static final String GAP_COMMIT_STATEMENT = "GapCommitStatement";
 
@@ -59,7 +54,7 @@ public class SmellTypeAnalysisTest {
         doReturn(GAP_COMMIT_STATEMENT).when(persistence).commitSha1QueryStatement(eq(projectId), anyInt());
     }
 
-    private void addSmell(Smell smell, Commit commit) {
+    private void addSmell(Commit commit, Smell smell) {
         Map<String, Object> smellMap = new HashMap<>();
         smellMap.put("key", commit.sha);
         smellMap.put("commit_number", commit.ordinal);
@@ -93,223 +88,278 @@ public class SmellTypeAnalysisTest {
     }
 
     @Test
-    public void handlePresenceAndIntroductionOnSingleCommit() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+    public void handlePresenceAndIntroductionOnSingleCommitNoEndCommit() throws QueryException {
+        addSmell(firstCommit, firstSmell);
 
         mockNoEndCommit();
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(3)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(), SMELL, PRESENCE, INTRODUCTION);
+        verify(persistence, times(3)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
     }
 
-    private void checkActionSuite(List<String> statements, String... actions) {
-        assertEquals(actions.length, statements.size());
-        for (int i = 0; i < actions.length; i++) {
-            assertTrue(statements.get(i).contains(actions[i]));
-        }
+    @Test
+    public void handlePresenceAndIntroductionOnSingleCommitAlsoLastCommit() throws QueryException {
+        addSmell(firstCommit, firstSmell);
+
+        mockEndCommit(firstCommit.sha);
+        getAnalysis().query();
+
+        verify(persistence, times(3)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
     }
 
     @Test
     public void handlePresenceNotTheLastCommitWillAddRefactor() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        String lastCommitSha = "another";
 
-        mockEndCommit("another");
-        analysis.query();
+        mockEndCommit(lastCommitSha);
+        getAnalysis().query();
 
-        verify(persistence, times(4)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(), SMELL, PRESENCE, INTRODUCTION, REFACTOR);
+        verify(persistence, times(4)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+        verify(persistence).smellCategoryInsertionStatement(projectId, lastCommitSha, firstSmell, SmellCategory.REFACTOR);
     }
 
     @Test
     public void handleIntroductionAndRefactoring() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(secondSmell, secondCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        addSmell(secondCommit, secondSmell);
 
         mockNoEndCommit();
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(7)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, INTRODUCTION,
-                SMELL, PRESENCE, INTRODUCTION, REFACTOR
-        );
+        verify(persistence, times(7)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+
+        verify(persistence).smellInsertionStatement(projectId, secondSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.REFACTOR);
     }
 
     @Test
     public void handleIntroductionOnly() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(firstSmell, secondCommit);
-        addSmell(secondSmell, secondCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        addSmell(secondCommit, firstSmell);
+        addSmell(secondCommit, secondSmell);
 
         mockEndCommit(secondCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(7)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, INTRODUCTION,
-                PRESENCE, // We Won't have the smell insertion here since we check for existence in the previous commit.
-                SMELL, PRESENCE, INTRODUCTION
-        );
+        verify(persistence, times(7)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellInsertionStatement(projectId, secondSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
+    }
+
+    private SmellTypeAnalysis getAnalysis() {
+        return new SmellTypeAnalysis(1, persistence, smellList.iterator(), smellType, duplicationChecker);
     }
 
     @Test
     public void handleRefactorOnly() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(secondSmell, firstCommit);
-        addSmell(firstSmell, secondCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        addSmell(firstCommit, secondSmell);
+        addSmell(secondCommit, firstSmell);
 
         mockEndCommit(secondCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(8)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, SMELL, PRESENCE, INTRODUCTION, INTRODUCTION,
-                PRESENCE, REFACTOR
-        );
+        verify(persistence, times(8)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+        verify(persistence).smellInsertionStatement(projectId, secondSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
+
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.REFACTOR);
     }
 
     @Test
     public void handleNoChange() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(firstSmell, secondCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        addSmell(secondCommit, firstSmell);
 
         mockEndCommit(secondCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(4)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, INTRODUCTION,
-                PRESENCE // We Won't have the smell insertion here since we check for existence in the previous commit.
-        );
+        verify(persistence, times(4)).addStatements(any());
+        // We have only one smell insertion here since we check for existence in the previous commit.
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.PRESENCE);
     }
 
     @Test
     public void handleCommitGap() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(secondSmell, firstCommit);
-        addSmell(secondSmell, thirdCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        addSmell(firstCommit, secondSmell);
+        addSmell(thirdCommit, secondSmell);
 
-        mockGapCommit("someSha");
+        String gapCommitSha = "someSha";
+        mockGapCommit(gapCommitSha);
         mockEndCommit(thirdCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(11)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, SMELL, PRESENCE, INTRODUCTION, INTRODUCTION,
-                REFACTOR, REFACTOR, // The missing Ordinal 1 will be replaced by an empty commit
-                SMELL, PRESENCE, INTRODUCTION
-        );
+        verify(persistence, times(11)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+        // The 1st and 3rd commits will insert the secondSmell since 3rd has no idea it existed.
+        verify(persistence, times(2)).smellInsertionStatement(projectId, secondSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
+
+        // The missing Ordinal 1 will be replaced by an empty commit
+        verify(persistence).smellCategoryInsertionStatement(projectId, gapCommitSha, firstSmell, SmellCategory.REFACTOR);
+        verify(persistence).smellCategoryInsertionStatement(projectId, gapCommitSha, secondSmell, SmellCategory.REFACTOR);
+
+        // 3rd commit is counted as introducing the commit back.
+        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
     }
 
     @Test
     public void handleMultipleMissingCommits() throws QueryException {
         Commit anotherCommit = new Commit("thirdSha", 24);
-        addSmell(firstSmell, firstCommit);
-        addSmell(secondSmell, firstCommit);
-        addSmell(secondSmell, anotherCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        addSmell(firstCommit, secondSmell);
+        addSmell(anotherCommit, secondSmell);
 
-        mockGapCommit("someSha");
+        String gapCommitSha = "someSha";
+        mockGapCommit(gapCommitSha);
         mockEndCommit(anotherCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(11)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, SMELL, PRESENCE, INTRODUCTION, INTRODUCTION,
-                REFACTOR, REFACTOR, // The missing Ordinal 1 will be replaced by an empty commit
-                SMELL, PRESENCE, INTRODUCTION
-        );
+        verify(persistence, times(11)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+        // The 1st and Nth commits will insert the secondSmell since 3rd has no idea it existed.
+        verify(persistence, times(2)).smellInsertionStatement(projectId, secondSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
+
+        // The missing Ordinal 1 will be replaced by an empty commit
+        verify(persistence).smellCategoryInsertionStatement(projectId, gapCommitSha, firstSmell, SmellCategory.REFACTOR);
+        verify(persistence).smellCategoryInsertionStatement(projectId, gapCommitSha, secondSmell, SmellCategory.REFACTOR);
+
+        // Nth commit is counted as introducing the commit back.
+        verify(persistence).smellCategoryInsertionStatement(projectId, anotherCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, anotherCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
     }
 
     @Test
     public void handleMissingGapCommit() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(secondSmell, firstCommit);
-        addSmell(secondSmell, thirdCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(firstCommit, firstSmell);
+        addSmell(firstCommit, secondSmell);
+        addSmell(thirdCommit, secondSmell);
 
         mockNoGapCommit(); // We pray for this not to happen, but we have to be prepared for the worst.
         mockEndCommit(thirdCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(8)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, SMELL, PRESENCE, INTRODUCTION, INTRODUCTION,
-                PRESENCE, REFACTOR
-        );
+        verify(persistence, times(8)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+        // The 1st and Nth commits will insert the secondSmell since 3rd has no idea it existed.
+        verify(persistence).smellInsertionStatement(projectId, secondSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
+
+        // Since we couldn't find the missing commit, we do as if the two commits were consecutive.
+        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, firstSmell, SmellCategory.REFACTOR);
     }
 
     @Test
     public void handleRenamedSmell() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(secondSmell, secondCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        ArgumentCaptor<Smell> smellCaptor = ArgumentCaptor.forClass(Smell.class);
+        addSmell(firstCommit, firstSmell);
+        addSmell(secondCommit, secondSmell);
 
         // This means that the firstSmell instance has been renamed to second smell in the secondCommit
         doReturn(firstSmell).when(duplicationChecker).original(secondSmell, secondCommit);
         mockEndCommit(secondCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(5)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, INTRODUCTION,
-                SMELL, PRESENCE // We introduce the new smell instance definition with renamedFrom filled in.
-        );
+        verify(persistence, times(5)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+
+        // We introduce the new smell instance definition with renamedFrom filled in.
+        // Since we use a captor we have to check all invocations of smellInsertionStatement...
+        verify(persistence, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
+
+        // Check that the renamed commit has a set parentInstance
+        Smell renamed = smellCaptor.getAllValues().get(1);
+        assertEquals(secondSmell, renamed);
+        assertEquals(firstSmell.instance, renamed.parentInstance);
     }
 
     @Test
     public void handleRenamedSmellMultipleCommits() throws QueryException {
-        addSmell(firstSmell, firstCommit);
-        addSmell(secondSmell, secondCommit);
-        addSmell(secondSmell, thirdCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        ArgumentCaptor<Smell> smellCaptor = ArgumentCaptor.forClass(Smell.class);
+        addSmell(firstCommit, firstSmell);
+        addSmell(secondCommit, secondSmell);
+        addSmell(thirdCommit, secondSmell);
 
         // This means that the firstSmell instance has been renamed to second smell in the secondCommit
         doReturn(firstSmell).when(duplicationChecker).original(secondSmell, secondCommit);
         mockEndCommit(thirdCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(6)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                SMELL, PRESENCE, INTRODUCTION,
-                SMELL, PRESENCE,
-                PRESENCE // We won't introduce the same rename multiple times, as before.
-        );
+        verify(persistence, times(6)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+
+        // We introduce the new smell instance definition with renamedFrom filled in.
+       // Since we use a captor we have to check all invocations of smellInsertionStatement...
+        verify(persistence, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
+        verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        // Check that the renamed commit has a set parentInstance
+        Smell renamed = smellCaptor.getAllValues().get(1);
+        assertEquals(secondSmell, renamed);
+        assertEquals(firstSmell.instance, renamed.parentInstance);
+
+        // We won't introduce the same rename multiple times, as before.
+        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.PRESENCE);
+
     }
 
     @Test
     public void handleFirstCommitIsNotTheFirstOrdinal() throws QueryException {
-        addSmell(firstSmell, thirdCommit);
-        SmellTypeAnalysis analysis = new SmellTypeAnalysis(1, persistence, smellList.iterator(),
-                smellType, duplicationChecker);
+        addSmell(thirdCommit, firstSmell);
 
         mockGapCommit(firstCommit.sha);
         mockEndCommit(thirdCommit.sha);
-        analysis.query();
+        getAnalysis().query();
 
-        verify(persistence, times(3)).addStatements(statementsCaptor.capture());
-        checkActionSuite(statementsCaptor.getAllValues(),
-                // We should have the same sequence as if it was the first commit ordinal.
-                SMELL, PRESENCE, INTRODUCTION
-        );
+        verify(persistence, times(3)).addStatements(any());
+        verify(persistence).smellInsertionStatement(projectId, firstSmell);
+        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
     }
 }

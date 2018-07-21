@@ -62,7 +62,7 @@ public class SmellTypeAnalysis implements Query {
             // We handle the commit change in our result dataset.
             // This dataset MUST be ordered by commit_number to have right results.
             if (!underAnalysis.equals(commit)) {
-                handleCommitChanges(commit);
+                handleCommitChanges(underAnalysis);
                 // Compare the two commits ordinal to find a gap.
                 if (underAnalysis.hasGap(commit)) {
                     handleCommitGap(underAnalysis);
@@ -167,10 +167,10 @@ public class SmellTypeAnalysis implements Query {
      * I.e. persist the commit changes (Insertion, Refactor) and reset all tracking to diff the current commit
      * with the next one.
      *
-     * @param next The current commit to persist and set as previous.
+     * @param current The current commit to persist and set as previous.
      */
-    private void handleCommitChanges(Commit next) {
-        persistCommitChanges(next);
+    private void handleCommitChanges(Commit current) {
+        persistCommitChanges(current);
         updateCommitTrackingCounters();
     }
 
