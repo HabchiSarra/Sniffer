@@ -123,15 +123,6 @@ public class SmellTypeAnalysis implements Query {
         updateCommitTrackingCounters();
     }
 
-    /**
-     * Handle the fact that we could refactor all our smells before the last commit, and not
-     *
-     * @param commit The last commit referencing smells.
-     */
-    private void handleAllRefactoredBeforeLastCommit(Commit commit) {
-
-    }
-
     private String fetchLastProjectCommitSha() {
         List<Map<String, Object>> result = persistence.query(persistence.lastProjectCommitSha1QueryStatement(projectId));
         if (result.isEmpty()) {
