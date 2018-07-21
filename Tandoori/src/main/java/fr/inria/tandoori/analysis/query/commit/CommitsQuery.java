@@ -1,12 +1,14 @@
 package fr.inria.tandoori.analysis.query.commit;
 
+import fr.inria.tandoori.analysis.model.GitDiff;
+import fr.inria.tandoori.analysis.model.GitRename;
+import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
-import fr.inria.tandoori.analysis.query.smell.Commit;
+import fr.inria.tandoori.analysis.model.Commit;
 import neo4j.QueryEngine;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;

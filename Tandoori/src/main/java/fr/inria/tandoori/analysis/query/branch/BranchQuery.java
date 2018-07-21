@@ -1,12 +1,11 @@
 package fr.inria.tandoori.analysis.query.branch;
 
+import fr.inria.tandoori.analysis.model.Branch;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
-import fr.inria.tandoori.analysis.query.commit.Repository;
-import org.eclipse.jgit.lib.Ref;
+import fr.inria.tandoori.analysis.model.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,6 +1,6 @@
-package fr.inria.tandoori.analysis.query.commit;
+package fr.inria.tandoori.analysis.model;
 
-import fr.inria.tandoori.analysis.query.commit.GitDiff;
+import fr.inria.tandoori.analysis.model.GitDiff;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

@@ -1,9 +1,13 @@
 package fr.inria.tandoori.analysis.query.smell;
 
+import fr.inria.tandoori.analysis.model.Commit;
+import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.SmellCategory;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.junit.Before;
 import org.junit.Test;
+import org.kohsuke.args4j.Argument;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 

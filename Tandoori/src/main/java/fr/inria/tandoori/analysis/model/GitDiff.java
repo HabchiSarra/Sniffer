@@ -1,11 +1,9 @@
-package fr.inria.tandoori.analysis.query.commit;
+package fr.inria.tandoori.analysis.model;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,7 +31,7 @@ public class GitDiff {
      * @param line Line to parse.
      * @return found {@link GitDiff}, null if could not parse.
      */
-    static GitDiff parse(String line) throws Exception {
+    public static GitDiff parse(String line) throws Exception {
         line = line.trim();
         String[] split = line.split(",");
         Map<String, Integer> modifications = new HashMap<>();

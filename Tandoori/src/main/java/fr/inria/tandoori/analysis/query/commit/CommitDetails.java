@@ -1,5 +1,7 @@
 package fr.inria.tandoori.analysis.query.commit;
 
+import fr.inria.tandoori.analysis.model.GitDiff;
+import fr.inria.tandoori.analysis.model.GitRename;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +25,7 @@ public class CommitDetails {
         List<String> lines = GitExecution.commitSummary(repository, sha1);
         for (String line : lines) {
             try {
-                renames.add(GitRenameParser.parseRenamed(line));
+                renames.add(GitRename.parseRenamed(line));
             } catch (Exception e) {
                 // This is an expected behavior
                 logger.trace("[Rename] " + e.getMessage(), e);

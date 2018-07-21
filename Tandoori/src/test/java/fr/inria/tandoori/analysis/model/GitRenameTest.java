@@ -1,18 +1,16 @@
-package fr.inria.tandoori.analysis.query.commit;
+package fr.inria.tandoori.analysis.model;
 
-import fr.inria.tandoori.analysis.query.commit.GitRenameParser;
-import fr.inria.tandoori.analysis.query.commit.GitRename;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-public class GitRenameParserTest {
+public class GitRenameTest {
 
     @Test
     public void parseEntryWithNoBrace() throws Exception {
         String line = "rename a.txt => b.txt (76%)";
 
-        GitRename result = GitRenameParser.parseRenamed(line);
+        GitRename result = GitRename.parseRenamed(line);
 
         assertEquals("a.txt", result.oldFile);
         assertEquals("b.txt", result.newFile);
@@ -23,7 +21,7 @@ public class GitRenameParserTest {
     public void parseEntryStartingWithBraces() throws Exception {
         String line = "rename {a => f}/b/c/d/e.txt (100%)";
 
-        GitRename result = GitRenameParser.parseRenamed(line);
+        GitRename result = GitRename.parseRenamed(line);
 
         assertEquals("a/b/c/d/e.txt", result.oldFile);
         assertEquals("f/b/c/d/e.txt", result.newFile);
@@ -34,7 +32,7 @@ public class GitRenameParserTest {
     public void parseEntryEndingingWithBraces() throws Exception {
         String line = "rename aFWall/src/main/java/dev/ukanth/ufirewall/util/{CustomRule.java => CustomRuleOld.java} (90%)";
 
-        GitRename result = GitRenameParser.parseRenamed(line);
+        GitRename result = GitRename.parseRenamed(line);
 
         assertEquals("aFWall/src/main/java/dev/ukanth/ufirewall/util/CustomRule.java", result.oldFile);
         assertEquals("aFWall/src/main/java/dev/ukanth/ufirewall/util/CustomRuleOld.java", result.newFile);
@@ -45,7 +43,7 @@ public class GitRenameParserTest {
     public void parseEntryWithEmptyOldBody() throws Exception {
         String line = "rename app/src/main/java/com/nbossard/packlist/{ => dui}/AboutActivity.java (94%)";
 
-        GitRename result = GitRenameParser.parseRenamed(line);
+        GitRename result = GitRename.parseRenamed(line);
 
         assertEquals("app/src/main/java/com/nbossard/packlist/AboutActivity.java", result.oldFile);
         assertEquals("app/src/main/java/com/nbossard/packlist/dui/AboutActivity.java", result.newFile);
@@ -55,7 +53,7 @@ public class GitRenameParserTest {
     public void parseEntryWithEmptyNewBody() throws Exception {
         String line = "rename app/src/main/java/com/nbossard/packlist/{dui => }/AboutActivity.java (94%)";
 
-        GitRename result = GitRenameParser.parseRenamed(line);
+        GitRename result = GitRename.parseRenamed(line);
 
         assertEquals("app/src/main/java/com/nbossard/packlist/dui/AboutActivity.java", result.oldFile);
         assertEquals("app/src/main/java/com/nbossard/packlist/AboutActivity.java", result.newFile);
@@ -66,7 +64,7 @@ public class GitRenameParserTest {
     public void parseEntryWithBracesInTheMiddle() throws Exception {
         String line = "rename app/src/main/{groovy => java}/com/nbossard/packlist/gui/NewTripFragment.java (100%)";
 
-        GitRename result = GitRenameParser.parseRenamed(line);
+        GitRename result = GitRename.parseRenamed(line);
 
         assertEquals("app/src/main/groovy/com/nbossard/packlist/gui/NewTripFragment.java", result.oldFile);
         assertEquals("app/src/main/java/com/nbossard/packlist/gui/NewTripFragment.java", result.newFile);
@@ -77,7 +75,7 @@ public class GitRenameParserTest {
     public void parsePathInBraces() throws Exception {
         String line = "rename app/src/main/{groovy/com/nbossard/packlist/gui/AboutActivity.groovy => java/com/nbossard/packlist/gui/AboutActivity.java} (59%)";
 
-        GitRename result = GitRenameParser.parseRenamed(line);
+        GitRename result = GitRename.parseRenamed(line);
 
         assertEquals("app/src/main/groovy/com/nbossard/packlist/gui/AboutActivity.groovy", result.oldFile);
         assertEquals("app/src/main/java/com/nbossard/packlist/gui/AboutActivity.java", result.newFile);
@@ -88,7 +86,7 @@ public class GitRenameParserTest {
     public void parseWrongEntry() throws Exception {
         String line = "Diff a/b/c/d/{z.txt => c.txt} (100%)";
 
-        GitRenameParser.parseRenamed(line);
+        GitRename.parseRenamed(line);
     }
 
 

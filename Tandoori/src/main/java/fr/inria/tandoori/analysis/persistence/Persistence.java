@@ -1,8 +1,8 @@
 package fr.inria.tandoori.analysis.persistence;
 
-import fr.inria.tandoori.analysis.query.commit.GitDiff;
-import fr.inria.tandoori.analysis.query.commit.GitRename;
-import fr.inria.tandoori.analysis.query.smell.Smell;
+import fr.inria.tandoori.analysis.model.GitDiff;
+import fr.inria.tandoori.analysis.model.GitRename;
+import fr.inria.tandoori.analysis.model.Smell;
 import org.joda.time.DateTime;
 
 import java.util.List;

@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.query.smell;
+package fr.inria.tandoori.analysis.model;
 
 import java.util.Map;
 import java.util.Objects;

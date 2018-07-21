@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.query.commit;
+package fr.inria.tandoori.analysis.model;
 
 import fr.inria.tandoori.analysis.FilesUtils;
 import org.eclipse.jgit.api.Git;

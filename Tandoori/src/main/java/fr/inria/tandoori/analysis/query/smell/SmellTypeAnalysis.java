@@ -1,5 +1,7 @@
 package fr.inria.tandoori.analysis.query.smell;
 
+import fr.inria.tandoori.analysis.model.Commit;
+import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.SmellCategory;
 import fr.inria.tandoori.analysis.query.Query;

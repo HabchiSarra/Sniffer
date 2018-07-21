@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.query.branch;
+package fr.inria.tandoori.analysis.model;
 
 import org.eclipse.jgit.revwalk.RevCommit;
 

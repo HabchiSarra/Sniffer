@@ -1,6 +1,6 @@
 package fr.inria.tandoori.analysis.query.smell;
 
-import fr.inria.tandoori.analysis.query.smell.Smell;
+import fr.inria.tandoori.analysis.model.Smell;
 import org.junit.Before;
 import org.junit.Test;
 

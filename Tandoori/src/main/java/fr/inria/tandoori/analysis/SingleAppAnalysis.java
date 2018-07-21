@@ -6,7 +6,7 @@ import fr.inria.tandoori.analysis.query.branch.BranchQuery;
 import fr.inria.tandoori.analysis.query.commit.CommitsQuery;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
-import fr.inria.tandoori.analysis.query.commit.Repository;
+import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.query.smell.SmellQuery;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;

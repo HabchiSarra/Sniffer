@@ -1,9 +1,18 @@
-package fr.inria.tandoori.analysis.query.commit;
+package fr.inria.tandoori.analysis.model;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class GitRenameParser {
+public final class GitRename {
+    public final String oldFile;
+    public final String newFile;
+    public final int similarity;
+
+    public GitRename(String oldFile, String newFile, int similarity) {
+        this.oldFile = oldFile;
+        this.newFile = newFile;
+        this.similarity = similarity;
+    }
 
     private static final Pattern RENAME_WITH_BRACKETS = Pattern.compile("^rename\\s([^{]*)\\{(.*)\\s=>\\s([^}]*)\\}(.*)\\s\\((\\d+)%\\)$");
     private static final Pattern RENAME_WITHOUT_BRACKETS = Pattern.compile("^rename\\s(.*)\\s=>\\s(.*)\\s\\((\\d+)%\\)$");
@@ -62,5 +71,14 @@ public class GitRenameParser {
             return new GitRename(oldFile, newFile, Integer.valueOf(matcher.group(5)));
         }
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return "GitRename{" +
+                "oldFile='" + oldFile + '\'' +
+                ", newFile='" + newFile + '\'' +
+                ", similarity=" + similarity +
+                '}';
     }
 }
