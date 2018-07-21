@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS Branch (
   projectId   INTEGER NOT NULL,
   ordinal     INTEGER NOT NULL,
   master      BOOLEAN NOT NULL,
+  UNIQUE (projectId, ordinal),
   FOREIGN KEY (projectId) REFERENCES Project (id),
 );
 

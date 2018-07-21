@@ -3,6 +3,7 @@ package fr.inria.tandoori.analysis.model;
 import fr.inria.tandoori.analysis.FilesUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -88,16 +89,38 @@ public class Repository {
      *
      * @param sha identifier of the commit to retrieve, might be a sha as well as 'HEAD'.
      * @return The retrieved {@link RevCommit}.
-     *
      * @throws IOException If anything goes wrong while parsing Git repository.
      */
-    public RevCommit getCommit(String sha) throws IOException {
+    public Commit getCommit(String sha) throws IOException {
+        ObjectId commitId = ObjectId.fromString(sha);
+        return Commit.fromRevCommit(getRevCommit(commitId));
+    }
+
+    /**
+     * Retrieve the commit identified by 'sha' on the {@link org.eclipse.jgit.api.Git} repository.
+     *
+     * @return {@link RevCommit} of the repository HEAD.
+     * @throws IOException If anything goes wrong while parsing Git repository.
+     */
+    public Commit getHead() throws IOException {
         org.eclipse.jgit.lib.Repository gitRepo = getGitRepository().getRepository();
-        Ref head = gitRepo.findRef(sha);
+        Ref head = gitRepo.findRef("HEAD");
+        return Commit.fromRevCommit(getRevCommit(head.getObjectId()));
+    }
+
+    /**
+     * Retrieve the {@link RevCommit} from any object reference in the repository.
+     *
+     * @param commitId Identifier of the {@link RevCommit} to retrieve.
+     * @return The {@link RevCommit}.
+     * @throws IOException If anything goes wrong while parsing Git repository.
+     */
+    private RevCommit getRevCommit(ObjectId commitId) throws IOException {
+        org.eclipse.jgit.lib.Repository gitRepo = getGitRepository().getRepository();
 
         // a RevWalk allows to walk over commits based on some filtering that is defined
         try (RevWalk walk = new RevWalk(gitRepo)) {
-            RevCommit commit = walk.parseCommit(head.getObjectId());
+            RevCommit commit = walk.parseCommit(commitId);
             walk.dispose();
             return commit;
         }

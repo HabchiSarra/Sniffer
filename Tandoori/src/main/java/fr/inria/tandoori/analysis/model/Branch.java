@@ -1,20 +1,18 @@
 package fr.inria.tandoori.analysis.model;
 
-import org.eclipse.jgit.revwalk.RevCommit;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class Branch {
-    private final List<RevCommit> commits;
+    private final List<Commit> commits;
     private boolean isMaster;
     private final int ordinal;
 
-    public static Branch fromMother(Branch mother) {
+    public static Branch fromMother(Branch mother, int ordinal) {
         if (mother == null) {
-            return new Branch(0, true);
+            return new Branch(ordinal, true);
         } else {
-            return new Branch(mother.getOrdinal() + 1, false);
+            return new Branch(ordinal, false);
         }
     }
 
@@ -28,11 +26,11 @@ public class Branch {
         this.isMaster = isMaster;
     }
 
-    public void addCommit(RevCommit commit) {
+    public void addCommit(Commit commit) {
         this.commits.add(commit);
     }
 
-    public List<RevCommit> getCommits() {
+    public List<Commit> getCommits() {
         return commits;
     }
 
@@ -44,8 +42,8 @@ public class Branch {
         return isMaster;
     }
 
-    public boolean contains(RevCommit parent) {
-        return false;
+    public boolean contains(Commit commit) {
+        return commits.contains(commit);
     }
 
     public int getOrdinal() {

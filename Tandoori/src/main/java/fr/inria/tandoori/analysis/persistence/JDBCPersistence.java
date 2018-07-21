@@ -322,7 +322,7 @@ public class JDBCPersistence implements Persistence {
 
     @Override
     public String branchIdQueryStatement(int projectId, int branchOrdinal) {
-        return "SELECT if FROM Branch WHERE projectId='" + projectId + "' AND ordinal=" + branchOrdinal;
+        return "SELECT id FROM Branch WHERE projectId='" + projectId + "' AND ordinal=" + branchOrdinal;
     }
 
     /**

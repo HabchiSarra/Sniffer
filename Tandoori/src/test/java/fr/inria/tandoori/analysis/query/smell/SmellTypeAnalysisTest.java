@@ -41,14 +41,12 @@ public class SmellTypeAnalysisTest {
     private List<Map<String, Object>> smellList;
     private Persistence persistence;
     private SmellDuplicationChecker duplicationChecker;
-    private ArgumentCaptor<String> statementsCaptor;
 
     @Before
     public void setUp() throws Exception {
         smellList = new ArrayList<>();
         persistence = Mockito.mock(Persistence.class);
         duplicationChecker = Mockito.mock(SmellDuplicationChecker.class);
-        statementsCaptor = ArgumentCaptor.forClass(String.class);
 
         doReturn(END_COMMIT_STATEMENT).when(persistence).lastProjectCommitSha1QueryStatement(projectId);
         doReturn(GAP_COMMIT_STATEMENT).when(persistence).commitSha1QueryStatement(eq(projectId), anyInt());
