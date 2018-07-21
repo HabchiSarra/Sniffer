@@ -64,7 +64,7 @@ public class SmellTypeAnalysis implements Query {
             if (!underAnalysis.equals(commit)) {
                 handleCommitChanges(underAnalysis);
                 // Compare the two commits ordinal to find a gap.
-                if (underAnalysis.hasGap(commit)) {
+                if (underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.EMPTY)) {
                     handleCommitGap(underAnalysis);
                 }
                 underAnalysis = commit;
@@ -84,6 +84,11 @@ public class SmellTypeAnalysis implements Query {
             }
 
             insertSmellInCategory(smell, commit, SmellCategory.PRESENCE);
+        }
+
+        if (commit.equals(Commit.EMPTY)) {
+            logger.info("[" + projectId + "] No smell found for type: " + smellType);
+            return;
         }
 
         // We persist the introduction and refactoring of the last commit.
