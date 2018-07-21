@@ -1,29 +1,21 @@
 package fr.inria.tandoori.analysis;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.mchange.v2.c3p0.DataSources;
-import com.mchange.v2.c3p0.PooledDataSource;
-import fr.inria.tandoori.analysis.persistence.PostgresqlPersistence;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import static fr.inria.tandoori.analysis.Main.DATABASE_PASSWORD;
 import static fr.inria.tandoori.analysis.Main.DATABASE_URL;
 import static fr.inria.tandoori.analysis.Main.DATABASE_USERNAME;
-import static fr.inria.tandoori.analysis.Main.GITHUB_URL;
 
 /**
  * Class handling a single app analysis process in Tandoori.
@@ -90,11 +81,9 @@ public class MultiAppAnalysis {
     }
 
     private DataSource initializeConnectionPool() {
-        DataSource ds_unpooled = null;
         try {
-
-            ds_unpooled = DataSources.unpooledDataSource("jdbc:postgresql:" + DATABASE_URL,
-                    DATABASE_USERNAME, DATABASE_PASSWORD);
+            DataSource ds_unpooled = DataSources.unpooledDataSource(
+                    "jdbc:postgresql:" + DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
             return DataSources.pooledDataSource(ds_unpooled);
         } catch (SQLException e) {
             throw new RuntimeException("Unable to create DataSource", e);
@@ -107,12 +96,12 @@ public class MultiAppAnalysis {
         String repository;
         String paprikaDB;
 
-        SingleAnalysisTask analysis;
-        List<SingleAnalysisTask> tasks = new ArrayList<>();
+        SingleAppAnalysisCallable analysis;
+        List<SingleAppAnalysisCallable> tasks = new ArrayList<>();
         for (String app : applications) {
             repository = chooseRepository(app);
             paprikaDB = Paths.get(paprikaDBs, app, "databases", "graph.db").toString();
-            analysis = new SingleAnalysisTask(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool);
+            analysis = new SingleAppAnalysisCallable(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool);
             logger.info("New app analysis: " + analysis);
             tasks.add(analysis);
         }
@@ -129,53 +118,6 @@ public class MultiAppAnalysis {
             return Paths.get(appLocalRepositories, app).toString();
         } else {
             return remoteRepositories.get(app);
-        }
-    }
-
-    private static final class SingleAnalysisTask implements Callable<Void> {
-        private String application;
-        private String repository;
-        private String paprikaDB;
-        private String githubToken;
-        private String url;
-        DataSource connections;
-
-        public SingleAnalysisTask(String application, String repository, String paprikaDB,
-                                  String githubToken, String url, DataSource connections) {
-            this.application = application;
-            this.repository = repository;
-            this.paprikaDB = paprikaDB;
-            this.githubToken = githubToken;
-            // Set null if no url, else join the GITHUB_URL with the given 'owner/project' path.
-            if (url == null) {
-                this.url = null;
-            } else {
-                url = url.trim();
-                this.url = GITHUB_URL + (url.startsWith("/") ? url.substring(1) : url);
-            }
-            this.connections = connections;
-        }
-
-        @Override
-        public Void call() throws Exception {
-            try {
-                new SingleAppAnalysis(application, repository, paprikaDB, githubToken, url)
-                        .analyze(new PostgresqlPersistence(connections.getConnection()));
-            } catch (AnalysisException e) {
-                logger.error("Unable to perform analysis on project " + application, e);
-            }
-            return null;
-        }
-
-        @Override
-        public String toString() {
-            return "SingleAnalysisTask{" +
-                    "application='" + application + '\'' +
-                    ", repository='" + repository + '\'' +
-                    ", paprikaDB='" + paprikaDB + '\'' +
-                    ", url='" + url + '\'' +
-                    ", githubToken='" + (githubToken == null ? null : "XXXX (is set)") + '\'' +
-                    '}';
         }
     }
 
