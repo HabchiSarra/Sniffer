@@ -1,6 +1,7 @@
 package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.SmellCategory;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
@@ -79,7 +80,8 @@ public class SmellTypeAnalysis implements Query {
             if (!previousCommitSmells.contains(smell)) {
                 insertSmellInstance(smell);
             }
-            insertSmellPresence(smell, commit);
+
+            insertSmellInCategory(smell, commit, SmellCategory.PRESENCE);
         }
 
         // We persist the introduction and refactoring of the last commit.
@@ -158,6 +160,13 @@ public class SmellTypeAnalysis implements Query {
         }
     }
 
+    /**
+     * Trigger all actions linked to a change of commit.
+     * I.e. persist the commit changes (Insertion, Refactor) and reset all tracking to diff the current commit
+     * with the next one.
+     *
+     * @param next The current commit to persist and set as previous.
+     */
     private void handleCommitChanges(Commit next) {
         persistCommitChanges(next);
         updateCommitTrackingCounters();
@@ -198,12 +207,7 @@ public class SmellTypeAnalysis implements Query {
     }
 
     private void insertSmellInstance(Smell smell) {
-        // We know that the parent smell is the last inserted one.
-        String parentSmellQuery = persistence.smellQueryStatement(projectId, smell.parentInstance, smell.type, true);
-        String parentQuery = smell.parentInstance != null ? "(" + parentSmellQuery + ")" : null;
-        String smellInsert = "INSERT INTO Smell (projectId, instance, type, file, renamedFrom) VALUES" +
-                "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '" + smell.file + "', " + parentQuery + ") ON CONFLICT DO NOTHING;";
-        persistence.addStatements(smellInsert);
+        persistence.addStatements(persistence.smellInsertionStatement(projectId, smell));
     }
 
     /**
@@ -221,17 +225,13 @@ public class SmellTypeAnalysis implements Query {
         }
     }
 
-    private void insertSmellPresence(Smell smell, Commit commit) {
-        insertSmellInCategory(smell, commit, "SmellPresence");
-    }
-
     private void insertSmellIntroductions(Commit commit) {
         List<Smell> introduction = new ArrayList<>(currentCommitSmells);
         introduction.removeAll(previousCommitSmells);
 
         for (Smell smell : introduction) {
             if (!currentCommitRenamed.contains(smell)) {
-                insertSmellInCategory(smell, commit, "SmellIntroduction");
+                insertSmellInCategory(smell, commit, SmellCategory.INTRODUCTION);
             }
         }
     }
@@ -242,7 +242,7 @@ public class SmellTypeAnalysis implements Query {
 
         for (Smell smell : refactoring) {
             if (!currentCommitOriginal.contains(smell)) {
-                insertSmellInCategory(smell, commit, "SmellRefactor");
+                insertSmellInCategory(smell, commit, SmellCategory.REFACTOR);
             }
         }
     }
@@ -254,13 +254,7 @@ public class SmellTypeAnalysis implements Query {
      * @param commit   The commit to insert into.
      * @param category The table category, either SmellPresence, SmellIntroduction, or SmellRefactor
      */
-    private void insertSmellInCategory(Smell smell, Commit commit, String category) {
-        // We fetch only the last matching inserted smell
-        // This helps us handling the case of Gaps between commits
-        String smellQuery = persistence.smellQueryStatement(projectId, smell.instance, smell.type, true);
-        String commitQuery = persistence.commitIdQueryStatement(this.projectId, commit.sha);
-        String smellPresenceInsert = "INSERT INTO " + category + " (smellId, commitId) VALUES " +
-                "((" + smellQuery + "), (" + commitQuery + "));";
-        persistence.addStatements(smellPresenceInsert);
+    private void insertSmellInCategory(Smell smell, Commit commit, SmellCategory category) {
+        persistence.addStatements(persistence.smellCategoryInsertionStatement(projectId, commit.sha, smell, category));
     }
 }

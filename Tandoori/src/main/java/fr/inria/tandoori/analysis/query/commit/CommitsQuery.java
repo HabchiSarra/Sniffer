@@ -121,47 +121,27 @@ public class CommitsQuery implements Query {
         return new neo4j.CommitsQuery(engine).streamResult(true, true);
     }
 
-    private static Iterable<RevCommit> getCommits(Git gitRepo) throws QueryException {
-        Iterable<RevCommit> commits;
-        try {
-            commits = gitRepo.log().call();
-        } catch (GitAPIException e) {
-            throw new QueryException(logger.getName(), e);
-        }
-        return commits;
-    }
-
     private List<String> authorStatements(String emailAddress) {
-        String developerQuery = persistence.developerQueryStatement(projectId, emailAddress);
+        String developerQuery = persistence.developerQueryStatement(emailAddress);
         List<String> statements = new ArrayList<>();
 
         // Try to insert the developer if not exist
-        String authorInsert = "INSERT INTO Developer (username) VALUES ('" + emailAddress + "') ON CONFLICT DO NOTHING;";
-        statements.add(authorInsert);
+        statements.add(persistence.developerInsertStatement(emailAddress));
 
         // Try to insert the developer/project mapping if not exist
-        String authorProjectInsert = "INSERT INTO ProjectDeveloper (developerId, projectId) VALUES (" +
-                "(" + developerQuery + "), " + projectId + ") ON CONFLICT DO NOTHING;";
-        statements.add(authorProjectInsert);
+        statements.add(persistence.projectDeveloperInsertStatement(projectId, emailAddress));
 
         return statements;
     }
 
     private String commitStatement(RevCommit commit, int count, CommitDetails details) {
         String authorEmail = commit.getAuthorIdent().getEmailAddress();
-        String developerQuery = persistence.developerQueryStatement(projectId, authorEmail);
         GitDiff diff = details.diff;
-
         DateTime commitDate = new DateTime(((long) commit.getCommitTime()) * 1000);
-        logger.trace("[" + projectId + "] Commit time is: " + commit.getCommitTime() + "(datetime: " + commitDate + ")");
-
-        return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged, message) VALUES ('" +
-                projectId + "', (" + developerQuery + "), '" + commit.name() + "', " + count + ", '" + commitDate.toString() +
-                "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() + ", $$" + commit.getFullMessage() + "$$) ON CONFLICT DO NOTHING";
+        return persistence.commitInsertionStatement(projectId, authorEmail, commit.name(), count, commitDate, diff, commit.getFullMessage());
     }
 
     private List<String> fileRenameStatements(RevCommit commit, CommitDetails details) {
-        String commitSelect = persistence.commitIdQueryStatement(projectId, commit.name());
         List<String> result = new ArrayList<>();
 
         for (GitRename rename : details.renames) {
@@ -173,20 +153,8 @@ public class CommitsQuery implements Query {
             logger.trace("[" + projectId + "]    => new file: " + rename.newFile);
             logger.trace("[" + projectId + "]    => Similarity: " + rename.similarity);
 
-            result.add(renameInsertStatement(commitSelect, rename));
+            result.add(persistence.fileRenameInsertionStatement(projectId, commit.name(), rename));
         }
         return result;
-    }
-
-    /**
-     * Generate an insertion line for the given rename statement.
-     *
-     * @param commitSelect Query to select the right commit id.
-     * @param rename       Rename info to use.
-     */
-    private String renameInsertStatement(String commitSelect, GitRename rename) {
-        return "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
-                projectId + "',(" + commitSelect + "), '" + rename.oldFile + "', '" +
-                rename.newFile + "', " + rename.similarity + ") ON CONFLICT DO NOTHING";
     }
 }

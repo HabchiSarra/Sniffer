@@ -1,5 +1,9 @@
 package fr.inria.tandoori.analysis.persistence;
 
+import fr.inria.tandoori.analysis.query.commit.GitDiff;
+import fr.inria.tandoori.analysis.query.commit.GitRename;
+import fr.inria.tandoori.analysis.query.smell.Smell;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -214,6 +218,21 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
+    public String commitInsertionStatement(int projectId, String developerName, String sha1, int ordinal, DateTime time,
+                                           GitDiff diff, String commitMessage) {
+        logger.trace("[" + projectId + "] Inserting commit: " + sha1 + " - ordinal: " + ordinal + " - diff: " + diff + " - time: " + time);
+
+        // Escaping double dollars to avoid exiting dollar quoted string too soon.
+        commitMessage = commitMessage.replace("$$", "$'$");
+
+        String developerQuery = developerQueryStatement(developerName);
+        return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged, message) VALUES ('" +
+                projectId + "', (" + developerQuery + "), '" + sha1 + "', " + ordinal + ", '" + time.toString() +
+                "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() +
+                ", $$" + commitMessage + "$$) ON CONFLICT DO NOTHING;";
+    }
+
+    @Override
     public String commitIdQueryStatement(int projectId, String sha) {
         return "SELECT id FROM CommitEntry WHERE sha1 = '" + sha + "' AND projectId = " + projectId;
     }
@@ -224,8 +243,40 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
-    public String developerQueryStatement(int projectId, String email) {
+    public String developerInsertStatement(String developerName) {
+        return "INSERT INTO Developer (username) VALUES ('" + developerName + "') ON CONFLICT DO NOTHING;";
+    }
+
+    @Override
+    public String projectDeveloperInsertStatement(int projectId, String developerName) {
+        return "INSERT INTO ProjectDeveloper (developerId, projectId) VALUES (" +
+                "(" + developerQueryStatement(developerName) + "), " + projectId + ") ON CONFLICT DO NOTHING;";
+    }
+
+    @Override
+    public String developerQueryStatement(String email) {
         return "SELECT id FROM Developer WHERE username = '" + email + "'";
+    }
+
+    @Override
+    public String smellInsertionStatement(int projectId, Smell smell) {
+        // We know that the parent smell is the last inserted one.
+        String parentSmellQuery = smellQueryStatement(projectId, smell.parentInstance, smell.type, true);
+        String parentQueryOrNull = smell.parentInstance != null ? "(" + parentSmellQuery + ")" : null;
+
+        return "INSERT INTO Smell (projectId, instance, type, file, renamedFrom) VALUES" +
+                "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '"
+                + smell.file + "', " + parentQueryOrNull + ") ON CONFLICT DO NOTHING;";
+    }
+
+    @Override
+    public String smellCategoryInsertionStatement(int projectId, String sha1, Smell smell, SmellCategory category) {
+        // We fetch only the last matching inserted smell
+        // This helps us handling the case of Gaps between commits
+        return "INSERT INTO " + category.getName() + " (smellId, commitId) VALUES " +
+                "((" + smellQueryStatement(projectId, smell.instance, smell.type, true) + "), (" +
+                commitIdQueryStatement(projectId, sha1) + "));";
+        //TODO: Should we add ON CONFLICT DO NOTHING?
     }
 
     @Override
@@ -240,7 +291,7 @@ public class JDBCPersistence implements Persistence {
 
     @Override
     public String projectDevQueryStatement(int projectId, String email) {
-        String devQuery = developerQueryStatement(projectId, email);
+        String devQuery = developerQueryStatement(email);
         return "SELECT id FROM ProjectDeveloper WHERE developerId = (" + devQuery + ") AND projectId = " + projectId;
     }
 
@@ -250,23 +301,29 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
+    public String fileRenameInsertionStatement(int projectId, String commitSha, GitRename rename) {
+        return "INSERT INTO FileRename (projectId, commitId, oldFile, newFile, similarity) VALUES ('" +
+                projectId + "', (" + commitIdQueryStatement(projectId, commitSha) + "), '" + rename.oldFile + "', '" +
+                rename.newFile + "', " + rename.similarity + ") ON CONFLICT DO NOTHING;";
+    }
+
+    @Override
     public String branchInsertionStatement(int projectId, int ordinal, boolean master) {
         return "INSERT INTO Branch (projectId, ordinal, master) VALUES ('"
-                + projectId + "', '" + ordinal + "', '" + master + "') ON CONFLICT DO NOTHING";
+                + projectId + "', '" + ordinal + "', '" + master + "') ON CONFLICT DO NOTHING;";
     }
 
     @Override
     public String branchCommitInsertionQuery(int projectId, int branchOrdinal, String commitSha) {
         return "INSERT INTO BranchCommit (branchId, commitId) VALUES (" +
-                "("+branchIdQueryStatement(projectId, branchOrdinal)+"), " +
-                "(" + commitIdQueryStatement(projectId, commitSha) + ")) ON CONFLICT DO NOTHING";
+                "(" + branchIdQueryStatement(projectId, branchOrdinal) + "), " +
+                "(" + commitIdQueryStatement(projectId, commitSha) + ")) ON CONFLICT DO NOTHING;";
     }
 
     @Override
     public String branchIdQueryStatement(int projectId, int branchOrdinal) {
         return "SELECT if FROM Branch WHERE projectId='" + projectId + "' AND ordinal=" + branchOrdinal;
     }
-
 
     /**
      * Load the database schema.
