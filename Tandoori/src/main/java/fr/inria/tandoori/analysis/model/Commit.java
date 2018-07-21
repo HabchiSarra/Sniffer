@@ -29,12 +29,27 @@ public class Commit {
         this.parents = parents;
     }
 
+    /**
+     * Create a {@link Commit} from a Paprika Smell instance.
+     *
+     * @param smell The smell instance to transform.
+     * @return A newly created {@link Commit}.
+     */
     public static Commit fromInstance(Map<String, Object> smell) {
         String sha1 = (String) smell.get("key");
         Integer ordinal = (Integer) smell.get("commit_number");
         return new Commit(sha1, ordinal);
     }
 
+    /**
+     * Create a commit instance from a JGit {@link RevCommit}.
+     * <p>
+     * Warning: This creation does not handle ordinal since the information is not available.
+     * It will return -1 if used.
+     *
+     * @param revCommit The commit to transform.
+     * @return A newly created {@link Commit}.
+     */
     public static Commit fromRevCommit(RevCommit revCommit) {
         // JGit only returns 1 level of parent commits.
         List<Commit> parents = new ArrayList<>();
@@ -46,6 +61,13 @@ public class Commit {
         return new Commit(revCommit.name(), -1, parents);
     }
 
+
+    /**
+     * Tells if the commit is not consecutive with the other commit.
+     *
+     * @param other The commit to test against this.
+     * @return True if the two commits ordinal are separated by more than 1, False otherwise.
+     */
     public boolean hasGap(Commit other) {
         return Math.abs(other.ordinal - this.ordinal) > 1;
     }
@@ -61,14 +83,25 @@ public class Commit {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(sha, ordinal);
     }
 
+    /**
+     * Returns the number of parent for this commit.
+     *
+     * @return The number of parent, 0 if no parents are referenced.
+     */
     public int getParentCount() {
         return parents == null ? 0 : parents.size();
     }
 
+    /**
+     * Return the Nth parent of this commit.
+     *
+     * @param nth The parent index.
+     * @return A {@link Commit}.
+     * @throws IndexOutOfBoundsException If the nth argument is > Commit{@link #getParentCount()} - 1
+     */
     public Commit getParent(int nth) {
         return parents == null ? null : parents.get(nth);
     }
