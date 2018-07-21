@@ -32,7 +32,8 @@ public class BranchQuery implements Query {
         logger.info("[" + projectId + "] Starting Branches insertion");
         RevCommit commit;
         try {
-            commit = getCommit("HEAD");
+            commit = repository.getCommit("HEAD");
+            logger.info("[" + projectId + "] => Found HEAD for identifier: " + commit.name());
         } catch (IOException e) {
             throw new QueryException(logger.getName(), e);
         }
@@ -45,7 +46,9 @@ public class BranchQuery implements Query {
     }
 
     /**
-     * @param branch
+     * Persist the given branch in repository.
+     *
+     * @param branch The branch to persist.
      */
     private void persistBranch(Branch branch) {
         String statement = persistence.branchInsertionStatement(projectId, branch.getOrdinal(), branch.isMaster());
@@ -68,7 +71,7 @@ public class BranchQuery implements Query {
 
         // TODO check if equality on RevCommit is working
         RevCommit commit = start;
-        while (commit.getParentCount() > 0 && !isInBranch(mother, commit.getParent(0))) {
+        while (isNotOriginCommit(mother, commit)) {
             if (commit.getParentCount() >= 2) {
                 merges.add(commit);
             }
@@ -87,20 +90,22 @@ public class BranchQuery implements Query {
         return branches;
     }
 
+    /**
+     * Determine if the given commit is the origin of the currently parsed branch.
+     *
+     * @param mother The mother branch in which we could find the original commit.
+     *               If we are handling the principal branch, this can be null,
+     *               thus we will only wait for a null commit.
+     * @param commit The current commit to assert. If the commit is null, we consider that we reached the end of the
+     *               commit tree, i.e. the original commit of the principal branch.
+     * @return True if the commit
+     */
+    private boolean isNotOriginCommit(Branch mother, RevCommit commit) {
+        return commit != null && commit.getParentCount() > 0 && !isInBranch(mother, commit.getParent(0));
+    }
+
     private boolean isInBranch(Branch branch, RevCommit commit) {
         return branch != null && branch.contains(commit.getParent(0));
     }
 
-    private RevCommit getCommit(String sha) throws IOException {
-        org.eclipse.jgit.lib.Repository gitRepo = this.repository.getGitRepository().getRepository();
-        Ref head = gitRepo.findRef(sha);
-        logger.debug("[" + projectId + "] ==> Found commit for identifier: " + sha);
-
-        // a RevWalk allows to walk over commits based on some filtering that is defined
-        try (RevWalk walk = new RevWalk(gitRepo)) {
-            RevCommit commit = walk.parseCommit(head.getObjectId());
-            walk.dispose();
-            return commit;
-        }
-    }
 }

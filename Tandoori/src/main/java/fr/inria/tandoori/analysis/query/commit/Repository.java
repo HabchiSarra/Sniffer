@@ -3,6 +3,9 @@ package fr.inria.tandoori.analysis.query.commit;
 import fr.inria.tandoori.analysis.FilesUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +57,8 @@ public class Repository {
      * @throws RepositoryException If anything goes wrong
      */
     public Git initializeRepository() throws RepositoryException {
-        if (cloneDir != null) {
-            logger.warn("Repository already initialized, doing nothing (" + repository + ")");
+        if (logger.isDebugEnabled() && cloneDir != null) {
+            logger.debug("Repository already initialized, doing nothing (" + repository + ")");
         }
         if (Files.exists(Paths.get(this.repository))) {
             this.git = initializeLocalRepository();
@@ -70,13 +73,33 @@ public class Repository {
      * i.e. clean the cloned directory for a remote repository.
      */
     public void finalizeRepository() {
-        if (cloneDir == null) {
-            logger.warn("Repository not initialized, doing nothing (" + repository + ")");
+        if (logger.isDebugEnabled() && cloneDir == null) {
+            logger.debug("Repository not initialized, doing nothing (" + repository + ")");
         }
         // We don't delete files if the repository was there before us.
         // We won't delete anything by default.
         if (isRemote) {
             FilesUtils.recursiveDeletion(cloneDir);
+        }
+    }
+
+    /**
+     * Retrieve the commit identified by 'sha' on the {@link org.eclipse.jgit.api.Git} repository.
+     *
+     * @param sha identifier of the commit to retrieve, might be a sha as well as 'HEAD'.
+     * @return The retrieved {@link RevCommit}.
+     *
+     * @throws IOException If anything goes wrong while parsing Git repository.
+     */
+    public RevCommit getCommit(String sha) throws IOException {
+        org.eclipse.jgit.lib.Repository gitRepo = getGitRepository().getRepository();
+        Ref head = gitRepo.findRef(sha);
+
+        // a RevWalk allows to walk over commits based on some filtering that is defined
+        try (RevWalk walk = new RevWalk(gitRepo)) {
+            RevCommit commit = walk.parseCommit(head.getObjectId());
+            walk.dispose();
+            return commit;
         }
     }
 
