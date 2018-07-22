@@ -6,13 +6,16 @@ import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockingDetails;
 import org.mockito.Mockito;
+import org.mockito.internal.util.DefaultMockingDetails;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -22,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class BranchQueryTest {
 
@@ -63,11 +67,13 @@ public class BranchQueryTest {
 
     /**
      * Testing this kind of branching form (no branch):
+     * <pre><code>
      * . A
      * |
      * . B
      * |
      * . C
+     * </pre></code>
      *
      * @throws QueryException
      * @throws IOException
@@ -93,6 +99,7 @@ public class BranchQueryTest {
 
     /**
      * Testing this kind of branching form (1 branch):
+     * <pre><code>
      * .   A
      * |\
      * . | B
@@ -100,7 +107,8 @@ public class BranchQueryTest {
      * . | C
      * | . E
      * |/
-     * .   F
+     * .   F (merge)
+     * </pre></code>
      *
      * @throws QueryException
      * @throws IOException
@@ -134,6 +142,7 @@ public class BranchQueryTest {
 
     /**
      * Testing this kind of branching form (2 consecutive branches):
+     * <pre><code>
      * .   A
      * |\
      * . | B
@@ -141,12 +150,13 @@ public class BranchQueryTest {
      * . | C
      * | . E
      * |/
-     * .   F
+     * .   F (merge)
      * |\
      * | . G
      * . | H
      * |/
-     * .   I
+     * .   I (merge)
+     * </pre></code>
      *
      * @throws QueryException
      * @throws IOException
@@ -187,7 +197,68 @@ public class BranchQueryTest {
     }
 
     /**
+     * Testing this kind of branching form (2 consecutive merges of 1 branch):
+     * <pre><code>
+     * .   A
+     * |\
+     * . | B
+     * | . D
+     * . | C
+     * | . E
+     * |/|
+     * . |  F (merge)
+     * | |
+     * | . G
+     * . | H
+     * |/
+     * .   I (merge)
+     * </pre></code>
+     *
+     * @throws QueryException
+     * @throws IOException
+     */
+    @Test
+    public void testContinuingBranches() throws QueryException, IOException {
+        Commit A = new Commit("a", 1);
+        Commit B = new Commit("b", 2, Collections.singletonList(A));
+        Commit C = new Commit("c", 3, Collections.singletonList(B));
+        Commit D = new Commit("d", 5, Collections.singletonList(A));
+        Commit E = new Commit("e", 4, Collections.singletonList(D));
+        Commit F = new Commit("f", 6, Arrays.asList(C, E));
+        Commit G = new Commit("g", 7, Collections.singletonList(E));
+        Commit H = new Commit("h", 8, Collections.singletonList(F));
+        Commit I = new Commit("i", 9, Arrays.asList(H, G));
+
+        initializeHead(I);
+        initializeMocks(A, B, C, D, E, F, G, H, I);
+        BranchQuery query = new BranchQuery(projectId, repository, persistence);
+
+        query.query();
+
+        verify(persistence, times(14)).addStatements(any());
+        verify(persistence).branchInsertionStatement(projectId, 0, true);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 1, false);
+        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha);
+        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 2, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha);
+
+
+    }
+
+    /**
      * Testing this kind of branching form (2 overlapping branches):
+     * <pre><code>
      * .     A
      * |\
      * . |   B
@@ -196,10 +267,11 @@ public class BranchQueryTest {
      * | | . E
      * | . | F
      * | |/
-     * | .   G
+     * | .   G (merge)
      * . |   H
      * |/
-     * .     I
+     * .     I (merge)
+     * </pre></code>
      *
      * @throws QueryException
      * @throws IOException
@@ -241,18 +313,20 @@ public class BranchQueryTest {
 
     /**
      * Testing this kind of branching form (2 parallel branches):
-     * .   A
-     * /|\
+     * <pre><code>
+     *   .   A
+     *  /|\
      * | . | B
      * | | . D
      * | . | C
      * . | | E
      * | | . F
      * | | |
-     * \| . G
-     * . | H
-     * |/
-     * .   I
+     * \ | . G
+     *   . | H (merge)
+     *   |/
+     *   .   I (merge)
+     * </code></pre>
      *
      * @throws QueryException
      * @throws IOException
@@ -290,5 +364,185 @@ public class BranchQueryTest {
 
         verify(persistence).branchInsertionStatement(projectId, 2, false);
         verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha);
+    }
+
+    /**
+     * Testing this kind of branching form (2 crossed branches):
+     * <pre><code>
+     *   .   A
+     *   |\
+     *   . | B
+     *  /| . D
+     * | . | C
+     * . |/  E
+     * | .   F (merge)
+     * . |   G
+     *  \|
+     *   .   H (merge)
+     * </code></pre>
+     *
+     * @throws QueryException
+     * @throws IOException
+     */
+    @Test
+    public void testCrossedBranches() throws QueryException, IOException {
+        Commit A = new Commit("a", 1);
+        Commit B = new Commit("b", 2, Collections.singletonList(A));
+        Commit C = new Commit("c", 3, Collections.singletonList(B));
+        Commit D = new Commit("d", 5, Collections.singletonList(A));
+        Commit E = new Commit("e", 4, Collections.singletonList(B));
+        Commit F = new Commit("f", 6, Arrays.asList(C, D));
+        Commit G = new Commit("g", 7, Collections.singletonList(E));
+        Commit H = new Commit("h", 8, Arrays.asList(F, G));
+
+        initializeHead(H);
+        initializeMocks(A, B, C, D, E, F, G, H);
+        BranchQuery query = new BranchQuery(projectId, repository, persistence);
+
+        query.query();
+
+        verify(persistence, times(11)).addStatements(any());
+        verify(persistence).branchInsertionStatement(projectId, 0, true);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 1, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 2, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha);
+    }
+
+    /**
+     * Testing this kind of branching form (merge back and forth):
+     * <pre><code>
+     * .   A
+     * |\
+     * . | B
+     * | . D
+     * . | C
+     * |\|
+     * | . E (merge)
+     * . | F
+     * | |
+     * | . G
+     * . | H
+     * |/
+     * .   I (merge)
+     * </code></pre>
+     *
+     * @throws QueryException
+     * @throws IOException
+     */
+    @Test
+    public void testMergeBackAndForth() throws QueryException, IOException {
+        Commit A = new Commit("a", 1);
+        Commit B = new Commit("b", 2, Collections.singletonList(A));
+        Commit C = new Commit("c", 3, Collections.singletonList(B));
+        Commit D = new Commit("d", 5, Collections.singletonList(A));
+        Commit E = new Commit("e", 4, Arrays.asList(D, C));
+        Commit F = new Commit("f", 6, Collections.singletonList(C));
+        Commit G = new Commit("g", 7, Collections.singletonList(E));
+        Commit H = new Commit("h", 8, Collections.singletonList(F));
+        Commit I = new Commit("i", 9, Arrays.asList(H, G));
+
+        initializeHead(I);
+        initializeMocks(A, B, C, D, E, F, G, H, I);
+        BranchQuery query = new BranchQuery(projectId, repository, persistence);
+
+        query.query();
+
+        verify(persistence, times(13)).addStatements(any());
+        verify(persistence).branchInsertionStatement(projectId, 0, true);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 1, false);
+        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 2, false);
+        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 2, C.sha);
+    }
+
+    /**
+     * Testing this kind of branching form (merge back and forth):
+     * <pre><code>
+     * .     A
+     * |\
+     * . |   B
+     * | .   D
+     * . |\  C
+     * | | . E
+     * | . | F
+     * | |/
+     * |/|
+     * . |   G (merge)
+     * | .   H
+     * |/
+     * .     I (merge)
+     * </code></pre>
+     *
+     * @throws QueryException
+     * @throws IOException
+     */
+    @Test
+    public void testMergeNotInDirectParent() throws QueryException, IOException {
+        Commit A = new Commit("a", 1);
+        Commit B = new Commit("b", 2, Collections.singletonList(A));
+        Commit C = new Commit("c", 3, Collections.singletonList(B));
+        Commit D = new Commit("d", 5, Collections.singletonList(A));
+        Commit E = new Commit("e", 4, Collections.singletonList(D));
+        Commit F = new Commit("f", 6, Collections.singletonList(D));
+        Commit G = new Commit("g", 7, Arrays.asList(C, E));
+        Commit H = new Commit("h", 8, Collections.singletonList(F));
+        Commit I = new Commit("i", 9, Arrays.asList(G, H));
+
+        initializeHead(I);
+        initializeMocks(A, B, C, D, E, F, G, H, I);
+        BranchQuery query = new BranchQuery(projectId, repository, persistence);
+
+        query.query();
+
+        verify(persistence, times(13)).addStatements(any());
+        verify(persistence).branchInsertionStatement(projectId, 0, true);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, G.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 1, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, F.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, H.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 2, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha);
+        // TODO: Delete this interaction: verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha);
+    }
+
+    private void debugBranchCommitInsertions() {
+        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Integer> intCaptor = ArgumentCaptor.forClass(Integer.class);
+
+        verify(persistence, times(10)).branchCommitInsertionQuery(eq(projectId),
+                intCaptor.capture(), stringCaptor.capture());
+        List<Integer> ints = intCaptor.getAllValues();
+        List<String> strs = stringCaptor.getAllValues();
+
+        for (int i = 0; i < ints.size(); i++) {
+            System.out.println("Call to branchCommitInsertionQuery: " + ints.get(i) + " - " + strs.get(i));
+        }
+
     }
 }

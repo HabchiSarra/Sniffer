@@ -111,7 +111,7 @@ public class SmellTypeAnalysis extends AbstractQuery {
         try {
             commit = createNoSmellCommit(commit.ordinal + 1);
         } catch (Exception e) {
-            logger.warn("An error occurred while treating gap, skipping", e);
+            logger.warn("An error occurred while treating gap, skipping: " + e.getMessage());
             return;
         }
         // If we found the gap commit, we insert it as any other before continuing

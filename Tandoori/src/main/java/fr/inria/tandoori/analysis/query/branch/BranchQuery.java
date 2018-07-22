@@ -17,7 +17,7 @@ public class BranchQuery extends AbstractQuery {
     private int branchCounter;
 
     public BranchQuery(int projectId, Repository repository, Persistence persistence) {
-        super(LoggerFactory.getLogger(Repository.class.getName()), projectId, persistence);
+        super(LoggerFactory.getLogger(BranchQuery.class.getName()), projectId, persistence);
         this.repository = repository;
         branchCounter = 0;
     }
@@ -81,6 +81,9 @@ public class BranchQuery extends AbstractQuery {
         // TODO check if equality on RevCommit is working
         Commit commit = start;
         while (!isFirstCommit(commit) && !isInBranch(mother, commit.getParent(0))) {
+            logger.trace("[" + projectId + "] => Handling commit: " + commit.sha);
+            logger.trace("[" + projectId + "] ==> commit parents (" + commit.getParentCount() + "): " + commit.parents);
+
             // If paprika does not know this commit, we do not handle it at all.
             if (paprikaHasCommit(commit.sha)) {
                 // We do not add current merge commit if it is part of the branch above.
@@ -91,23 +94,41 @@ public class BranchQuery extends AbstractQuery {
             }
 
             // Retrieve the parent commit, and do the same.
-            try {
-                commit = repository.getCommitWithParents(commit.getParent(0).sha);
-            } catch (IOException e) {
-                // We won't continue insertion if we couldn't find the parent.
-                logger.error("Unable to fetch parent for commit: " + commit.sha, e);
-                break;
-            }
+            commit = retrieveParentCommit(commit, 0);
         }
-        current.addCommit(commit);
+        if (commit != null) {
+            current.addCommit(commit);
+        }
 
         List<Branch> branches = new ArrayList<>();
         for (Commit merge : merges) {
-            branches.addAll(buildBranchTree(current, merge.getParent(1)));
+            Commit parentCommit = retrieveParentCommit(merge, 1);
+            if (parentCommit != null) {
+                logger.debug("[" + projectId + "] => Handling merge commit: " + merge.sha);
+                branches.addAll(buildBranchTree(Branch.newMother(mother, current), parentCommit));
+            }
         }
 
         branches.add(current);
         return branches;
+    }
+
+    /**
+     * Retrieve the nth parent of the given commit.
+     * If it could not retrieve the parent for any reason, we log as error the reason and return null.
+     *
+     * @param commit   The commit to retrieve parent from.
+     * @param position The nth parent to fetch.
+     * @return The {@link Commit} if found, null otherwise.
+     */
+    private Commit retrieveParentCommit(Commit commit, int position) {
+        try {
+            return repository.getCommitWithParents(commit.getParent(position).sha);
+        } catch (IOException e) {
+            logger.error("[" + projectId + "] ==> Unable to fetch parent n°" + position + " (" + commit.getParent(1).sha +
+                    ") for commit: " + commit.sha, e);
+            return null;
+        }
     }
 
     /**
