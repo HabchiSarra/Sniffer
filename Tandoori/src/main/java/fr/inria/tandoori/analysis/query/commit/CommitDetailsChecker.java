@@ -1,5 +1,6 @@
 package fr.inria.tandoori.analysis.query.commit;
 
+import fr.inria.tandoori.analysis.model.CommitDetails;
 import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.GitRename;
 import org.slf4j.Logger;
@@ -8,17 +9,15 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CommitDetails {
+public class CommitDetailsChecker {
     private static final Logger logger = LoggerFactory.getLogger(CommitDetails.class.getName());
-    public final GitDiff diff;
-    public final List<GitRename> renames;
+    private final String repository;
 
-    public CommitDetails(GitDiff diff, List<GitRename> renames) {
-        this.diff = diff;
-        this.renames = renames;
+    public CommitDetailsChecker(String repository) {
+        this.repository = repository;
     }
 
-    public static CommitDetails fetch(String repository, String sha1) {
+    public CommitDetails fetch(String sha1) {
         List<GitRename> renames = new ArrayList<>();
         GitDiff diff = GitDiff.EMPTY;
 
@@ -39,13 +38,5 @@ public class CommitDetails {
 
         }
         return new CommitDetails(diff, renames);
-    }
-
-    @Override
-    public String toString() {
-        return "CommitDetails{" +
-                "diff=" + diff +
-                ", renames=" + renames +
-                '}';
     }
 }

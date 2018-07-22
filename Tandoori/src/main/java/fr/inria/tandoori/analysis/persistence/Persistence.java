@@ -1,9 +1,9 @@
 package fr.inria.tandoori.analysis.persistence;
 
+import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.GitRename;
 import fr.inria.tandoori.analysis.model.Smell;
-import org.joda.time.DateTime;
 
 import java.util.List;
 import java.util.Map;
@@ -59,17 +59,13 @@ public interface Persistence {
     /**
      * Generate a statement inserting the commit into the persistence.
      *
-     * @param projectId     The project identifier.
-     * @param developerName Email of the author to lookup for (must be in developer table).
-     * @param sha1          Commit sha1.
-     * @param ordinal       Commit ordinal in project.
-     * @param time          Time of the commit creation.
-     * @param diff          {@link GitDiff} for this commit.
-     * @param commitMessage Commit message, note that some sequences may be escaped.
+     * @param projectId The project identifier.
+     * @param commit    The commit to insert.
+     * @param diff      {@link GitDiff} for this commit.
+     * @param ordinal   Commit ordinal in Paprika dataset.
      * @return The generated insertion statement.
      */
-    String commitInsertionStatement(int projectId, String developerName, String sha1, int ordinal, DateTime time,
-                                    GitDiff diff, String commitMessage);
+    String commitInsertionStatement(int projectId, Commit commit, GitDiff diff, int ordinal);
 
     /**
      * Query the identifier of a commit.

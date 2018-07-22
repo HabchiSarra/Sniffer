@@ -48,7 +48,7 @@ public class BranchQueryTest {
      */
     private void initializeMocks(Commit... commits) throws IOException {
         for (Commit commit : commits) {
-            doReturn(commit).when(repository).getCommit(commit.sha);
+            doReturn(commit).when(repository).getCommitWithParents(commit.sha);
         }
     }
 

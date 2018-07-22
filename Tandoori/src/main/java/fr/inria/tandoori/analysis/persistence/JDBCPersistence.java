@@ -1,5 +1,6 @@
 package fr.inria.tandoori.analysis.persistence;
 
+import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.GitRename;
 import fr.inria.tandoori.analysis.model.Smell;
@@ -218,16 +219,16 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
-    public String commitInsertionStatement(int projectId, String developerName, String sha1, int ordinal, DateTime time,
-                                           GitDiff diff, String commitMessage) {
-        logger.trace("[" + projectId + "] Inserting commit: " + sha1 + " - ordinal: " + ordinal + " - diff: " + diff + " - time: " + time);
+    public String commitInsertionStatement(int projectId, Commit commit, GitDiff diff, int ordinal) {
+        logger.trace("[" + projectId + "] Inserting commit: " + commit.sha
+                + " - ordinal: " + ordinal + " - diff: " + diff + " - time: " + commit.date);
 
         // Escaping double dollars to avoid exiting dollar quoted string too soon.
-        commitMessage = commitMessage.replace("$$", "$'$");
+        String commitMessage = commit.message.replace("$$", "$'$");
 
-        String developerQuery = developerQueryStatement(developerName);
+        String developerQuery = developerQueryStatement(commit.authorEmail);
         return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged, message) VALUES ('" +
-                projectId + "', (" + developerQuery + "), '" + sha1 + "', " + ordinal + ", '" + time.toString() +
+                projectId + "', (" + developerQuery + "), '" + commit.sha + "', " + ordinal + ", '" + commit.date.toString() +
                 "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() +
                 ", $$" + commitMessage + "$$) ON CONFLICT DO NOTHING;";
     }

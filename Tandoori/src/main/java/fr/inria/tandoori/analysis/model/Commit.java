@@ -1,8 +1,10 @@
 package fr.inria.tandoori.analysis.model;
 
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.joda.time.DateTime;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,16 +18,48 @@ public class Commit {
     public final String sha;
     public final int ordinal;
     public final List<Commit> parents;
+    public final String message;
+    public final DateTime date;
+    public final String authorEmail;
 
+    /**
+     * Minimal constructor for a commit, ordering it using an ordinal.
+     *
+     * @param sha     The commit sha1.
+     * @param ordinal The commit ordinal.
+     */
     public Commit(String sha, int ordinal) {
-        this.sha = sha;
-        this.ordinal = ordinal;
-        this.parents = new ArrayList<>();
+        this(sha, ordinal, Collections.emptyList());
     }
 
+    /**
+     * Constructor building a Commit with an empty date and message.
+     *
+     * @param sha     The commit sha1.
+     * @param ordinal The commit ordinal.
+     * @param parents The commit parents.
+     */
     public Commit(String sha, int ordinal, List<Commit> parents) {
+        this(sha, ordinal, new DateTime(0), "", "", parents);
+    }
+
+    /**
+     * Full constructor for a {@link Commit}.
+     *
+     * @param sha         The commit sha1.
+     * @param ordinal     The commit ordinal.
+     * @param date        The commit date.
+     * @param message     The commit message.
+     * @param authorEmail The commit author.
+     * @param parents     The commit parents.
+     */
+    public Commit(String sha, int ordinal, DateTime date, String message,
+                  String authorEmail, List<Commit> parents) {
         this.sha = sha;
         this.ordinal = ordinal;
+        this.date = date;
+        this.message = message;
+        this.authorEmail = authorEmail;
         this.parents = parents;
     }
 
@@ -50,15 +84,43 @@ public class Commit {
      * @param revCommit The commit to transform.
      * @return A newly created {@link Commit}.
      */
-    public static Commit fromRevCommit(RevCommit revCommit) {
+    public static Commit commitWithDetails(RevCommit revCommit) {
+        return new Commit(
+                revCommit.name(),
+                -1,
+                new DateTime(((long) revCommit.getCommitTime()) * 1000),
+                revCommit.getFullMessage(),
+                revCommit.getAuthorIdent().getEmailAddress(),
+                Collections.emptyList());
+    }
+
+    /**
+     * Create a commit instance from a JGit {@link RevCommit}.
+     * <p>
+     * Warning: This creation does not handle ordinal since the information is not available.
+     * It will return -1 if used.
+     * <p>
+     * By default we will not retrieve the commit message and author
+     * to avoid taking too much processing time.
+     *
+     * @param revCommit The commit to transform.
+     * @return A newly created {@link Commit}.
+     */
+    public static Commit commitWithParents(RevCommit revCommit) {
         // JGit only returns 1 level of parent commits.
         List<Commit> parents = new ArrayList<>();
+
         if (revCommit.getParents() != null) {
             for (RevCommit commit : revCommit.getParents()) {
-                parents.add(Commit.fromRevCommit(commit));
+                parents.add(Commit.commitWithParents(commit));
             }
         }
-        return new Commit(revCommit.name(), -1, parents);
+
+        // We do not set the commit detailed information since:
+        // 1. It saves processing time and memory
+        // 2. We can't call RevCommit#getFullMessage on the parent commits.
+        // 2. We can't call RevCommit#getAuthorIdent on the parent commits.
+        return new Commit(revCommit.name(), -1, new DateTime(0), "", "", parents);
     }
 
 

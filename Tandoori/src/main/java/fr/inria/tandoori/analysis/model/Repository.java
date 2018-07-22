@@ -86,18 +86,34 @@ public class Repository {
 
     /**
      * Retrieve the commit identified by 'sha' on the {@link org.eclipse.jgit.api.Git} repository.
+     * This {@link Commit} will be filled with its parents, but not its details (message, author, date).
      *
      * @param sha identifier of the commit to retrieve, might be a sha as well as 'HEAD'.
      * @return The retrieved {@link RevCommit}.
      * @throws IOException If anything goes wrong while parsing Git repository.
      */
-    public Commit getCommit(String sha) throws IOException {
+    public Commit getCommitWithParents(String sha) throws IOException {
         ObjectId commitId = ObjectId.fromString(sha);
-        return Commit.fromRevCommit(getRevCommit(commitId));
+        return Commit.commitWithParents(getRevCommit(commitId));
     }
 
     /**
      * Retrieve the commit identified by 'sha' on the {@link org.eclipse.jgit.api.Git} repository.
+     * This {@link Commit} will be filled with its details (message, author, date) but not with its parents.
+     *
+     * @param sha identifier of the commit to retrieve, might be a sha as well as 'HEAD'.
+     * @return The retrieved {@link RevCommit}.
+     * @throws IOException If anything goes wrong while parsing Git repository.
+     */
+    public Commit getCommitWithDetails(String sha) throws IOException {
+        ObjectId commitId = ObjectId.fromString(sha);
+        return Commit.commitWithDetails(getRevCommit(commitId));
+    }
+
+    /**
+     * Retrieve the commit identified by 'sha' on the {@link org.eclipse.jgit.api.Git} repository.
+     * We use the method {@link Commit#commitWithParents(RevCommit)} since this method is only used to parse the
+     * commit tree.
      *
      * @return {@link RevCommit} of the repository HEAD.
      * @throws IOException If anything goes wrong while parsing Git repository.
@@ -105,7 +121,7 @@ public class Repository {
     public Commit getHead() throws IOException {
         org.eclipse.jgit.lib.Repository gitRepo = getGitRepository().getRepository();
         Ref head = gitRepo.findRef("HEAD");
-        return Commit.fromRevCommit(getRevCommit(head.getObjectId()));
+        return Commit.commitWithParents(getRevCommit(head.getObjectId()));
     }
 
     /**
@@ -182,5 +198,12 @@ public class Repository {
         private RepositoryException(String message, Exception exception) {
             super(message, exception);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Repository{" +
+                "repository='" + repository + '\'' +
+                '}';
     }
 }

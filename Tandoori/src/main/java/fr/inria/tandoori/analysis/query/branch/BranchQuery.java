@@ -81,7 +81,7 @@ public class BranchQuery implements Query {
 
             // Retrieve the parent commit, and do the same.
             try {
-                commit = repository.getCommit(commit.getParent(0).sha);
+                commit = repository.getCommitWithParents(commit.getParent(0).sha);
             } catch (IOException e) {
                 // We won't continue insertion if we couldn't find the parent.
                 logger.error("Unable to fetch parent for commit: " + commit.sha, e);
