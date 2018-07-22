@@ -4,7 +4,6 @@ import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.GitRename;
 import fr.inria.tandoori.analysis.model.Smell;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
