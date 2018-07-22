@@ -97,16 +97,15 @@ public class MultiAppAnalysis {
         String paprikaDB;
 
         SingleAppAnalysisCallable analysis;
-        List<SingleAppAnalysisCallable> tasks = new ArrayList<>();
+
         for (String app : applications) {
             repository = chooseRepository(app);
             paprikaDB = Paths.get(paprikaDBs, app, "databases", "graph.db").toString();
             analysis = new SingleAppAnalysisCallable(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool);
             logger.info("New app analysis: " + analysis);
-            tasks.add(analysis);
+            executorService.submit(analysis);
         }
 
-        executorService.invokeAll(tasks);
         executorService.shutdown();
         executorService.awaitTermination(24, TimeUnit.HOURS);
 
