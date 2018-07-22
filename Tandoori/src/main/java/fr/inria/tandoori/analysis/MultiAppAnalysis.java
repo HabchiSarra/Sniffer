@@ -92,7 +92,7 @@ public class MultiAppAnalysis {
 
     public void analyze() throws InterruptedException {
         logger.info("Starting multi application analysis using " + threadsCount + " threads");
-        ExecutorService executorService = Executors.newFixedThreadPool(threadsCount);
+        ExecutorService executorService = Executors.newWorkStealingPool(threadsCount);
         String repository;
         String paprikaDB;
 
