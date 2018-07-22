@@ -37,7 +37,7 @@ public class SingleAppAnalysis {
 
         analysisProcess.add(new CommitsQuery(appId, paprikaDB, repository, persistence));
         analysisProcess.add(new BranchQuery(appId, repository, persistence));
-        //analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
+        analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
 
         // if (githubToken != null) {
         //     analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
