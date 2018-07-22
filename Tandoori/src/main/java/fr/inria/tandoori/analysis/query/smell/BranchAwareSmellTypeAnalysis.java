@@ -4,8 +4,9 @@ import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.SmellCategory;
-import fr.inria.tandoori.analysis.query.AbstractQuery;
+import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -13,7 +14,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class SmellTypeAnalysis extends AbstractQuery {
+public class BranchAwareSmellTypeAnalysis implements Query {
+    private static final Logger logger = LoggerFactory.getLogger(BranchAwareSmellTypeAnalysis.class.getName());
+
+    private final int projectId;
+    private final Persistence persistence;
     private final Iterator<Map<String, Object>> smells;
     private String smellType;
     private final SmellDuplicationChecker duplicationChecker;
@@ -24,9 +29,11 @@ public class SmellTypeAnalysis extends AbstractQuery {
     private final List<Smell> currentCommitOriginal;
     private final List<Smell> currentCommitRenamed;
 
-    public SmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
-                             String smellType, SmellDuplicationChecker duplicationChecker) {
-        super(LoggerFactory.getLogger(SmellTypeAnalysis.class.getName()), projectId, persistence);
+
+    public BranchAwareSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
+                                        String smellType, SmellDuplicationChecker duplicationChecker) {
+        this.projectId = projectId;
+        this.persistence = persistence;
         this.smells = smells;
         this.smellType = smellType;
         this.duplicationChecker = duplicationChecker;
@@ -90,7 +97,9 @@ public class SmellTypeAnalysis extends AbstractQuery {
         // If we didn't reach the last project, it means we have refactored our smells
         // In a commit prior to it.
         String lastProjectSha1 = fetchLastProjectCommitSha();
-        if (!commit.sha.equals(lastProjectSha1)) {
+        if (lastProjectSha1 == null) {
+            logger.error("[" + projectId + "] ==> Could not find last commit sha1!");
+        } else if (!commit.sha.equals(lastProjectSha1)) {
             logger.info("[" + projectId + "] Last analyzed commit is not last present commit: "
                     + commit.sha + " / " + lastProjectSha1);
             // The ordinal is unused here, so we can safely put current + 1
@@ -117,6 +126,15 @@ public class SmellTypeAnalysis extends AbstractQuery {
         // If we found the gap commit, we insert it as any other before continuing
         persistCommitChanges(commit);
         updateCommitTrackingCounters();
+    }
+
+    private String fetchLastProjectCommitSha() {
+        List<Map<String, Object>> result = persistence.query(persistence.lastProjectCommitSha1QueryStatement(projectId));
+        if (result.isEmpty()) {
+            logger.warn("Unable to fetch last commit for project: " + projectId);
+            return null;
+        }
+        return (String) result.get(0).get("sha1");
     }
 
     /**
@@ -173,6 +191,9 @@ public class SmellTypeAnalysis extends AbstractQuery {
      */
     private void persistCommitChanges(Commit commit) {
         logger.debug("[" + projectId + "] ==> Handling commit: " + commit);
+        if (logger.isTraceEnabled()) {
+            traceCommitIdentifier(commit.sha);
+        }
         insertSmellIntroductions(commit);
         insertSmellRefactoring(commit);
     }
@@ -185,6 +206,21 @@ public class SmellTypeAnalysis extends AbstractQuery {
 
     private void insertSmellInstance(Smell smell) {
         persistence.addStatements(persistence.smellInsertionStatement(projectId, smell));
+    }
+
+    /**
+     * Trace the identifier of the currently analyzed commit.
+     *
+     * @param commitSha The sha to print ID for.
+     */
+    private void traceCommitIdentifier(String commitSha) {
+        String commitQuery = persistence.commitIdQueryStatement(this.projectId, commitSha);
+        List<Map<String, Object>> result = persistence.query(commitQuery);
+        if (!result.isEmpty()) {
+            logger.trace("[" + projectId + "]  => commit id: " + String.valueOf(result.get(0).get("id")));
+        } else {
+            logger.trace("[" + projectId + "] NO FOUND COMMIT!");
+        }
     }
 
     private void insertSmellIntroductions(Commit commit) {

@@ -4,46 +4,51 @@ import fr.inria.tandoori.analysis.model.Branch;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import fr.inria.tandoori.analysis.query.Query;
+import fr.inria.tandoori.analysis.query.AbstractQuery;
 import fr.inria.tandoori.analysis.query.QueryException;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BranchQuery implements Query {
-    private static final Logger logger = LoggerFactory.getLogger(Repository.class.getName());
-
-    private final int projectId;
+public class BranchQuery extends AbstractQuery {
     private final Repository repository;
-    private final Persistence persistence;
     private int branchCounter;
 
     public BranchQuery(int projectId, Repository repository, Persistence persistence) {
-        this.projectId = projectId;
+        super(LoggerFactory.getLogger(Repository.class.getName()), projectId, persistence);
         this.repository = repository;
-        this.persistence = persistence;
         branchCounter = 0;
     }
 
     @Override
     public void query() throws QueryException {
         logger.info("[" + projectId + "] Starting Branches insertion");
-        Commit commit;
-        try {
-            commit = repository.getHead();
-            logger.info("[" + projectId + "] => Found HEAD commit: " + commit.sha);
-        } catch (IOException e) {
-            throw new QueryException(logger.getName(), e);
-        }
+        Commit commit = retrieveHeadCommit();
 
         List<Branch> branches = buildBranchTree(null, commit);
         for (Branch branch : branches) {
             persistBranch(branch);
         }
         persistence.commit();
+    }
+
+    /**
+     * Retrieve the last commit analyzed by Paprika.
+     *
+     * @return The first commit to analyze on branch query.
+     * @throws QueryException If the commit could not be found.
+     */
+    private Commit retrieveHeadCommit() throws QueryException {
+        Commit commit;
+        try {
+            commit = repository.getCommitWithParents(fetchLastProjectCommitSha());
+            logger.info("[" + projectId + "] => Found HEAD commit: " + commit.sha);
+        } catch (IOException | IndexOutOfBoundsException e) {
+            throw new QueryException(logger.getName(), e);
+        }
+        return commit;
     }
 
     /**
@@ -62,9 +67,12 @@ public class BranchQuery implements Query {
     }
 
     /**
-     * @param mother
-     * @param start
-     * @return
+     * Create the Tree of branches from the principal one.
+     * This will parse all merge commits and follow their child branches recursively.
+     *
+     * @param mother The branch on which this branch is built.
+     * @param start  The branch first commit.
+     * @return The list of {@link Branch} in this project.
      */
     private List<Branch> buildBranchTree(Branch mother, Commit start) {
         Branch current = Branch.fromMother(mother, branchCounter++);
@@ -73,11 +81,14 @@ public class BranchQuery implements Query {
         // TODO check if equality on RevCommit is working
         Commit commit = start;
         while (!isFirstCommit(commit) && !isInBranch(mother, commit.getParent(0))) {
-            // We do not add current merge commit if it is part of the branch above.
-            if (commit.getParentCount() >= 2) {
-                merges.add(commit);
+            // If paprika does not know this commit, we do not handle it at all.
+            if (paprikaHasCommit(commit.sha)) {
+                // We do not add current merge commit if it is part of the branch above.
+                if (commit.getParentCount() >= 2) {
+                    merges.add(commit);
+                }
+                current.addCommit(commit);
             }
-            current.addCommit(commit);
 
             // Retrieve the parent commit, and do the same.
             try {

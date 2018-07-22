@@ -84,17 +84,12 @@ public class SmellTypeAnalysisTest {
         doReturn(Collections.emptyList()).when(persistence).query(GAP_COMMIT_STATEMENT);
     }
 
-    @Test
-    public void handlePresenceAndIntroductionOnSingleCommitNoEndCommit() throws QueryException {
+    @Test(expected = QueryException.class)
+    public void testNoEndCommitFoundWillThrow() throws QueryException {
         addSmell(firstCommit, firstSmell);
 
         mockNoEndCommit();
         getAnalysis().query();
-
-        verify(persistence, times(3)).addStatements(any());
-        verify(persistence).smellInsertionStatement(projectId, firstSmell);
-        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
-        verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
     }
 
     @Test
@@ -111,7 +106,7 @@ public class SmellTypeAnalysisTest {
     }
 
     @Test
-    public void handlePresenceNotTheLastCommitWillAddRefactor() throws QueryException {
+    public void handlePresenceAndIntroductionOnSingleCommitNotLastCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
         String lastCommitSha = "another";
 
@@ -130,7 +125,7 @@ public class SmellTypeAnalysisTest {
         addSmell(firstCommit, firstSmell);
         addSmell(secondCommit, secondSmell);
 
-        mockNoEndCommit();
+        mockEndCommit(secondCommit.sha);
         getAnalysis().query();
 
         verify(persistence, times(7)).addStatements(any());
@@ -333,7 +328,7 @@ public class SmellTypeAnalysisTest {
         verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
 
         // We introduce the new smell instance definition with renamedFrom filled in.
-       // Since we use a captor we have to check all invocations of smellInsertionStatement...
+        // Since we use a captor we have to check all invocations of smellInsertionStatement...
         verify(persistence, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
         verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
         // Check that the renamed commit has a set parentInstance

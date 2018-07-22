@@ -10,7 +10,9 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -18,12 +20,12 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class BranchQueryTest {
 
+    public static final String SELECT_HEAD = "select head";
     private final int projectId = 1;
     private Persistence persistence;
     private Repository repository;
@@ -37,7 +39,10 @@ public class BranchQueryTest {
     }
 
     private void initializeHead(Commit commit) throws IOException {
-        doReturn(commit).when(repository).getHead();
+        HashMap<Object, Object> map = new HashMap<>();
+        map.put("sha1", commit.sha);
+        doReturn(SELECT_HEAD).when(persistence).lastProjectCommitSha1QueryStatement(projectId);
+        doReturn(Collections.singletonList(map)).when(persistence).query(SELECT_HEAD);
     }
 
     /**
@@ -49,6 +54,10 @@ public class BranchQueryTest {
     private void initializeMocks(Commit... commits) throws IOException {
         for (Commit commit : commits) {
             doReturn(commit).when(repository).getCommitWithParents(commit.sha);
+            doReturn(commit.sha).when(persistence).commitIdQueryStatement(projectId, commit.sha);
+            HashMap<Object, Object> map = new HashMap<>();
+            map.put("id", 1);
+            doReturn(Collections.singletonList(map)).when(persistence).query(commit.sha);
         }
     }
 
@@ -138,6 +147,7 @@ public class BranchQueryTest {
      * . | H
      * |/
      * .   I
+     *
      * @throws QueryException
      * @throws IOException
      */
@@ -231,18 +241,18 @@ public class BranchQueryTest {
 
     /**
      * Testing this kind of branching form (2 parallel branches):
-     *   .   A
-     *  /|\
+     * .   A
+     * /|\
      * | . | B
      * | | . D
      * | . | C
      * . | | E
      * | | . F
      * | | |
-     *  \| . G
-     *   . | H
-     *   |/
-     *   .   I
+     * \| . G
+     * . | H
+     * |/
+     * .   I
      *
      * @throws QueryException
      * @throws IOException
