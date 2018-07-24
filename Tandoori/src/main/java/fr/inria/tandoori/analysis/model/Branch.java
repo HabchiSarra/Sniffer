@@ -1,6 +1,7 @@
 package fr.inria.tandoori.analysis.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -34,9 +35,9 @@ public class Branch {
     public static Branch newMother(Branch mother, Branch current) {
         Branch branch = new Branch();
         if (mother != null) {
-            branch.commits.addAll(mother.getCommits());
+            branch.addCommits(mother.getCommits());
         }
-        branch.commits.addAll(current.getCommits());
+        branch.addCommits(current.getCommits());
         return branch;
     }
 
@@ -66,6 +67,15 @@ public class Branch {
      */
     public void addCommit(Commit commit) {
         this.commits.add(commit);
+    }
+
+    /**
+     * Add a collection of commits to the current branch.
+     *
+     * @param commit The commits to add.
+     */
+    public void addCommits(Collection<Commit> commit) {
+        this.commits.addAll(commit);
     }
 
     public List<Commit> getCommits() {

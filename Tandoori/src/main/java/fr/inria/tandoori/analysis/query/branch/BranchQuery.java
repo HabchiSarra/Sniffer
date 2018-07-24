@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class BranchQuery extends AbstractQuery {
@@ -78,7 +79,13 @@ public class BranchQuery extends AbstractQuery {
         Branch current = Branch.fromMother(mother, branchCounter++);
         List<Commit> merges = new ArrayList<>();
 
-        // TODO check if equality on RevCommit is working
+        // In the case that a merge commit will send us to already analyzed commits.
+        // It can happen in the case of BranchQueryTest#testContinuingBranches
+        if (isInBranch(mother, start)) {
+            logger.info("We already analyzed this commit, returning.");
+            return Collections.emptyList();
+        }
+
         Commit commit = start;
         while (!isFirstCommit(commit) && !isInBranch(mother, commit.getParent(0))) {
             logger.trace("[" + projectId + "] => Handling commit: " + commit.sha);
@@ -100,12 +107,18 @@ public class BranchQuery extends AbstractQuery {
             current.addCommit(commit);
         }
 
+        List<Branch> newBranches;
         List<Branch> branches = new ArrayList<>();
+        Branch traversedCommits = Branch.newMother(mother, current);
         for (Commit merge : merges) {
             Commit parentCommit = retrieveParentCommit(merge, 1);
             if (parentCommit != null) {
                 logger.debug("[" + projectId + "] => Handling merge commit: " + merge.sha);
-                branches.addAll(buildBranchTree(Branch.newMother(mother, current), parentCommit));
+                newBranches = buildBranchTree(traversedCommits, parentCommit);
+                for (Branch traversedBranch : newBranches) {
+                    traversedCommits.addCommits(traversedBranch.getCommits());
+                }
+                branches.addAll(newBranches);
             }
         }
 

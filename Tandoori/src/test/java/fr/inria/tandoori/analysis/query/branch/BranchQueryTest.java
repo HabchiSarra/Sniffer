@@ -7,9 +7,7 @@ import fr.inria.tandoori.analysis.query.QueryException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockingDetails;
 import org.mockito.Mockito;
-import org.mockito.internal.util.DefaultMockingDetails;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -22,10 +20,10 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class BranchQueryTest {
 
@@ -40,6 +38,10 @@ public class BranchQueryTest {
         persistence = Mockito.mock(Persistence.class);
         doReturn("BranchInsertion").when(persistence).branchInsertionStatement(eq(projectId), anyInt(), anyBoolean());
         doReturn("BranchInsertion").when(persistence).branchCommitInsertionQuery(eq(projectId), anyInt(), anyString());
+    }
+
+    private BranchQuery getQuery() {
+        return new BranchQuery(projectId, repository, persistence);
     }
 
     private void initializeHead(Commit commit) throws IOException {
@@ -86,9 +88,8 @@ public class BranchQueryTest {
 
         initializeHead(C);
         initializeMocks(A, B, C);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
         verify(persistence, times(4)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
@@ -124,9 +125,8 @@ public class BranchQueryTest {
 
         initializeHead(F);
         initializeMocks(A, B, C, D, E, F);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
         verify(persistence, times(8)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
@@ -175,9 +175,8 @@ public class BranchQueryTest {
 
         initializeHead(I);
         initializeMocks(A, B, C, D, E, F, G, H, I);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
         verify(persistence, times(12)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
@@ -231,11 +230,10 @@ public class BranchQueryTest {
 
         initializeHead(I);
         initializeMocks(A, B, C, D, E, F, G, H, I);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
-        verify(persistence, times(14)).addStatements(any());
+        verify(persistence, times(11)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
         verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
         verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha);
@@ -245,13 +243,9 @@ public class BranchQueryTest {
         verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha);
 
         verify(persistence).branchInsertionStatement(projectId, 1, false);
-        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha);
-        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha);
         verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha);
-
-        verify(persistence).branchInsertionStatement(projectId, 2, false);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha);
 
 
     }
@@ -290,9 +284,8 @@ public class BranchQueryTest {
 
         initializeHead(I);
         initializeMocks(A, B, C, D, E, F, G, H, I);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
         verify(persistence, times(12)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
@@ -345,9 +338,8 @@ public class BranchQueryTest {
 
         initializeHead(I);
         initializeMocks(A, B, C, D, E, F, G, H, I);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
         verify(persistence, times(12)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
@@ -397,9 +389,8 @@ public class BranchQueryTest {
 
         initializeHead(H);
         initializeMocks(A, B, C, D, E, F, G, H);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
         verify(persistence, times(11)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
@@ -449,14 +440,12 @@ public class BranchQueryTest {
         Commit G = new Commit("g", 7, Collections.singletonList(E));
         Commit H = new Commit("h", 8, Collections.singletonList(F));
         Commit I = new Commit("i", 9, Arrays.asList(H, G));
-
         initializeHead(I);
         initializeMocks(A, B, C, D, E, F, G, H, I);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
-        verify(persistence, times(13)).addStatements(any());
+        verify(persistence, times(11)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
         verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
         verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha);
@@ -466,12 +455,9 @@ public class BranchQueryTest {
         verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha);
 
         verify(persistence).branchInsertionStatement(projectId, 1, false);
-        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha);
         verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha);
         verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha);
-
-        verify(persistence).branchInsertionStatement(projectId, 2, false);
-        // TODO: ??? verify(persistence).branchCommitInsertionQuery(projectId, 2, C.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha);
     }
 
     /**
@@ -509,11 +495,10 @@ public class BranchQueryTest {
 
         initializeHead(I);
         initializeMocks(A, B, C, D, E, F, G, H, I);
-        BranchQuery query = new BranchQuery(projectId, repository, persistence);
 
-        query.query();
+        getQuery().query();
 
-        verify(persistence, times(13)).addStatements(any());
+        verify(persistence, times(12)).addStatements(any());
         verify(persistence).branchInsertionStatement(projectId, 0, true);
         verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
         verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha);
@@ -528,14 +513,13 @@ public class BranchQueryTest {
 
         verify(persistence).branchInsertionStatement(projectId, 2, false);
         verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha);
-        // TODO: Delete this interaction: verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha);
     }
 
     private void debugBranchCommitInsertions() {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> intCaptor = ArgumentCaptor.forClass(Integer.class);
 
-        verify(persistence, times(10)).branchCommitInsertionQuery(eq(projectId),
+        verify(persistence, atLeastOnce()).branchCommitInsertionQuery(eq(projectId),
                 intCaptor.capture(), stringCaptor.capture());
         List<Integer> ints = intCaptor.getAllValues();
         List<String> strs = stringCaptor.getAllValues();
