@@ -515,6 +515,56 @@ public class BranchQueryTest {
         verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha);
     }
 
+    /**
+     * Testing this kind of branching form (merge lonely in a branch):
+     * <pre><code>
+     * .       A
+     * |\
+     * | .     B
+     * | |\
+     * | | |\
+     * | | | . C
+     * | | |/
+     * | | .   D (merge)
+     * | |/
+     * | .     E (merge)
+     * |/
+     * .       F (merge)
+     * </code></pre>
+     *
+     * @throws QueryException
+     * @throws IOException
+     */
+    @Test
+    public void testMergeIsLastBranchCommit() throws QueryException, IOException {
+        Commit A = new Commit("a", 1);
+        Commit B = new Commit("b", 2, Collections.singletonList(A));
+        Commit C = new Commit("c", 3, Collections.singletonList(B));
+        Commit D = new Commit("d", 5, Arrays.asList(B, C));
+        Commit E = new Commit("e", 4, Arrays.asList(B, D));
+        Commit F = new Commit("f", 6, Arrays.asList(A, E));
+
+        initializeHead(F);
+        initializeMocks(A, B, C, D, E, F);
+
+        getQuery().query();
+
+        verify(persistence, times(10)).addStatements(any());
+        verify(persistence).branchInsertionStatement(projectId, 0, true);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 1, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, B.sha);
+        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 2, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha);
+
+        verify(persistence).branchInsertionStatement(projectId, 3, false);
+        verify(persistence).branchCommitInsertionQuery(projectId, 3, C.sha);
+    }
+
     private void debugBranchCommitInsertions() {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> intCaptor = ArgumentCaptor.forClass(Integer.class);
@@ -527,6 +577,5 @@ public class BranchQueryTest {
         for (int i = 0; i < ints.size(); i++) {
             System.out.println("Call to branchCommitInsertionQuery: " + ints.get(i) + " - " + strs.get(i));
         }
-
     }
 }

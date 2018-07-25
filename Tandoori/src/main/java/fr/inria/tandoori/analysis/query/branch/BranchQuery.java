@@ -82,7 +82,7 @@ public class BranchQuery extends AbstractQuery {
         // In the case that a merge commit will send us to already analyzed commits.
         // It can happen in the case of BranchQueryTest#testContinuingBranches
         if (isInBranch(mother, start)) {
-            logger.info("We already analyzed this commit, returning.");
+            logger.debug("We already analyzed this commit, returning.");
             return Collections.emptyList();
         }
 
@@ -93,7 +93,6 @@ public class BranchQuery extends AbstractQuery {
 
             // If paprika does not know this commit, we do not handle it at all.
             if (paprikaHasCommit(commit.sha)) {
-                // We do not add current merge commit if it is part of the branch above.
                 if (commit.getParentCount() >= 2) {
                     merges.add(commit);
                 }
@@ -104,7 +103,13 @@ public class BranchQuery extends AbstractQuery {
             commit = retrieveParentCommit(commit, 0);
         }
         if (commit != null) {
-            current.addCommit(commit);
+            if (paprikaHasCommit(commit.sha)) {
+                current.addCommit(commit);
+            }
+
+            if (commit.getParentCount() >= 2) {
+                merges.add(commit);
+            }
         }
 
         List<Branch> newBranches;
