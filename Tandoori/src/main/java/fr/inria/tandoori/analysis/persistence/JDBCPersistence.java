@@ -212,6 +212,16 @@ public class JDBCPersistence implements Persistence {
         return -1;
     }
 
+    /**
+     * Escape the string to be compatible with double dollar String insertion.
+     *
+     * @param entry The string to escape.
+     * @return The string with every occurences of "$$" replaced by "$'$".
+     */
+    private static String escapeStringEntry(String entry) {
+        return entry.replace("$$", "$'$");
+    }
+
     @Override
     public String projectQueryStatement(String name) {
         return "SELECT id FROM Project WHERE name = '" + name + "'";
@@ -223,7 +233,7 @@ public class JDBCPersistence implements Persistence {
                 + " - ordinal: " + ordinal + " - diff: " + diff + " - time: " + commit.date);
 
         // Escaping double dollars to avoid exiting dollar quoted string too soon.
-        String commitMessage = commit.message.replace("$$", "$'$");
+        String commitMessage = escapeStringEntry(commit.message);
 
         String developerQuery = developerQueryStatement(commit.authorEmail);
         return "INSERT INTO CommitEntry (projectId, developerId, sha1, ordinal, date, additions, deletions, filesChanged, message) VALUES ('" +
@@ -244,7 +254,7 @@ public class JDBCPersistence implements Persistence {
 
     @Override
     public String developerInsertStatement(String developerName) {
-        return "INSERT INTO Developer (username) VALUES ('" + developerName + "') ON CONFLICT DO NOTHING;";
+        return "INSERT INTO Developer (username) VALUES ($$" + escapeStringEntry(developerName) + "$$) ON CONFLICT DO NOTHING;";
     }
 
     @Override
@@ -255,7 +265,7 @@ public class JDBCPersistence implements Persistence {
 
     @Override
     public String developerQueryStatement(String email) {
-        return "SELECT id FROM Developer WHERE username = '" + email + "'";
+        return "SELECT id FROM Developer WHERE username = $$" + escapeStringEntry(email) + "$$";
     }
 
     @Override
@@ -276,7 +286,6 @@ public class JDBCPersistence implements Persistence {
         return "INSERT INTO " + category.getName() + " (smellId, commitId) VALUES " +
                 "((" + smellQueryStatement(projectId, smell.instance, smell.type, true) + "), (" +
                 commitIdQueryStatement(projectId, sha1) + "));";
-        //TODO: Should we add ON CONFLICT DO NOTHING?
     }
 
     @Override
