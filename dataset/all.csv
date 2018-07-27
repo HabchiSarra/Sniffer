@@ -93,8 +93,6 @@ FancyPlaces,gabm/FancyPlaces
 FasterGPS,Free-Software-for-Android/FasterGPS
 FAST,ligi/FAST
 FineGeotag,M66B/FineGeotag
-flashlight,openintents/flashlight
-flashlight,sanbeg/flashlight
 Flite-TTS-Engine-for-Android,happyalu/Flite-TTS-Engine-for-Android
 Flym,FredJul/Flym
 forecastie,martykan/forecastie
@@ -178,6 +176,7 @@ opacclient,opacapp/opacclient
 OpenBikeSharing,bparmentier/OpenBikeSharing
 openbmap,wish7code/openbmap
 open-event-android,fossasia/open-event-android
+openintents-flashlight,openintents/flashlight
 OpenManga,nv95/OpenManga
 OpenMapKitAndroid,AmericanRedCross/OpenMapKitAndroid
 open-mensa-android,domoritz/open-mensa-android
@@ -234,6 +233,7 @@ remotekeyboard,onyxbits/remotekeyboard
 retrobreaker,m45t3r/retrobreaker
 rgb-tool,fasteque/rgb-tool
 rpicheck,eidottermihi/rpicheck
+sanbeg-flashlight,sanbeg/flashlight
 satstat,mvglasow/satstat
 save-for-offline,JonasCz/save-for-offline
 screen-notifications,lkorth/screen-notifications
