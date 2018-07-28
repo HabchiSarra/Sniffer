@@ -283,8 +283,8 @@ public class JDBCPersistence implements Persistence {
     public String smellCategoryInsertionStatement(int projectId, String sha1, Smell smell, SmellCategory category) {
         // We fetch only the last matching inserted smell
         // This helps us handling the case of Gaps between commits
-        return "INSERT INTO " + category.getName() + " (smellId, commitId) VALUES " +
-                "((" + smellQueryStatement(projectId, smell.instance, smell.type, true) + "), (" +
+        return "INSERT INTO " + category.getName() + " (projectId, smellId, commitId) VALUES " +
+                "(" + projectId + ", (" + smellQueryStatement(projectId, smell.instance, smell.type, true) + "), (" +
                 commitIdQueryStatement(projectId, sha1) + "));";
     }
 

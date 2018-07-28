@@ -103,30 +103,36 @@ CREATE TABLE IF NOT EXISTS Smell (
 CREATE TABLE IF NOT EXISTS SmellPresence (
   id       SERIAL NOT NULL PRIMARY KEY,
   smellId  INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
+  FOREIGN KEY (commitId) REFERENCES CommitEntry (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
 );
 
 CREATE TABLE IF NOT EXISTS SmellIntroduction (
   id       SERIAL NOT NULL PRIMARY KEY,
   smellId  INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
   ignored BOOLEAN NOT NULL DEFAULT FALSE,
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
+  FOREIGN KEY (commitId) REFERENCES CommitEntry (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
 );
 
 CREATE TABLE IF NOT EXISTS SmellRefactor (
   id       SERIAL NOT NULL PRIMARY KEY,
   smellId  INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
   ignored BOOLEAN NOT NULL DEFAULT FALSE,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
+  FOREIGN KEY (commitId) REFERENCES CommitEntry (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
 );
 
 CREATE TABLE IF NOT EXISTS LostSmellIntroduction (

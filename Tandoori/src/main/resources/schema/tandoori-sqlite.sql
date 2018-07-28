@@ -100,30 +100,36 @@ CREATE TABLE IF NOT EXISTS `Smell` (
 CREATE TABLE IF NOT EXISTS `SmellPresence` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   smellId  INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
 );
 
 CREATE TABLE IF NOT EXISTS `SmellIntroduction` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   smellId  INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
   ignored BOOLEAN NOT NULL DEFAULT FALSE,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
 );
 
 CREATE TABLE IF NOT EXISTS `SmellRefactor` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   smellId  INTEGER NOT NULL,
   commitId INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
   ignored BOOLEAN NOT NULL DEFAULT FALSE,
   UNIQUE (smellId, commitId),
   FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
 );
 
 CREATE TABLE IF NOT EXISTS LostSmellIntroduction (
