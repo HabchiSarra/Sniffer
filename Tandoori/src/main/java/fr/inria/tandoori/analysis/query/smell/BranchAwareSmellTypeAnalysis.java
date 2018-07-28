@@ -14,6 +14,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Analyze a {@link Smell} type considering the commits ordinal as well as their original branch.
+ * This class requires the {@link fr.inria.tandoori.analysis.query.branch.BranchQuery} to be processed on the project.
+ * <p>
+ * This should reduce the number of false positive on smell analysis by sorting commits by branch.
+ */
 public class BranchAwareSmellTypeAnalysis implements Query {
     private static final Logger logger = LoggerFactory.getLogger(BranchAwareSmellTypeAnalysis.class.getName());
 

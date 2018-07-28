@@ -4,7 +4,6 @@ import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.SmellCategory;
-import fr.inria.tandoori.analysis.query.AbstractQuery;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +12,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class SmellTypeAnalysis extends AbstractQuery {
+/**
+ * Analyze a smell type only considering the commits ordinal.
+ * This method may create too much {@link Smell} insertions and refactoring since we may have 2 branches
+ * with commits mixed up in the ordinal (time based) commits ordering.
+ *
+ * @see <a href="https://git.evilantrules.xyz/antoine/test-git-log">https://git.evilantrules.xyz/antoine/test-git-log</a>
+ */
+public class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis {
     private final Iterator<Map<String, Object>> smells;
     private String smellType;
     private final SmellDuplicationChecker duplicationChecker;
@@ -23,13 +29,15 @@ public class SmellTypeAnalysis extends AbstractQuery {
     private final List<Smell> currentCommitSmells;
     private final List<Smell> currentCommitOriginal;
     private final List<Smell> currentCommitRenamed;
+    private int lostCommitOrdinal;
 
-    public SmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
-                             String smellType, SmellDuplicationChecker duplicationChecker) {
-        super(LoggerFactory.getLogger(SmellTypeAnalysis.class.getName()), projectId, persistence);
+    public OrdinalSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
+                                    String smellType, SmellDuplicationChecker duplicationChecker) {
+        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence);
         this.smells = smells;
         this.smellType = smellType;
         this.duplicationChecker = duplicationChecker;
+        this.resetLostCommit();
 
         previousCommitSmells = new ArrayList<>();
         currentCommitSmells = new ArrayList<>();
@@ -108,10 +116,12 @@ public class SmellTypeAnalysis extends AbstractQuery {
      */
     private void handleCommitGap(Commit commit) {
         logger.info("[" + projectId + "] ==> Handling gap after commit: " + commit);
+        int nextOrdinal = commit.ordinal + 1;
         try {
-            commit = createNoSmellCommit(commit.ordinal + 1);
-        } catch (Exception e) {
-            logger.warn("An error occurred while treating gap, skipping: " + e.getMessage());
+            commit = createNoSmellCommit(nextOrdinal);
+        } catch (CommitNotFoundException e) {
+            logger.warn("An error occurred while treating gap, inserting in lost smells: " + e.getMessage());
+            setLostCommit(nextOrdinal);
             return;
         }
         // If we found the gap commit, we insert it as any other before continuing
@@ -148,75 +158,54 @@ public class SmellTypeAnalysis extends AbstractQuery {
      * @param current The current commit to persist and set as previous.
      */
     private void handleCommitChanges(Commit current) {
-        persistCommitChanges(current);
+        if (isLostCommit()) {
+            persistLostChanges(current);
+            resetLostCommit();
+        } else {
+            persistCommitChanges(current);
+        }
         updateCommitTrackingCounters();
     }
 
-    /**
-     * Create a commit in case of a gap in the Paprika result set.
-     * This means that all smells of the current type has been refactored.
-     *
-     * @param ordinal The missing commit ordinal.
-     */
-    private Commit createNoSmellCommit(int ordinal) throws Exception {
-        List<Map<String, Object>> result = persistence.query(persistence.commitSha1QueryStatement(projectId, ordinal));
-        if (result.isEmpty()) {
-            throw new Exception("[" + projectId + "] ==> Unable to fetch commit n°: " + ordinal);
-        }
-        return new Commit(String.valueOf(result.get(0).get("sha1")), ordinal);
+    private boolean isLostCommit() {
+        return lostCommitOrdinal > -1;
+    }
+
+    private void setLostCommit(int ordinal) {
+        this.lostCommitOrdinal = ordinal;
+    }
+
+    private void resetLostCommit() {
+        this.lostCommitOrdinal = -1;
     }
 
     /**
-     * Transfer all smells from current commit to the previous one, and change the current sha.
+     * Persist all the introduction and refactoring, binding them to the given commit
      *
      * @param commit The new commit.
      */
     private void persistCommitChanges(Commit commit) {
         logger.debug("[" + projectId + "] ==> Handling commit: " + commit);
-        insertSmellIntroductions(commit);
-        insertSmellRefactoring(commit);
+        insertSmellIntroductions(commit, previousCommitSmells, currentCommitSmells, currentCommitRenamed);
+        insertSmellRefactorings(commit, previousCommitSmells, currentCommitSmells, currentCommitOriginal);
+    }
+
+    /**
+     * Persist all the introduction and refactoring, binding them to the table of Lost smells.
+     *
+     * @param commit The new commit.
+     */
+    private void persistLostChanges(Commit commit) {
+        logger.debug("[" + projectId + "] ==> Handling lost commit from " + lostCommitOrdinal + " to " + commit.ordinal);
+        insertLostSmellIntroductions(lostCommitOrdinal, commit.ordinal,
+                previousCommitSmells, currentCommitSmells, currentCommitRenamed);
+        insertLostSmellRefactorings(lostCommitOrdinal, commit.ordinal,
+                previousCommitSmells, currentCommitSmells, currentCommitOriginal);
     }
 
     private void updateCommitTrackingCounters() {
         previousCommitSmells.clear();
         previousCommitSmells.addAll(currentCommitSmells);
         currentCommitSmells.clear();
-    }
-
-    private void insertSmellInstance(Smell smell) {
-        persistence.addStatements(persistence.smellInsertionStatement(projectId, smell));
-    }
-
-    private void insertSmellIntroductions(Commit commit) {
-        List<Smell> introduction = new ArrayList<>(currentCommitSmells);
-        introduction.removeAll(previousCommitSmells);
-
-        for (Smell smell : introduction) {
-            if (!currentCommitRenamed.contains(smell)) {
-                insertSmellInCategory(smell, commit, SmellCategory.INTRODUCTION);
-            }
-        }
-    }
-
-    private void insertSmellRefactoring(Commit commit) {
-        List<Smell> refactoring = new ArrayList<>(previousCommitSmells);
-        refactoring.removeAll(currentCommitSmells);
-
-        for (Smell smell : refactoring) {
-            if (!currentCommitOriginal.contains(smell)) {
-                insertSmellInCategory(smell, commit, SmellCategory.REFACTOR);
-            }
-        }
-    }
-
-    /**
-     * Helper method adding Smell- -Presence, -Introduction, or -Refactor statement.
-     *
-     * @param smell    The smell to insert.
-     * @param commit   The commit to insert into.
-     * @param category The table category, either SmellPresence, SmellIntroduction, or SmellRefactor
-     */
-    private void insertSmellInCategory(Smell smell, Commit commit, SmellCategory category) {
-        persistence.addStatements(persistence.smellCategoryInsertionStatement(projectId, commit.sha, smell, category));
     }
 }

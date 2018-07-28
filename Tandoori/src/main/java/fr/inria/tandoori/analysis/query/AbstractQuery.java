@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Abstract query providing Helper methods
+ * Abstract query providing some helper methods.
  */
 public abstract class AbstractQuery implements Query {
     protected final Logger logger;

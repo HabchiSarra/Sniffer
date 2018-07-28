@@ -128,3 +128,23 @@ CREATE TABLE IF NOT EXISTS SmellRefactor (
   FOREIGN KEY (smellId) REFERENCES Smell (id),
   FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
 );
+
+CREATE TABLE IF NOT EXISTS LostSmellIntroduction (
+  id       SERIAL NOT NULL PRIMARY KEY,
+  smellId  INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
+  since    INTEGER NOT NULL,
+  until    INTEGER NOT NULL,
+  FOREIGN KEY (smellId) REFERENCES Smell (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
+);
+
+CREATE TABLE IF NOT EXISTS LostSmellRefactor (
+  id       SERIAL NOT NULL PRIMARY KEY,
+  smellId  INTEGER NOT NULL,
+  projectId INTEGER NOT NULL,
+  since    INTEGER NOT NULL,
+  until    INTEGER NOT NULL,
+  FOREIGN KEY (smellId) REFERENCES Smell (id),
+  FOREIGN KEY (projectId) REFERENCES Project (id)
+);

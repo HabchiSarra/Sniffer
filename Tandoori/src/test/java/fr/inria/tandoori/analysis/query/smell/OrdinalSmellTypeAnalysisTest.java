@@ -24,7 +24,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class SmellTypeAnalysisTest {
+public class OrdinalSmellTypeAnalysisTest {
     public static final String END_COMMIT_STATEMENT = "EndCommitStatement";
     public static final String GAP_COMMIT_STATEMENT = "GapCommitStatement";
 
@@ -159,8 +159,8 @@ public class SmellTypeAnalysisTest {
         verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
     }
 
-    private SmellTypeAnalysis getAnalysis() {
-        return new SmellTypeAnalysis(1, persistence, smellList.iterator(), smellType, duplicationChecker);
+    private OrdinalSmellTypeAnalysis getAnalysis() {
+        return new OrdinalSmellTypeAnalysis(1, persistence, smellList.iterator(), smellType, duplicationChecker);
     }
 
     @Test
@@ -278,9 +278,8 @@ public class SmellTypeAnalysisTest {
         verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.PRESENCE);
         verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
 
-        // Since we couldn't find the missing commit, we do as if the two commits were consecutive.
-        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.PRESENCE);
-        verify(persistence).smellCategoryInsertionStatement(projectId, thirdCommit.sha, firstSmell, SmellCategory.REFACTOR);
+        // Since we couldn't find the missing commit, we put the smells in LostRefactor and no presence.
+        verify(persistence).lostSmellCategoryInsertionStatement(projectId, firstSmell, SmellCategory.REFACTOR, secondCommit.ordinal, thirdCommit.ordinal);
     }
 
     @Test

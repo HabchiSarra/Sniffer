@@ -289,6 +289,16 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
+    public String lostSmellCategoryInsertionStatement(int projectId, Smell smell, SmellCategory category, int since, int until) {
+        // We fetch only the last matching inserted smell
+        // This helps us handling the case of Gaps between commits
+        String lostCategory = "Lost" + category.getName();
+        return "INSERT INTO " + lostCategory + " (projectId, smellId, since, until) VALUES " +
+                "(" + projectId + ", (" + smellQueryStatement(projectId, smell.instance, smell.type, true) +
+                "), " + "" + since + " , " + until + ");";
+    }
+
+    @Override
     public String smellQueryStatement(int projectId, String instance, String type, boolean onlyLast) {
         String statement = "SELECT id FROM Smell WHERE instance = '" + instance + "' " +
                 "AND type = '" + type + "' AND projectId = " + projectId;
