@@ -153,7 +153,7 @@ public interface Persistence {
     String smellQueryStatement(int projectId, String instance, String type, boolean onlyLast);
 
     /**
-     * Query the identifier of a ProjectDeveloper.
+     * Query the identifier of a project_developer.
      *
      * @param projectId Project to look into.
      * @param email     Developer email.

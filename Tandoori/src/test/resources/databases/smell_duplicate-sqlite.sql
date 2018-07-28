@@ -7,12 +7,12 @@ CREATE TABLE `Project` (
   UNIQUE (name)
 );
 INSERT INTO Project VALUES(1,'project');
-CREATE TABLE `ProjectDeveloper` (
-  developerId INTEGER NOT NULL,
-  projectId   INTEGER NOT NULL,
-  PRIMARY KEY (developerId, projectId),
-  FOREIGN KEY (projectId) REFERENCES Project (id),
-  FOREIGN KEY (developerId) REFERENCES Developer (id)
+CREATE TABLE `project_developer` (
+  developer_id INTEGER NOT NULL,
+  project_id   INTEGER NOT NULL,
+  PRIMARY KEY (developer_id, project_id),
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (developer_id) REFERENCES Developer (id)
 );
 CREATE TABLE `Developer` (
   id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,100 +23,100 @@ CREATE TABLE `Developer` (
 );
 CREATE TABLE `Languages` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  developerId INTEGER NOT NULL,
+  developer_id INTEGER NOT NULL,
   language    VARCHAR(32)      NOT NULL,
   experience  INT              NOT NULL,
-  UNIQUE (developerId, language),
-  FOREIGN KEY (developerId) REFERENCES Developer (id)
+  UNIQUE (developer_id, language),
+  FOREIGN KEY (developer_id) REFERENCES Developer (id)
 );
-CREATE TABLE `CommitEntry` (
+CREATE TABLE `commit_entry` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  projectId   INTEGER NOT NULL,
-  developerId INTEGER NOT NULL,
+  project_id   INTEGER NOT NULL,
+  developer_id INTEGER NOT NULL,
   sha1        VARCHAR(40)      NOT NULL,
   ordinal     INTEGER UNSIGNED NOT NULL,
   additions   INTEGER UNSIGNED NOT NULL,
   deletions   INTEGER UNSIGNED NOT NULL,
-  filesChanged INTEGER UNSIGNED NOT NULL,
+  files_changed INTEGER UNSIGNED NOT NULL,
   date        DATE             NOT NULL,
-  UNIQUE (projectId, sha1),
-  FOREIGN KEY (projectId) REFERENCES Project (id),
-  FOREIGN KEY (developerId) REFERENCES Developer (id)
+  UNIQUE (project_id, sha1),
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (developer_id) REFERENCES Developer (id)
 );
-INSERT INTO CommitEntry VALUES(1,1,1,'first',1,0,0,0,'2018-01-01');
-INSERT INTO CommitEntry VALUES(2,1,1,'second',2,0,0,0,'2018-01-01');
-INSERT INTO CommitEntry VALUES(3,1,1,'third',3,0,0,0,'2018-01-01');
-INSERT INTO CommitEntry VALUES(4,1,1,'fourth',4,0,0,0,'2018-01-01');
-CREATE TABLE `FileRename` (
+INSERT INTO commit_entry VALUES(1,1,1,'first',1,0,0,0,'2018-01-01');
+INSERT INTO commit_entry VALUES(2,1,1,'second',2,0,0,0,'2018-01-01');
+INSERT INTO commit_entry VALUES(3,1,1,'third',3,0,0,0,'2018-01-01');
+INSERT INTO commit_entry VALUES(4,1,1,'fourth',4,0,0,0,'2018-01-01');
+CREATE TABLE `file_rename` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  projectId   INTEGER         NOT NULL,
-  commitId    INTEGER         NOT NULL,
-  oldFile     VARCHAR(256)    NOT NULL,
-  newFile     VARCHAR(256)    NOT NULL,
+  project_id   INTEGER         NOT NULL,
+  commit_id    INTEGER         NOT NULL,
+  old_file     VARCHAR(256)    NOT NULL,
+  new_file     VARCHAR(256)    NOT NULL,
   similarity  INT             NOT NULL,
-  UNIQUE (projectId, commitId, oldFile),
-  FOREIGN KEY (projectId) REFERENCES Project (id),
-  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
+  UNIQUE (project_id, commit_id, old_file),
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (commit_id) REFERENCES commit_entry (id)
 );
-INSERT INTO FileRename VALUES(1,1,2,'Fa','Fc',100);
-INSERT INTO FileRename VALUES(2,1,2,'Fd','Fx',100);
-INSERT INTO FileRename VALUES(3,1,2,'Fk','Fb',100);
-INSERT INTO FileRename VALUES(4,1,3,'Fc','Fg',100);
-CREATE TABLE `CommitEntryTag` (
+INSERT INTO file_rename VALUES(1,1,2,'Fa','Fc',100);
+INSERT INTO file_rename VALUES(2,1,2,'Fd','Fx',100);
+INSERT INTO file_rename VALUES(3,1,2,'Fk','Fb',100);
+INSERT INTO file_rename VALUES(4,1,3,'Fc','Fg',100);
+CREATE TABLE `commit_entryTag` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  commitId INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
   tag      VARCHAR(10),
-  UNIQUE (commitId, tag),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  UNIQUE (commit_id, tag),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id)
 );
-CREATE TABLE `SmellPresence` (
+CREATE TABLE `smell_presence` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  smell_id  INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
+  UNIQUE (smell_id, commit_id),
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id)
 );
-INSERT INTO SmellPresence VALUES(1,1,1);
-INSERT INTO SmellPresence VALUES(2,2,1);
-INSERT INTO SmellPresence VALUES(3,4,1);
-INSERT INTO SmellPresence VALUES(4,7,1);
-INSERT INTO SmellPresence VALUES(5,8,1);
-INSERT INTO SmellPresence VALUES(6,2,2);
-INSERT INTO SmellPresence VALUES(7,3,2);
-INSERT INTO SmellPresence VALUES(8,5,2);
-INSERT INTO SmellPresence VALUES(9,7,2);
-INSERT INTO SmellPresence VALUES(10,8,2);
-INSERT INTO SmellPresence VALUES(11,2,3);
-INSERT INTO SmellPresence VALUES(12,5,3);
-INSERT INTO SmellPresence VALUES(13,6,3);
-INSERT INTO SmellPresence VALUES(14,7,3);
-INSERT INTO SmellPresence VALUES(15,8,3);
-INSERT INTO SmellPresence VALUES(16,9,4);
-INSERT INTO SmellPresence VALUES(17,10,4);
-CREATE TABLE `SmellIntroduction` (
+INSERT INTO smell_presence VALUES(1,1,1);
+INSERT INTO smell_presence VALUES(2,2,1);
+INSERT INTO smell_presence VALUES(3,4,1);
+INSERT INTO smell_presence VALUES(4,7,1);
+INSERT INTO smell_presence VALUES(5,8,1);
+INSERT INTO smell_presence VALUES(6,2,2);
+INSERT INTO smell_presence VALUES(7,3,2);
+INSERT INTO smell_presence VALUES(8,5,2);
+INSERT INTO smell_presence VALUES(9,7,2);
+INSERT INTO smell_presence VALUES(10,8,2);
+INSERT INTO smell_presence VALUES(11,2,3);
+INSERT INTO smell_presence VALUES(12,5,3);
+INSERT INTO smell_presence VALUES(13,6,3);
+INSERT INTO smell_presence VALUES(14,7,3);
+INSERT INTO smell_presence VALUES(15,8,3);
+INSERT INTO smell_presence VALUES(16,9,4);
+INSERT INTO smell_presence VALUES(17,10,4);
+CREATE TABLE `smell_introduction` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  smell_id  INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
+  UNIQUE (smell_id, commit_id),
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id)
 );
-CREATE TABLE `SmellRefactor` (
+CREATE TABLE `smell_refactoring` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  smell_id  INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
+  UNIQUE (smell_id, commit_id),
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id)
 );
 CREATE TABLE `SmellDeletion` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  smell_id  INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
+  UNIQUE (smell_id, commit_id),
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id)
 );
 CREATE TABLE `Smell` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,8 +137,8 @@ INSERT INTO Smell VALUES(9,'x','Fa','IOD');
 INSERT INTO Smell VALUES(10,'z','Fc','IOD');
 DELETE FROM sqlite_sequence;
 INSERT INTO sqlite_sequence VALUES('Project',1);
-INSERT INTO sqlite_sequence VALUES('CommitEntry',4);
+INSERT INTO sqlite_sequence VALUES('commit_entry',4);
 INSERT INTO sqlite_sequence VALUES('Smell',10);
-INSERT INTO sqlite_sequence VALUES('FileRename',4);
-INSERT INTO sqlite_sequence VALUES('SmellPresence',17);
+INSERT INTO sqlite_sequence VALUES('file_rename',4);
+INSERT INTO sqlite_sequence VALUES('smell_presence',17);
 COMMIT;

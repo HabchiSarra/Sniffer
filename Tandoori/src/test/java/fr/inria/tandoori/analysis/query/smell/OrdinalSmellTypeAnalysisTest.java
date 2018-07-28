@@ -298,7 +298,7 @@ public class OrdinalSmellTypeAnalysisTest {
         verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
         verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
 
-        // We introduce the new smell instance definition with renamedFrom filled in.
+        // We introduce the new smell instance definition with renamed_from filled in.
         // Since we use a captor we have to check all invocations of smellInsertionStatement...
         verify(persistence, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
         verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
@@ -326,7 +326,7 @@ public class OrdinalSmellTypeAnalysisTest {
         verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
         verify(persistence).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
 
-        // We introduce the new smell instance definition with renamedFrom filled in.
+        // We introduce the new smell instance definition with renamed_from filled in.
         // Since we use a captor we have to check all invocations of smellInsertionStatement...
         verify(persistence, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
         verify(persistence).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);

@@ -78,7 +78,7 @@ public class CommitsAnalysis implements Query {
     }
 
     /**
-     * Create Developer and ProjectDeveloper insertion statements.
+     * Create Developer and project_developer insertion statements.
      *
      * @param emailAddress The developer mail.
      * @return The generated statements.
@@ -100,7 +100,7 @@ public class CommitsAnalysis implements Query {
      * Creates the {@link Commit} insertion statement.
      *
      * @param commit  Commit from Git, containing main data (message, author, ...)
-     * @param details Commit details containing FileRename and {@link fr.inria.tandoori.analysis.model.GitDiff} info.
+     * @param details Commit details containing file_rename and {@link fr.inria.tandoori.analysis.model.GitDiff} info.
      * @param ordinal Commit position in Paprika dataset, since this info is not kept in the Git Commit..
      * @return The generated persistence statement.
      */
@@ -109,7 +109,7 @@ public class CommitsAnalysis implements Query {
     }
 
     /**
-     * Creates the FileRename insertion statements.
+     * Creates the file_rename insertion statements.
      *
      * @param commit  The commit to generate renames onto.
      * @param details The commit details containing FileRename.

@@ -14,6 +14,10 @@ import java.util.Map;
 import java.util.Objects;
 
 public class SmellDuplicationChecker {
+    static final String SHA1_COLUMN = "sha1";
+    static final String OLD_FILE_COLUMN = "old_file";
+    static final String NEW_FILE_COLUMN = "new_file";
+
     private static final Logger logger = LoggerFactory.getLogger(SmellDuplicationChecker.class.getName());
     private final List<FileRenameEntry> fileRenamings;
     /**
@@ -27,10 +31,13 @@ public class SmellDuplicationChecker {
     }
 
     private static String getFileRenameStatement(int projectId) {
-        return "select  subquery.sha1 as sha1, FileRename.oldFile as oldfile, FileRename.newFile as newfile from FileRename \n" +
-                "Inner join (select CommitEntry.sha1 as sha1, CommitEntry.id as commitEntryId from CommitEntry ) AS subquery \n" +
-                "On FileRename.commitId= subquery.commitEntryId " +
-                "WHERE FileRename.projectId = '" + projectId + "'";
+        return "SELECT subquery.sha1 AS " + SHA1_COLUMN
+                + ", file_rename.old_file AS " + OLD_FILE_COLUMN
+                + ", file_rename.new_file AS " + NEW_FILE_COLUMN
+                + " FROM file_rename \n" +
+                "INNER JOIN (SELECT commit_entry.sha1 AS sha1, commit_entry.id AS commit_entry_id FROM commit_entry) AS subquery \n" +
+                "ON file_rename.commit_id = subquery.commit_entry_id " +
+                "WHERE file_rename.project_id = '" + projectId + "'";
     }
 
     private List<FileRenameEntry> loadFileRename(int projectId, Persistence persistence) {
@@ -210,10 +217,10 @@ public class SmellDuplicationChecker {
          * @return The created {@link FileRenameEntry}
          */
         static FileRenameEntry fromDBEntry(Map<String, Object> renameEntry) {
-            // FIelds returned  by postgresql are always lowercase!
-            String sha1 = (String) renameEntry.get("sha1");
-            String oldFile = (String) renameEntry.get("oldfile");
-            String newFile = (String) renameEntry.get("newfile");
+            // Fields returned  by postgresql are always lowercase!
+            String sha1 = (String) renameEntry.get(SHA1_COLUMN);
+            String oldFile = (String) renameEntry.get(OLD_FILE_COLUMN);
+            String newFile = (String) renameEntry.get(NEW_FILE_COLUMN);
             return new FileRenameEntry(sha1, oldFile, newFile);
         }
 

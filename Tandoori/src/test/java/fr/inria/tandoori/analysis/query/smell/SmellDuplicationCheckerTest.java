@@ -36,21 +36,21 @@ public class SmellDuplicationCheckerTest {
         // No java directory should go until root path
         sameOldFile = new SmellDuplicationChecker.FileRenameEntry("commit2", "a/b/c.java", "d/e/f.java");
         Map<String, Object> rename = new HashMap<>();
-        rename.put("sha1", fileRename.sha1);
-        rename.put("oldfile", fileRename.oldFile);
-        rename.put("newfile", fileRename.newFile);
+        rename.put(SmellDuplicationChecker.SHA1_COLUMN, fileRename.sha1);
+        rename.put(SmellDuplicationChecker.OLD_FILE_COLUMN, fileRename.oldFile);
+        rename.put(SmellDuplicationChecker.NEW_FILE_COLUMN, fileRename.newFile);
         FILE_RENAMES.add(rename);
 
         rename = new HashMap<>();
-        rename.put("sha1", sameCommit.sha1);
-        rename.put("oldfile", sameCommit.oldFile);
-        rename.put("newfile", sameCommit.newFile);
+        rename.put(SmellDuplicationChecker.SHA1_COLUMN, sameCommit.sha1);
+        rename.put(SmellDuplicationChecker.OLD_FILE_COLUMN, sameCommit.oldFile);
+        rename.put(SmellDuplicationChecker.NEW_FILE_COLUMN, sameCommit.newFile);
         FILE_RENAMES.add(rename);
 
         rename = new HashMap<>();
-        rename.put("sha1", sameOldFile.sha1);
-        rename.put("oldfile", sameOldFile.oldFile);
-        rename.put("newfile", sameOldFile.newFile);
+        rename.put(SmellDuplicationChecker.SHA1_COLUMN, sameOldFile.sha1);
+        rename.put(SmellDuplicationChecker.OLD_FILE_COLUMN, sameOldFile.oldFile);
+        rename.put(SmellDuplicationChecker.NEW_FILE_COLUMN, sameOldFile.newFile);
         FILE_RENAMES.add(rename);
     }
 

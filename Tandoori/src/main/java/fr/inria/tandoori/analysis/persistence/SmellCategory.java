@@ -5,9 +5,9 @@ package fr.inria.tandoori.analysis.persistence;
  * in a smell analysis.
  */
 public enum SmellCategory {
-    PRESENCE("SmellPresence"),
-    INTRODUCTION("SmellIntroduction"),
-    REFACTOR("SmellRefactor");
+    PRESENCE("smell_presence"),
+    INTRODUCTION("smell_introduction"),
+    REFACTOR("smell_refactoring");
 
     private final String name;
 

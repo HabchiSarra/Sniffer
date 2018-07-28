@@ -7,12 +7,12 @@ CREATE TABLE IF NOT EXISTS `Project` (
   UNIQUE (name)
 );
 
-CREATE TABLE IF NOT EXISTS `ProjectDeveloper` (
-  developerId INTEGER NOT NULL,
-  projectId   INTEGER NOT NULL,
-  PRIMARY KEY (developerId, projectId),
-  FOREIGN KEY (projectId) REFERENCES Project (id),
-  FOREIGN KEY (developerId) REFERENCES Developer (id)
+CREATE TABLE IF NOT EXISTS `project_developer` (
+  developer_id INTEGER NOT NULL,
+  project_id   INTEGER NOT NULL,
+  PRIMARY KEY (developer_id, project_id),
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (developer_id) REFERENCES Developer (id)
 );
 
 CREATE TABLE IF NOT EXISTS `Developer` (
@@ -25,125 +25,125 @@ CREATE TABLE IF NOT EXISTS `Developer` (
 
 CREATE TABLE IF NOT EXISTS `Languages` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  developerId INTEGER NOT NULL,
+  developer_id INTEGER NOT NULL,
   language    VARCHAR(32)      NOT NULL,
   experience  INT              NOT NULL,
-  UNIQUE (developerId, language),
-  FOREIGN KEY (developerId) REFERENCES Developer (id)
+  UNIQUE (developer_id, language),
+  FOREIGN KEY (developer_id) REFERENCES Developer (id)
 );
 
-CREATE TABLE IF NOT EXISTS `CommitEntry` (
+CREATE TABLE IF NOT EXISTS `commit_entry` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  projectId   INTEGER NOT NULL,
-  developerId INTEGER NOT NULL,
+  project_id   INTEGER NOT NULL,
+  developer_id INTEGER NOT NULL,
   sha1        VARCHAR(40)      NOT NULL,
   ordinal     INTEGER UNSIGNED NOT NULL,
   additions   INTEGER UNSIGNED NOT NULL,
   deletions   INTEGER UNSIGNED NOT NULL,
-  filesChanged INTEGER UNSIGNED NOT NULL,
+  files_changed INTEGER UNSIGNED NOT NULL,
   message      TEXT NOT NULL,
   date        DATE             NOT NULL,
-  UNIQUE (projectId, sha1),
-  FOREIGN KEY (projectId) REFERENCES Project (id),
-  FOREIGN KEY (developerId) REFERENCES Developer (id)
+  UNIQUE (project_id, sha1),
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (developer_id) REFERENCES Developer (id)
 );
 
 CREATE TABLE IF NOT EXISTS Branch (
   id          SERIAL NOT NULL PRIMARY KEY,
-  projectId   INTEGER NOT NULL,
+  project_id   INTEGER NOT NULL,
   ordinal     INTEGER NOT NULL,
   master      BOOLEAN NOT NULL,
-  UNIQUE (projectId, ordinal),
-  FOREIGN KEY (projectId) REFERENCES Project (id),
+  UNIQUE (project_id, ordinal),
+  FOREIGN KEY (project_id) REFERENCES Project (id),
 );
 
-CREATE TABLE IF NOT EXISTS BranchCommit (
+CREATE TABLE IF NOT EXISTS branch_commit (
   id         SERIAL NOT NULL PRIMARY KEY,
-  branchId   INTEGER NOT NULL,
-  commitId   INTEGER NOT NULL,
-  UNIQUE (branchId, commitId),
-  FOREIGN KEY (branchId) REFERENCES Branch (id),
-  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
+  branch_id   INTEGER NOT NULL,
+  commit_id   INTEGER NOT NULL,
+  UNIQUE (branch_id, commit_id),
+  FOREIGN KEY (branch_id) REFERENCES Branch (id),
+  FOREIGN KEY (commit_id) REFERENCES commit_entry (id)
 );
 
-CREATE TABLE IF NOT EXISTS `FileRename` (
+CREATE TABLE IF NOT EXISTS `file_rename` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  projectId   INTEGER         NOT NULL,
-  commitId    INTEGER         NOT NULL,
-  oldFile     VARCHAR(256)    NOT NULL,
-  newFile     VARCHAR(256)    NOT NULL,
+  project_id   INTEGER         NOT NULL,
+  commit_id    INTEGER         NOT NULL,
+  old_file     VARCHAR(256)    NOT NULL,
+  new_file     VARCHAR(256)    NOT NULL,
   similarity  INT             NOT NULL,
-  UNIQUE (projectId, commitId, oldFile),
-  FOREIGN KEY (projectId) REFERENCES Project (id),
-  FOREIGN KEY (commitId) REFERENCES CommitEntry (id)
+  UNIQUE (project_id, commit_id, old_file),
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (commit_id) REFERENCES commit_entry (id)
 );
 
-CREATE TABLE IF NOT EXISTS `CommitEntryTag` (
+CREATE TABLE IF NOT EXISTS `commit_entryTag` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  commitId INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
   tag      VARCHAR(10),
-  UNIQUE (commitId, tag),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id)
+  UNIQUE (commit_id, tag),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id)
 );
 
 CREATE TABLE IF NOT EXISTS `Smell` (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  projectId   INTEGER NOT NULL,
+  project_id   INTEGER NOT NULL,
   instance    VARCHAR(256) NOT NULL,
   file        VARCHAR(256) NOT NULL,
   type        VARCHAR(5)   NOT NULL,
-  renamedFrom INTEGER UNSIGNED
-  FOREIGN KEY (projectId) REFERENCES Project (id),
-  FOREIGN KEY (renamedFrom) REFERENCES Smell (id)
+  renamed_from INTEGER UNSIGNED
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (renamed_from) REFERENCES Smell (id)
 );
 
-CREATE TABLE IF NOT EXISTS `SmellPresence` (
+CREATE TABLE IF NOT EXISTS `smell_presence` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  projectId INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id),
-  FOREIGN KEY (projectId) REFERENCES Project (id)
+  smell_id  INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
+  project_id INTEGER NOT NULL,
+  UNIQUE (smell_id, commit_id),
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id),
+  FOREIGN KEY (project_id) REFERENCES Project (id)
 );
 
-CREATE TABLE IF NOT EXISTS `SmellIntroduction` (
+CREATE TABLE IF NOT EXISTS `smell_introduction` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  projectId INTEGER NOT NULL,
+  smell_id  INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
+  project_id INTEGER NOT NULL,
   ignored BOOLEAN NOT NULL DEFAULT FALSE,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id),
-  FOREIGN KEY (projectId) REFERENCES Project (id)
+  UNIQUE (smell_id, commit_id),
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id),
+  FOREIGN KEY (project_id) REFERENCES Project (id)
 );
 
-CREATE TABLE IF NOT EXISTS `SmellRefactor` (
+CREATE TABLE IF NOT EXISTS `smell_refactoring` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  smellId  INTEGER NOT NULL,
-  commitId INTEGER NOT NULL,
-  projectId INTEGER NOT NULL,
+  smell_id  INTEGER NOT NULL,
+  commit_id INTEGER NOT NULL,
+  project_id INTEGER NOT NULL,
   ignored BOOLEAN NOT NULL DEFAULT FALSE,
-  UNIQUE (smellId, commitId),
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (commitId) REFERENCES `CommitEntry` (id),
-  FOREIGN KEY (projectId) REFERENCES Project (id)
+  UNIQUE (smell_id, commit_id),
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (commit_id) REFERENCES `commit_entry` (id),
+  FOREIGN KEY (project_id) REFERENCES Project (id)
 );
 
-CREATE TABLE IF NOT EXISTS LostSmellIntroduction (
+CREATE TABLE IF NOT EXISTS lost_smell_introduction (
   id       SERIAL NOT NULL PRIMARY KEY,
-  smellId  INTEGER NOT NULL,
-  projectId INTEGER NOT NULL,
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (projectId) REFERENCES Project (id)
+  smell_id  INTEGER NOT NULL,
+  project_id INTEGER NOT NULL,
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (project_id) REFERENCES Project (id)
 );
 
-CREATE TABLE IF NOT EXISTS LostSmellRefactor (
+CREATE TABLE IF NOT EXISTS lost_smell_refactoring (
   id       SERIAL NOT NULL PRIMARY KEY,
-  smellId  INTEGER NOT NULL,
-  projectId INTEGER NOT NULL,
-  FOREIGN KEY (smellId) REFERENCES Smell (id),
-  FOREIGN KEY (projectId) REFERENCES Project (id)
+  smell_id  INTEGER NOT NULL,
+  project_id INTEGER NOT NULL,
+  FOREIGN KEY (smell_id) REFERENCES Smell (id),
+  FOREIGN KEY (project_id) REFERENCES Project (id)
 );
