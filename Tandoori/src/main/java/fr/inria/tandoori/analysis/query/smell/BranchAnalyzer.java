@@ -15,6 +15,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
     private static final Logger logger = LoggerFactory.getLogger(BranchAnalyzer.class.getName());
 
     private final SmellDuplicationChecker duplicationChecker;
+    private final boolean handleGap;
 
     // Those attributes are the class state.
     private final List<Smell> previousCommitSmells;
@@ -25,8 +26,13 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
     private int lostCommitOrdinal;
 
     BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker) {
+        this(projectId, persistence, duplicationChecker, true);
+    }
+
+    BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker, boolean handleGap) {
         super(logger, projectId, persistence);
         this.duplicationChecker = duplicationChecker;
+        this.handleGap = handleGap;
 
         previousCommitSmells = new ArrayList<>();
         currentCommitSmells = new ArrayList<>();
@@ -46,7 +52,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
         if (!underAnalysis.equals(commit)) {
             handleCommitChanges(underAnalysis);
             // Compare the two commits ordinal to find a gap.
-            if (underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.EMPTY)) {
+            if (handleGap && underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.EMPTY)) {
                 handleCommitGap(underAnalysis);
             }
             underAnalysis = commit;

@@ -111,7 +111,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @param currentBranch Identifier of the branch to initialize.
      */
     private void initializeBranch(int currentBranch) {
-        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker);
+        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, false);
         analyzer.addCurrentSmells(retrieveBranchParentSmells(currentBranch));
         branchAnalyzers.put(currentBranch, analyzer);
 
