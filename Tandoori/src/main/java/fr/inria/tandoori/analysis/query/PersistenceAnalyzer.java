@@ -9,12 +9,12 @@ import java.util.Map;
 /**
  * Abstract query providing some helper methods.
  */
-public abstract class AbstractQuery implements Query {
+public abstract class PersistenceAnalyzer {
     protected final Logger logger;
     protected final int projectId;
     protected final Persistence persistence;
 
-    protected AbstractQuery(Logger logger, int projectId, Persistence persistence) {
+    protected PersistenceAnalyzer(Logger logger, int projectId, Persistence persistence) {
         this.logger = logger;
         this.projectId = projectId;
         this.persistence = persistence;

@@ -9,7 +9,8 @@ import java.util.List;
  */
 public class Branch {
     private final List<Commit> commits;
-    private boolean isMaster;
+    private Commit parentCommit;
+    private Commit mergedInto;
     private final int ordinal;
 
     /**
@@ -21,7 +22,11 @@ public class Branch {
      * @return A new {@link Branch}.
      */
     public static Branch fromMother(Branch mother, int ordinal) {
-        return new Branch(ordinal, mother == null);
+        Commit mergedInto = null;
+        if (mother != null) {
+            mergedInto = mother.getMergedInto();
+        }
+        return new Branch(ordinal, mergedInto);
     }
 
     /**
@@ -42,22 +47,14 @@ public class Branch {
     }
 
     public Branch() {
-        this(-1, false);
+        this(-1, null);
     }
 
-    public Branch(int ordinal, boolean isMaster) {
+    public Branch(int ordinal, Commit mergedInto) {
         this.commits = new ArrayList<>();
         this.ordinal = ordinal;
-        this.isMaster = isMaster;
-    }
-
-    public Branch(Branch previous) {
-        this.commits = new ArrayList<>();
-        if (previous != null) {
-            commits.addAll(previous.commits);
-        }
-        this.ordinal = -1;
-        this.isMaster = previous == null;
+        this.mergedInto = mergedInto;
+        this.parentCommit = null;
     }
 
     /**
@@ -82,17 +79,29 @@ public class Branch {
         return commits;
     }
 
-    public void setIsMaster(boolean isMaster) {
-        this.isMaster = isMaster;
-    }
-
     /**
      * Specify if the branch is the repository's principal branch.
      *
      * @return True if the branch is the master branch (principal), false otherwise.
      */
-    public boolean isMaster() {
-        return isMaster;
+    public boolean isMqaster() {
+        return parentCommit == null;
+    }
+
+    public Commit getParentCommit() {
+        return parentCommit;
+    }
+
+    public void setParentCommit(Commit parentCommit) {
+        this.parentCommit = parentCommit;
+    }
+
+    public Commit getMergedInto() {
+        return mergedInto;
+    }
+
+    public void setMergedInto(Commit mergedInto) {
+        this.mergedInto = mergedInto;
     }
 
     /**

@@ -17,10 +17,17 @@ public class Smell {
     }
 
 
-    public static Smell fromInstance(Map<String, Object> smell, String type) {
+    public static Smell fromPaprikaInstance(Map<String, Object> smell, String type) {
         String identifier = (String) smell.get("instance");
         // The files given by paprika will have a leading '/'
         String file = ((String) smell.get("file_path")).substring(1);
+        return new Smell(type, identifier, file);
+    }
+
+    public static Smell fromTandooriInstance(Map<String, Object> smell) {
+        String type = ((String) smell.get("type"));
+        String identifier = (String) smell.get("instance");
+        String file = (String) smell.get("file");
         return new Smell(type, identifier, file);
     }
 

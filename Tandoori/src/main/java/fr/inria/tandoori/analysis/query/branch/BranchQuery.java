@@ -4,7 +4,8 @@ import fr.inria.tandoori.analysis.model.Branch;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import fr.inria.tandoori.analysis.query.AbstractQuery;
+import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
+import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class BranchQuery extends AbstractQuery {
+public class BranchQuery extends PersistenceAnalyzer implements Query {
     private final Repository repository;
     private int branchCounter;
 
@@ -58,7 +59,8 @@ public class BranchQuery extends AbstractQuery {
      * @param branch The branch to persist.
      */
     private void persistBranch(Branch branch) {
-        String statement = persistence.branchInsertionStatement(projectId, branch.getOrdinal(), branch.isMaster());
+        String statement = persistence.branchInsertionStatement(projectId, branch.getOrdinal(),
+                branch.getParentCommit(), branch.getMergedInto());
         persistence.addStatements(statement);
 
         for (Commit commit : branch.getCommits()) {
@@ -105,6 +107,9 @@ public class BranchQuery extends AbstractQuery {
         if (commit != null) {
             if (paprikaHasCommit(commit.sha)) {
                 current.addCommit(commit);
+                if (commit.getParentCount() >= 1) {
+                    current.setParentCommit(retrieveParentCommit(commit, 0));
+                }
             }
 
             if (commit.getParentCount() >= 2) {
@@ -119,7 +124,10 @@ public class BranchQuery extends AbstractQuery {
             Commit parentCommit = retrieveParentCommit(merge, 1);
             if (parentCommit != null) {
                 logger.debug("[" + projectId + "] => Handling merge commit: " + merge.sha);
+                // We set the merge commit to the branch to be able to retrieve it in the child commit.
+                traversedCommits.setMergedInto(merge);
                 newBranches = buildBranchTree(traversedCommits, parentCommit);
+
                 for (Branch traversedBranch : newBranches) {
                     traversedCommits.addCommits(traversedBranch.getCommits());
                 }

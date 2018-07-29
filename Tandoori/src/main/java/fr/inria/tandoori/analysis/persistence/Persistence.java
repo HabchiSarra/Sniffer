@@ -182,12 +182,13 @@ public interface Persistence {
     /**
      * Create a Branch insertion query.
      *
-     * @param projectId Current project.
-     * @param ordinal   Branch ordinal.
-     * @param master    branch is the main branch.
+     * @param projectId    Current project.
+     * @param ordinal      Branch ordinal.
+     * @param parentCommit The {@link Commit} from which this branch forks.
+     * @param mergedInto   The last {@link Commit} into which this branch is merged.
      * @return The generated insertion statement.
      */
-    String branchInsertionStatement(int projectId, int ordinal, boolean master);
+    String branchInsertionStatement(int projectId, int ordinal, Commit parentCommit, Commit mergedInto);
 
     /**
      * Create a BranchCommit insertion query.
@@ -207,4 +208,66 @@ public interface Persistence {
      * @return The generated insertion statement.
      */
     String branchIdQueryStatement(int projectId, int branchOrdinal);
+
+    /**
+     * Return the statement to query branch ordinal for the given project in which the commit is located.
+     *
+     * @param projectId The project identifier.
+     * @param commit    The commit identifier.
+     * @return The generated query statement.
+     */
+    String branchOrdinalQueryStatement(int projectId, Commit commit);
+
+    /**
+     * Return a list of {@link Smell} definitions extracted from the SmellPresence of the commit previous to the
+     * given branch's first commit.
+     *
+     * @param projectId The project identifier.
+     * @param branchId  The branch identifier.
+     * @return The generated query statement.
+     */
+    String branchParentCommitSmellPresencesQuery(int projectId, int branchId);
+
+    /**
+     * @param projectId The project identifier.
+     * @param merge     The commit in which the branch is merged.
+     * @return The generated query statement.
+     */
+    String branchLastCommitSmellsQuery(int projectId, Commit merge);
+
+    /**
+     * Retrieve the identifier of the given branch's parent commit.
+     *
+     * @param projectId The project identifier.
+     * @param branchId  The branch identifier.
+     * @return The generated query statement.
+     */
+    String branchParentCommitIdQuery(int projectId, int branchId);
+
+    /**
+     * Retrieve the sha of the branch last commit.
+     *
+     * @param projectId     The project identifier.
+     * @param currentBranch The branch on which we look for the last commit sha.
+     * @return The generated query statement.
+     */
+    String branchLastCommitShaQuery(int projectId, int currentBranch);
+
+    /**
+     * Retrieve the id of the branch last commit.
+     *
+     * @param projectId     The project identifier.
+     * @param currentBranch The branch on which we look for the last commit sha.
+     * @return The generated query statement.
+     */
+    String branchLastCommitIdQuery(int projectId, int currentBranch);
+
+    /**
+     * Return the identifier of the second branch this commit is merging, if any.
+     *
+     * @param projectId The project identifier.
+     * @param commit    The commit to find a merged branch onto.
+     * @return The generated query statement.
+     */
+    String mergedBranchIdQuery(int projectId, Commit commit);
 }

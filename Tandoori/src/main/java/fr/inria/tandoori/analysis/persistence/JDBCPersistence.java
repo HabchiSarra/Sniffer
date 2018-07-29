@@ -327,9 +327,12 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
-    public String branchInsertionStatement(int projectId, int ordinal, boolean master) {
-        return "INSERT INTO branch (project_id, ordinal, master) VALUES ('"
-                + projectId + "', '" + ordinal + "', '" + master + "') ON CONFLICT DO NOTHING;";
+    public String branchInsertionStatement(int projectId, int ordinal, Commit parentCommit, Commit mergedInto) {
+        String parentCommitQuery = parentCommit == null ? null : "(" + commitIdQueryStatement(projectId, parentCommit.sha) + ")";
+        String mergedIntoQuery = mergedInto == null ? null : "(" + commitIdQueryStatement(projectId, mergedInto.sha) + ")";
+        return "INSERT INTO branch (project_id, ordinal, parent_commit, merged_into) VALUES ('"
+                + projectId + "', '" + ordinal + "', " + parentCommitQuery + ", " + mergedIntoQuery
+                + ") ON CONFLICT DO NOTHING;";
     }
 
     @Override
@@ -342,6 +345,86 @@ public class JDBCPersistence implements Persistence {
     @Override
     public String branchIdQueryStatement(int projectId, int branchOrdinal) {
         return "SELECT id FROM branch WHERE project_id='" + projectId + "' AND ordinal=" + branchOrdinal;
+    }
+
+    public String branchOrdinalQueryStatement(int projectId, Commit commit) {
+        return "SELECT branch.ordinal FROM branch " +
+                "RIGHT JOIN branch_commit ON branch.id = branch_commit.branch_id " +
+                "RIGHT JOIN commit_entry ON commit_entry.id = branch_commit.commit_id " +
+                "WHERE commit_entry.sha1 = '" + commit.sha + "' AND commit_entry.project_id = '" + projectId + "'";
+    }
+
+    @Override
+    public String branchParentCommitSmellPresencesQuery(int projectId, int branchId) {
+        return commitSmellsQuery(projectId, branchParentCommitIdQuery(projectId, branchId));
+    }
+
+    @Override
+    public String branchLastCommitSmellsQuery(int projectId, Commit merge) {
+        String branchId = "(" + mergedBranchIdQuery(projectId, merge) + ")";
+        return commitSmellsQuery(projectId, branchLastCommitQuery(projectId, branchId, "id"));
+    }
+
+    /**
+     * Helper method to fetch {@link Smell} instances for a specific commit identifier.
+     *
+     * @param projectId     The project identifier.
+     * @param commitIdQuery Query returning the commit identifier.
+     * @return The generated query statement.
+     */
+    private String commitSmellsQuery(int projectId, String commitIdQuery) {
+        return "SELECT type, instance, file FROM smell " +
+                "RIGHT JOIN smell_presence ON smell_presence.smell_id = smell.id " +
+                "WHERE smell_presence.commit_id = (" + commitIdQuery + ") ";
+    }
+
+    @Override
+    public String branchParentCommitIdQuery(int projectId, int branchId) {
+        return "SELECT parent_commit FROM branch where id = " + branchId + " AND project_id = " + projectId;
+    }
+
+    @Override
+    public String branchLastCommitShaQuery(int projectId, int currentBranch) {
+        return branchLastCommitQuery(projectId, currentBranch, "sha1");
+    }
+
+    @Override
+    public String branchLastCommitIdQuery(int projectId, int currentBranch) {
+        return branchLastCommitQuery(projectId, currentBranch, "id");
+    }
+
+    /**
+     * Helper method to fetch a last branch commit's commit_entry specific field.
+     *
+     * @param projectId The project identifier.
+     * @param branchId  The branch identifier.
+     * @param field     The commit_entry field to retrieve. can be multiple coma separated fields.
+     * @return The generated query statement.
+     */
+    private String branchLastCommitQuery(int projectId, int branchId, String field) {
+        return branchLastCommitQuery(projectId, String.valueOf(branchId), field);
+    }
+
+    /**
+     * Helper method to fetch a last branch commit's commit_entry specific field.
+     *
+     * @param projectId The project identifier.
+     * @param branchId  The branch identifier.
+     * @param field     The commit_entry field to retrieve.
+     * @return The generated query statement.
+     */
+    private String branchLastCommitQuery(int projectId, String branchId, String field) {
+        return "SELECT commit_entry." + field + " FROM commit_entry " +
+                "JOIN branch_commit " +
+                "ON branch_commit.branch_id =  " + branchId + " " +
+                "AND branch_commit.commit_id = commit_entry.id " +
+                "WHERE commit_entry.project_id = " + projectId + " " +
+                "ORDER BY ordinal DESC LIMIT 1";
+    }
+
+    @Override
+    public String mergedBranchIdQuery(int projectId, Commit commit) {
+        return "SELECT id FROM branch WHERE merged_into = (" + commitIdQueryStatement(projectId, commit.sha) + ")";
     }
 
     /**

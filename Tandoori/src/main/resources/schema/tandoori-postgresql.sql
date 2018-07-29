@@ -51,12 +51,15 @@ CREATE TABLE IF NOT EXISTS commit_entry (
 );
 
 CREATE TABLE IF NOT EXISTS Branch (
-  id          SERIAL NOT NULL PRIMARY KEY,
-  project_id   INTEGER NOT NULL,
-  ordinal     INTEGER NOT NULL,
-  master      BOOLEAN NOT NULL,
+  id            SERIAL NOT NULL PRIMARY KEY,
+  project_id    INTEGER NOT NULL,
+  ordinal       INTEGER NOT NULL,
+  parent_commit INTEGER,
+  merged_into   INTEGER,
   UNIQUE (project_id, ordinal),
-  FOREIGN KEY (project_id) REFERENCES Project (id)
+  FOREIGN KEY (project_id) REFERENCES Project (id),
+  FOREIGN KEY (parent_commit) REFERENCES commit_entry (id),
+  FOREIGN KEY (merged_into) REFERENCES commit_entry (id)
 );
 
 CREATE TABLE IF NOT EXISTS branch_commit (
@@ -80,7 +83,7 @@ CREATE TABLE IF NOT EXISTS file_rename (
   FOREIGN KEY (commit_id) REFERENCES commit_entry (id)
 );
 
-CREATE TABLE IF NOT EXISTS commit_entryTag (
+CREATE TABLE IF NOT EXISTS commit_entry_tag (
   id       SERIAL NOT NULL PRIMARY KEY,
   commit_id INTEGER NOT NULL,
   tag      VARCHAR(10),

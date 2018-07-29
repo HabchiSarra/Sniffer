@@ -61,7 +61,7 @@ public class SmellQuery implements Query {
             Result result = query.streamResult(true, true);
             logger.trace("[" + projectId + "]   ==> Found smells: " + result);
 
-            new OrdinalSmellTypeAnalysis(projectId, persistence, result, query.getSmellName(), duplicationChecker).query();
+            new BranchAwareSmellTypeAnalysis(projectId, persistence, result, query.getSmellName(), duplicationChecker).query();
 
             // Calling commit for each smell type to avoid too big request.
             persistence.commit();

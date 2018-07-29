@@ -62,7 +62,7 @@ INSERT INTO file_rename VALUES(1,1,2,'Fa','Fc',100);
 INSERT INTO file_rename VALUES(2,1,2,'Fd','Fx',100);
 INSERT INTO file_rename VALUES(3,1,2,'Fk','Fb',100);
 INSERT INTO file_rename VALUES(4,1,3,'Fc','Fg',100);
-CREATE TABLE `commit_entryTag` (
+CREATE TABLE `commit_entry_tag` (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   commit_id INTEGER NOT NULL,
   tag      VARCHAR(10),

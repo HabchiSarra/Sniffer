@@ -3,13 +3,13 @@ package fr.inria.tandoori.analysis.query.smell;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
-import fr.inria.tandoori.analysis.persistence.SmellCategory;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -20,245 +20,181 @@ import java.util.Map;
  * <p>
  * This should reduce the number of false positive on smell analysis by sorting commits by branch.
  */
-public class BranchAwareSmellTypeAnalysis implements Query {
+public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Query {
     private static final Logger logger = LoggerFactory.getLogger(BranchAwareSmellTypeAnalysis.class.getName());
 
-    private final int projectId;
-    private final Persistence persistence;
     private final Iterator<Map<String, Object>> smells;
     private String smellType;
     private final SmellDuplicationChecker duplicationChecker;
 
-    // Those attributes are the class state.
-    private final List<Smell> previousCommitSmells;
-    private final List<Smell> currentCommitSmells;
-    private final List<Smell> currentCommitOriginal;
-    private final List<Smell> currentCommitRenamed;
-
+    private final Map<Integer, BranchAnalyzer> branchAnalyzers;
+    private final Map<Integer, String> branchLastCommitSha;
 
     public BranchAwareSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
                                         String smellType, SmellDuplicationChecker duplicationChecker) {
-        this.projectId = projectId;
-        this.persistence = persistence;
+        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence);
         this.smells = smells;
         this.smellType = smellType;
         this.duplicationChecker = duplicationChecker;
 
-        previousCommitSmells = new ArrayList<>();
-        currentCommitSmells = new ArrayList<>();
-        currentCommitOriginal = new ArrayList<>();
-        currentCommitRenamed = new ArrayList<>();
+        branchAnalyzers = new HashMap<>();
+        branchLastCommitSha = new HashMap<>();
     }
 
 
     @Override
     public void query() throws QueryException {
         Smell smell;
-        // Analyzed commit
-        Commit underAnalysis = Commit.EMPTY;
-        // Current smell commit, most of the time equals to 'underAnalysis'
+        Commit previousCommit;
         Commit commit = Commit.EMPTY;
+        int currentBranch;
 
         Map<String, Object> instance;
         while (smells.hasNext()) {
             instance = smells.next();
-            smell = Smell.fromInstance(instance, smellType);
+            previousCommit = commit;
             commit = Commit.fromInstance(instance);
-
-            // We handle the commit change in our result dataset.
-            // This dataset MUST be ordered by commit_number to have right results.
-            if (!underAnalysis.equals(commit)) {
-                handleCommitChanges(underAnalysis);
-                // Compare the two commits ordinal to find a gap.
-                if (underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.EMPTY)) {
-                    handleCommitGap(underAnalysis);
-                }
-                underAnalysis = commit;
-                logger.debug("[" + projectId + "] => Now analysing commit: " + underAnalysis);
+            smell = Smell.fromPaprikaInstance(instance, smellType);
+            try {
+                currentBranch = fetchCommitBranch(commit);
+            } catch (BranchNotFoundException e) {
+                logger.warn("[" + projectId + "] ==> Unable to guess branch for commit (" + commit.sha + "), skipping", e.getMessage());
+                continue;
             }
 
-            // We keep track of the smells present in our commit.
-            currentCommitSmells.add(smell);
-
-            // Update smell with parent instance, if any
-            handleSmellRename(smell, underAnalysis);
-
-            // Check if we already inserted smell previously to avoid having too much insert statements.
-            // This could be removed and still checked by our unicity constraint.
-            if (!previousCommitSmells.contains(smell)) {
-                insertSmellInstance(smell);
+            // We create the new BranchAnalyzer if needed.
+            if (!branchAnalyzers.containsKey(currentBranch)) {
+                logger.debug("[" + projectId + "] => Initializing new branch: " + currentBranch);
+                initializeBranch(currentBranch);
             }
 
-            insertSmellInCategory(smell, commit, SmellCategory.PRESENCE);
+            // We ensure to merge SmellPresence from the merged branch if necessary.
+            if (!previousCommit.equals(commit) && isMergeCommit(commit)) {
+                addSmellsToMergeCommit(commit, currentBranch);
+            }
+
+            // We then submit the new smell to analysis
+            branchAnalyzers.get(currentBranch).addSmellCommit(smell, commit);
+
+            // If we reach the last branch commit, we will finalize the branch analysis,
+            // i.e. setting introductions and refactoring for the last branch commit.
+            if (!previousCommit.equals(commit) && isLastBranchCommit(commit, currentBranch)) {
+                logger.debug("[" + projectId + "] => Finalizing branch: " + currentBranch);
+                branchAnalyzers.get(currentBranch).finalizeAnalysis();
+                branchAnalyzers.remove(currentBranch);
+            }
         }
 
-        if (commit.equals(Commit.EMPTY)) {
-            logger.info("[" + projectId + "] No smell found for type: " + smellType);
-            return;
+        // We should'nt have to finalize any branch since every one should have a last commit.
+        for (int branchId : branchAnalyzers.keySet()) {
+            logger.warn("Finalizing branch without last commit: " + branchId);
+            branchAnalyzers.get(branchId).finalizeAnalysis();
         }
+    }
 
-        // We persist the introduction and refactoring of the last commit.
-        handleCommitChanges(commit);
+    /**
+     * When we change our commit, we check if it is a merge commit,
+     * if we have one, we will retrieve all smells from the merged branch last commit, in order
+     * to keep a realistic track of the introductions and refactoring.
+     *
+     * @param merge         The commit in which the branch is merged.
+     * @param currentBranch The branch to add commits onto.
+     */
+    private void addSmellsToMergeCommit(Commit merge, int currentBranch) {
+        branchAnalyzers.get(currentBranch).addCurrentSmells(retrieveMergedBranchFinalSmells(merge));
+    }
 
-        // If we didn't reach the last project, it means we have refactored our smells
-        // In a commit prior to it.
-        String lastProjectSha1 = fetchLastProjectCommitSha();
-        if (lastProjectSha1 == null) {
-            logger.error("[" + projectId + "] ==> Could not find last commit sha1!");
-        } else if (!commit.sha.equals(lastProjectSha1)) {
-            logger.info("[" + projectId + "] Last analyzed commit is not last present commit: "
-                    + commit.sha + " / " + lastProjectSha1);
-            // The ordinal is unused here, so we can safely put current + 1
-            handleCommitChanges(new Commit(lastProjectSha1, commit.ordinal + 1));
+    /**
+     * Create a new {@link BranchAnalyzer} and add is to the branchAnalyzers,
+     * With all the smells from its parent commit.
+     *
+     * @param currentBranch Identifier of the branch to initialize.
+     */
+    private void initializeBranch(int currentBranch) {
+        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker);
+        analyzer.addCurrentSmells(retrieveBranchParentSmells(currentBranch));
+        branchAnalyzers.put(currentBranch, analyzer);
+
+        List<Map<String, Object>> query = persistence.query(persistence.branchLastCommitShaQuery(projectId, currentBranch));
+        if (query.isEmpty()) {
+            logger.warn("No merge commit found for branch: " + currentBranch);
         } else {
-            logger.info("[" + projectId + "] Last analysed commit is last project commit: " + commit.sha);
+            branchLastCommitSha.put(currentBranch, (String) query.get(0).get("sha1"));
         }
+
     }
 
     /**
-     * If we found a gap, it means that we have to smell of this type in the next commit.
-     * Thus we consider that every smells has been refactored.
+     * Retrieve all {@link Smell} presence on the current branch parent commit.
      *
-     * @param commit The currently analyzed commit that has no direct child with smells.
+     * @param branchId The branch identifier.
+     * @return A {@link List} of present {@link Smell}.
      */
-    private void handleCommitGap(Commit commit) {
-        logger.info("[" + projectId + "] ==> Handling gap after commit: " + commit);
-        try {
-            commit = createNoSmellCommit(commit.ordinal + 1);
-        } catch (Exception e) {
-            logger.warn("An error occurred while treating gap, skipping", e);
-            return;
-        }
-        // If we found the gap commit, we insert it as any other before continuing
-        persistCommitChanges(commit);
-        updateCommitTrackingCounters();
+    private List<Smell> retrieveBranchParentSmells(int branchId) {
+        List<Map<String, Object>> results = persistence.query(persistence.branchParentCommitSmellPresencesQuery(projectId, branchId));
+        return toSmells(results);
     }
 
-    private String fetchLastProjectCommitSha() {
-        List<Map<String, Object>> result = persistence.query(persistence.lastProjectCommitSha1QueryStatement(projectId));
+    /**
+     * Fetch the SmellPresences of the given branch's last commit.
+     *
+     * @param merge The commit in which the branch is merged.
+     * @return A {@link List} of {@link Smell}.
+     */
+    private List<Smell> retrieveMergedBranchFinalSmells(Commit merge) {
+        List<Map<String, Object>> results = persistence.query(persistence.branchLastCommitSmellsQuery(projectId, merge));
+        return toSmells(results);
+    }
+
+    /**
+     * convert the list of results to a list of Smell.
+     *
+     * @param results The Tandoori persistence's results to convert.
+     * @return A {@link List} of {@link Smell}.
+     */
+    private static List<Smell> toSmells(List<Map<String, Object>> results) {
+        ArrayList<Smell> smells = new ArrayList<>();
+        for (Map<String, Object> result : results) {
+            smells.add(Smell.fromTandooriInstance(result));
+        }
+        return smells;
+    }
+
+    /**
+     * Tells if the current commit is a merge commit.
+     *
+     * @param commit The commit to test.
+     * @return True if it is a merge commit, false otherwise.
+     */
+    private boolean isMergeCommit(Commit commit) {
+        List<Map<String, Object>> result = persistence.query(persistence.mergedBranchIdQuery(projectId, commit));
+        return !result.isEmpty();
+    }
+
+    /**
+     * Tells if the current commit is the last commit in the branch.
+     *
+     * @param commit        The commit to test.
+     * @param currentBranch The branch to check about.
+     * @return True if the commit is the last commit of this branch, false otherwise.
+     */
+    private boolean isLastBranchCommit(Commit commit, int currentBranch) {
+        return branchLastCommitSha.containsKey(currentBranch) && branchLastCommitSha.get(currentBranch).equals(commit.sha);
+    }
+
+    /**
+     * Retrieve the branch on which the commit is located.
+     *
+     * @param commit The commit to find a branch for.
+     * @return The branch ordinal in the project.
+     * @throws BranchNotFoundException If no branch could be found for this commit.
+     *                                 This can happen until there are no commit gap anymore on Paprika result.
+     */
+    private int fetchCommitBranch(Commit commit) throws BranchNotFoundException {
+        List<Map<String, Object>> result = persistence.query(persistence.branchOrdinalQueryStatement(projectId, commit));
         if (result.isEmpty()) {
-            logger.warn("Unable to fetch last commit for project: " + projectId);
-            return null;
+            throw new BranchNotFoundException(projectId, commit.sha);
         }
-        return (String) result.get(0).get("sha1");
-    }
-
-    /**
-     * In this test we have a smell with its file directing to a newly renamed file.
-     * We will have to guess the previous smell instance by rewriting its instance id with the file before being renamed.
-     * This instance ID will then be compared with the list of instances from the previous smell to find a match.
-     *
-     * @param smell  The smell to guess if it has been renamed from a previous smell.
-     * @param commit The currently analyzed commit.
-     */
-    private void handleSmellRename(Smell smell, Commit commit) {
-        Smell original = duplicationChecker.original(smell, commit);
-
-        // If we correctly guessed the smell identifier, we will find it in the previous commit smells
-        if (original != null && previousCommitSmells.contains(original)) {
-            logger.debug("[" + projectId + "] => Guessed rename for smell: " + smell);
-            logger.trace("[" + projectId + "]   => potential parent: " + original);
-            currentCommitOriginal.add(original);
-            currentCommitRenamed.add(smell);
-            smell.parentInstance = original.instance;
-        }
-    }
-
-    /**
-     * Trigger all actions linked to a change of commit.
-     * I.e. persist the commit changes (Insertion, Refactor) and reset all tracking to diff the current commit
-     * with the next one.
-     *
-     * @param current The current commit to persist and set as previous.
-     */
-    private void handleCommitChanges(Commit current) {
-        persistCommitChanges(current);
-        updateCommitTrackingCounters();
-    }
-
-    /**
-     * Create a commit in case of a gap in the Paprika result set.
-     * This means that all smells of the current type has been refactored.
-     *
-     * @param ordinal The missing commit ordinal.
-     */
-    private Commit createNoSmellCommit(int ordinal) throws Exception {
-        List<Map<String, Object>> result = persistence.query(persistence.commitSha1QueryStatement(projectId, ordinal));
-        if (result.isEmpty()) {
-            throw new Exception("[" + projectId + "] ==> Unable to fetch commit n°: " + ordinal);
-        }
-        return new Commit(String.valueOf(result.get(0).get("sha1")), ordinal);
-    }
-
-    /**
-     * Transfer all smells from current commit to the previous one, and change the current sha.
-     *
-     * @param commit The new commit.
-     */
-    private void persistCommitChanges(Commit commit) {
-        logger.debug("[" + projectId + "] ==> Handling commit: " + commit);
-        if (logger.isTraceEnabled()) {
-            traceCommitIdentifier(commit.sha);
-        }
-        insertSmellIntroductions(commit);
-        insertSmellRefactoring(commit);
-    }
-
-    private void updateCommitTrackingCounters() {
-        previousCommitSmells.clear();
-        previousCommitSmells.addAll(currentCommitSmells);
-        currentCommitSmells.clear();
-    }
-
-    private void insertSmellInstance(Smell smell) {
-        persistence.addStatements(persistence.smellInsertionStatement(projectId, smell));
-    }
-
-    /**
-     * Trace the identifier of the currently analyzed commit.
-     *
-     * @param commitSha The sha to print ID for.
-     */
-    private void traceCommitIdentifier(String commitSha) {
-        String commitQuery = persistence.commitIdQueryStatement(this.projectId, commitSha);
-        List<Map<String, Object>> result = persistence.query(commitQuery);
-        if (!result.isEmpty()) {
-            logger.trace("[" + projectId + "]  => commit id: " + String.valueOf(result.get(0).get("id")));
-        } else {
-            logger.trace("[" + projectId + "] NO FOUND COMMIT!");
-        }
-    }
-
-    private void insertSmellIntroductions(Commit commit) {
-        List<Smell> introduction = new ArrayList<>(currentCommitSmells);
-        introduction.removeAll(previousCommitSmells);
-
-        for (Smell smell : introduction) {
-            if (!currentCommitRenamed.contains(smell)) {
-                insertSmellInCategory(smell, commit, SmellCategory.INTRODUCTION);
-            }
-        }
-    }
-
-    private void insertSmellRefactoring(Commit commit) {
-        List<Smell> refactoring = new ArrayList<>(previousCommitSmells);
-        refactoring.removeAll(currentCommitSmells);
-
-        for (Smell smell : refactoring) {
-            if (!currentCommitOriginal.contains(smell)) {
-                insertSmellInCategory(smell, commit, SmellCategory.REFACTOR);
-            }
-        }
-    }
-
-    /**
-     * Helper method adding Smell- -Presence, -Introduction, or -Refactor statement.
-     *
-     * @param smell    The smell to insert.
-     * @param commit   The commit to insert into.
-     * @param category The table category, either SmellPresence, SmellIntroduction, or SmellRefactor
-     */
-    private void insertSmellInCategory(Smell smell, Commit commit, SmellCategory category) {
-        persistence.addStatements(persistence.smellCategoryInsertionStatement(projectId, commit.sha, smell, category));
+        return (int) result.get(0).get("ordinal");
     }
 }
