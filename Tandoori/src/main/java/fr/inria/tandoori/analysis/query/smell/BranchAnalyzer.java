@@ -75,6 +75,10 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
     }
 
     void finalizeAnalysis() throws QueryException {
+        finalizeAnalysis(fetchLastProjectCommitSha());
+    }
+
+    void finalizeAnalysis(String lastCommitSha1) throws QueryException {
         if (underAnalysis.equals(Commit.EMPTY)) {
             logger.info("[" + projectId + "] No smell found");
             return;
@@ -85,12 +89,11 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
 
         // If we didn't reach the last project, it means we have refactored our smells
         // In a commit prior to it.
-        String lastProjectSha1 = fetchLastProjectCommitSha();
-        if (!underAnalysis.sha.equals(lastProjectSha1)) {
+        if (!underAnalysis.sha.equals(lastCommitSha1)) {
             logger.info("[" + projectId + "] Last analyzed commit is not last present commit: "
-                    + underAnalysis.sha + " / " + lastProjectSha1);
+                    + underAnalysis.sha + " / " + lastCommitSha1);
             // The ordinal is unused here, so we can safely put current + 1
-            handleCommitChanges(new Commit(lastProjectSha1, underAnalysis.ordinal + 1));
+            handleCommitChanges(new Commit(lastCommitSha1, underAnalysis.ordinal + 1));
         } else {
             logger.info("[" + projectId + "] Last analysed commit is last project commit: " + underAnalysis.sha);
         }

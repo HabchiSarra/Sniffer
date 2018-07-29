@@ -80,7 +80,12 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
             // i.e. setting introductions and refactoring for the last branch commit.
             if (!previousCommit.equals(commit) && isLastBranchCommit(commit, currentBranch)) {
                 logger.debug("[" + projectId + "] => Finalizing branch: " + currentBranch);
-                branchAnalyzers.get(currentBranch).finalizeAnalysis();
+                String lastBranchCommit = getLastBranchCommit(currentBranch);
+                if (lastBranchCommit != null) {
+                    branchAnalyzers.get(currentBranch).finalizeAnalysis(lastBranchCommit);
+                } else {
+                    branchAnalyzers.get(currentBranch).finalizeAnalysis();
+                }
                 branchAnalyzers.remove(currentBranch);
             }
         }
@@ -88,8 +93,23 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
         // We should'nt have to finalize any branch since every one should have a last commit.
         for (int branchId : branchAnalyzers.keySet()) {
             logger.warn("Finalizing branch without last commit: " + branchId);
-            branchAnalyzers.get(branchId).finalizeAnalysis();
+            String lastBranchCommit = getLastBranchCommit(branchId);
+            if (lastBranchCommit != null) {
+                branchAnalyzers.get(branchId).finalizeAnalysis(lastBranchCommit);
+            } else {
+                branchAnalyzers.get(branchId).finalizeAnalysis();
+            }
         }
+    }
+
+    /**
+     * Return the sha of the branch's last commit.
+     *
+     * @param branchId The branch to lookup onto.
+     * @return The last commit sha.
+     */
+    private String getLastBranchCommit(int branchId) {
+        return branchLastCommitSha.get(branchId);
     }
 
     /**
