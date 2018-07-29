@@ -336,10 +336,10 @@ public class JDBCPersistence implements Persistence {
     }
 
     @Override
-    public String branchCommitInsertionQuery(int projectId, int branchOrdinal, String commitSha) {
-        return "INSERT INTO branch_commit (branch_id, commit_id) VALUES (" +
+    public String branchCommitInsertionQuery(int projectId, int branchOrdinal, String commitSha, int ordinal) {
+        return "INSERT INTO branch_commit (branch_id, commit_id, ordinal) VALUES (" +
                 "(" + branchIdQueryStatement(projectId, branchOrdinal) + "), " +
-                "(" + commitIdQueryStatement(projectId, commitSha) + ")) ON CONFLICT DO NOTHING;";
+                "(" + commitIdQueryStatement(projectId, commitSha) + "), " + ordinal + ") ON CONFLICT DO NOTHING;";
     }
 
     @Override
@@ -405,6 +405,14 @@ public class JDBCPersistence implements Persistence {
         return branchLastCommitQuery(projectId, String.valueOf(branchId), field);
     }
 
+    @Override
+    public String branchCommitOrdinalQuery(int projectId, int currentBranch, Commit commit) {
+        return "SELECT ordinal FROM branch_commit " +
+                "LEFT JOIN commit_entry ON commit_entry.id = branch_commit.commit_id " +
+                "WHERE branch_commit.branch_id = " + currentBranch + " " +
+                "AND commit_entry.sha1 = '" + commit.sha + "'";
+    }
+
     /**
      * Helper method to fetch a last branch commit's commit_entry specific field.
      *
@@ -419,7 +427,7 @@ public class JDBCPersistence implements Persistence {
                 "ON branch_commit.branch_id =  " + branchId + " " +
                 "AND branch_commit.commit_id = commit_entry.id " +
                 "WHERE commit_entry.project_id = " + projectId + " " +
-                "ORDER BY ordinal DESC LIMIT 1";
+                "ORDER BY commit_entry.ordinal DESC LIMIT 1";
     }
 
     @Override

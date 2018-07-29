@@ -7,33 +7,65 @@ import fr.inria.tandoori.analysis.query.QueryException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
+public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
+
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        when(persistence.branchOrdinalQueryStatement(anyInt(), any(Commit.class))).then((Answer<String>)
+                invocation -> branchOrdinalStatement(
+                        invocation.getArgument(0),
+                        ((Commit) invocation.getArgument(1)).sha));
+        when(persistence.branchCommitOrdinalQuery(anyInt(), anyInt(), any(Commit.class))).then((Answer<String>)
+                invocation -> branchCommitOrdinalStatement(
+                        invocation.getArgument(0),
+                        invocation.getArgument(1),
+                        ((Commit) invocation.getArgument(2)).sha));
     }
 
+    private static String branchOrdinalStatement(int projectid, String sha) {
+        return "BranchOrdinalStatement-" + projectid + "-" + sha;
+    }
 
-    private OrdinalSmellTypeAnalysis getAnalysis() {
-        return new OrdinalSmellTypeAnalysis(projectId, persistence, smellList.iterator(), smellType, duplicationChecker);
+    private static String branchCommitOrdinalStatement(int projectid, int branchId, String sha) {
+        return "BranchCommitOrdinalStatement-" + projectid + "-" + branchId + "-" + sha;
+    }
+
+    private BranchAwareSmellTypeAnalysis getAnalysis() {
+        return new BranchAwareSmellTypeAnalysis(projectId, persistence, smellList.iterator(), smellType, duplicationChecker);
+    }
+
+    private void mockCommitBranch(Commit commit, int branch, int commitOrdinal) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        result.add(Collections.singletonMap("ordinal", branch));
+
+        doReturn(result).when(persistence).query(branchOrdinalStatement(projectId, commit.sha));
+        result.clear();
+        result.add(Collections.singletonMap("ordinal", commitOrdinal));
+        doReturn(result).when(persistence).query(branchCommitOrdinalStatement(projectId, commitOrdinal, commit.sha));
     }
 
     @Test(expected = QueryException.class)
     public void testNoEndCommitFoundWillThrow() throws QueryException {
         addSmell(firstCommit, firstSmell);
+        mockCommitBranch(firstCommit, 0, 0);
 
         mockNoEndCommit();
         getAnalysis().query();
@@ -42,6 +74,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
     @Test
     public void handlePresenceAndIntroductionOnSingleCommitAlsoLastCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
+        mockCommitBranch(firstCommit, 0, 0);
 
         mockEndCommit(firstCommit.sha);
         getAnalysis().query();
@@ -56,6 +89,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void handlePresenceAndIntroductionOnSingleCommitNotLastCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
         String lastCommitSha = "another";
+        mockCommitBranch(firstCommit, 0, 0);
 
         mockEndCommit(lastCommitSha);
         getAnalysis().query();
@@ -71,6 +105,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void handleIntroductionAndRefactoring() throws QueryException {
         addSmell(firstCommit, firstSmell);
         addSmell(secondCommit, secondSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(secondCommit, 0, 1);
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
@@ -91,6 +127,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
         addSmell(firstCommit, firstSmell);
         addSmell(secondCommit, firstSmell);
         addSmell(secondCommit, secondSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(secondCommit, 0, 1);
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
@@ -111,6 +149,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
         addSmell(firstCommit, firstSmell);
         addSmell(firstCommit, secondSmell);
         addSmell(secondCommit, firstSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(secondCommit, 0, 1);
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
@@ -131,6 +171,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void handleNoChange() throws QueryException {
         addSmell(firstCommit, firstSmell);
         addSmell(secondCommit, firstSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(secondCommit, 0, 1);
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
@@ -148,6 +190,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
         addSmell(firstCommit, firstSmell);
         addSmell(firstCommit, secondSmell);
         addSmell(thirdCommit, secondSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(thirdCommit, 0, 1);
 
         String gapCommitSha = "someSha";
         mockGapCommit(gapCommitSha);
@@ -178,6 +222,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
         addSmell(firstCommit, firstSmell);
         addSmell(firstCommit, secondSmell);
         addSmell(anotherCommit, secondSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(anotherCommit, 0, 1);
 
         String gapCommitSha = "someSha";
         mockGapCommit(gapCommitSha);
@@ -207,6 +253,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
         addSmell(firstCommit, firstSmell);
         addSmell(firstCommit, secondSmell);
         addSmell(thirdCommit, secondSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(thirdCommit, 0, 1);
 
         mockNoGapCommit(); // We pray for this not to happen, but we have to be prepared for the worst.
         mockEndCommit(thirdCommit.sha);
@@ -230,6 +278,8 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
         ArgumentCaptor<Smell> smellCaptor = ArgumentCaptor.forClass(Smell.class);
         addSmell(firstCommit, firstSmell);
         addSmell(secondCommit, secondSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(secondCommit, 0, 1);
 
         // This means that the firstSmell instance has been renamed to second smell in the secondCommit
         doReturn(firstSmell).when(duplicationChecker).original(secondSmell, secondCommit);
@@ -258,6 +308,9 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
         addSmell(firstCommit, firstSmell);
         addSmell(secondCommit, secondSmell);
         addSmell(thirdCommit, secondSmell);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockCommitBranch(secondCommit, 0, 1);
+        mockCommitBranch(thirdCommit, 0, 2);
 
         // This means that the firstSmell instance has been renamed to second smell in the secondCommit
         doReturn(firstSmell).when(duplicationChecker).original(secondSmell, secondCommit);
@@ -286,6 +339,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
     @Test
     public void handleFirstCommitIsNotTheFirstOrdinal() throws QueryException {
         addSmell(thirdCommit, firstSmell);
+        mockCommitBranch(thirdCommit, 0, 0);
 
         mockGapCommit(firstCommit.sha);
         mockEndCommit(thirdCommit.sha);

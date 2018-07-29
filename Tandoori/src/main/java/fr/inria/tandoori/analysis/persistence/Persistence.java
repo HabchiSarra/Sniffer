@@ -196,9 +196,10 @@ public interface Persistence {
      * @param projectId     Current project.
      * @param branchOrdinal Branch ordinal.
      * @param commitSha     Sha1 of the commit to insert.
+     * @param ordinal       Commit ordinal in the commit.
      * @return The generated insertion statement.
      */
-    String branchCommitInsertionQuery(int projectId, int branchOrdinal, String commitSha);
+    String branchCommitInsertionQuery(int projectId, int branchOrdinal, String commitSha, int ordinal);
 
     /**
      * Query the identifier of a Branch.
@@ -261,6 +262,16 @@ public interface Persistence {
      * @return The generated query statement.
      */
     String branchLastCommitIdQuery(int projectId, int currentBranch);
+
+    /**
+     * Retrieve the commit ordinal in the given branch.
+     *
+     * @param projectId     The project identifier.
+     * @param currentBranch The branch on which we look for the last commit sha.
+     * @param commit The commit to look for.
+     * @return The generated query statement.
+     */
+    String branchCommitOrdinalQuery(int projectId, int currentBranch, Commit commit);
 
     /**
      * Return the identifier of the second branch this commit is merging, if any.

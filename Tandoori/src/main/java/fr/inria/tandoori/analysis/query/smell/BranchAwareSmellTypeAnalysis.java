@@ -74,6 +74,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
             }
 
             // We then submit the new smell to analysis
+            commit.setOrdinal(fetchCommitOrdinal(currentBranch, commit));
             branchAnalyzers.get(currentBranch).addSmellCommit(smell, commit);
 
             // If we reach the last branch commit, we will finalize the branch analysis,
@@ -100,6 +101,14 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
                 branchAnalyzers.get(branchId).finalizeAnalysis();
             }
         }
+    }
+
+    private int fetchCommitOrdinal(int branchId, Commit commit) throws QueryException {
+        List<Map<String, Object>> result = persistence.query(persistence.branchCommitOrdinalQuery(projectId, branchId, commit));
+        if (result.isEmpty()) {
+            throw new QueryException(logger.getName(), "Unable to find commit (" + commit.sha + ") in branch n°" + branchId);
+        }
+        return (int) result.get(0).get("ordinal");
     }
 
     /**
@@ -131,7 +140,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @param currentBranch Identifier of the branch to initialize.
      */
     private void initializeBranch(int currentBranch) {
-        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, false);
+        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, true);
         analyzer.addCurrentSmells(retrieveBranchParentSmells(currentBranch));
         branchAnalyzers.put(currentBranch, analyzer);
 

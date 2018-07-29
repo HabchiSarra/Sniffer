@@ -63,9 +63,12 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
                 branch.getParentCommit(), branch.getMergedInto());
         persistence.addStatements(statement);
 
-        for (Commit commit : branch.getCommits()) {
-            statement = persistence.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commit.sha);
+        List<Commit> commits = branch.getCommits();
+        Collections.reverse(commits);
+        for (int i = 0; i < commits.size(); i++) {
+            statement = persistence.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commits.get(i).sha, i);
             persistence.addStatements(statement);
+
         }
     }
 

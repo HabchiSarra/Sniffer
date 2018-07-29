@@ -16,11 +16,12 @@ public class Commit {
 
     public static final Commit EMPTY = new Commit("", -1);
     public final String sha;
-    public final int ordinal;
+    public int ordinal;
     public final List<Commit> parents;
     public final String message;
     public final DateTime date;
     public final String authorEmail;
+
 
     /**
      * Minimal constructor for a commit, ordering it using an ordinal.
@@ -166,6 +167,14 @@ public class Commit {
      */
     public Commit getParent(int nth) {
         return parents == null ? null : parents.get(nth);
+    }
+
+    public int getOrdinal() {
+        return ordinal;
+    }
+
+    public void setOrdinal(int ordinal) {
+        this.ordinal = ordinal;
     }
 
     @Override

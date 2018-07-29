@@ -62,9 +62,11 @@ CREATE TABLE IF NOT EXISTS Branch (
 
 CREATE TABLE IF NOT EXISTS branch_commit (
   id         SERIAL NOT NULL PRIMARY KEY,
-  branch_id   INTEGER NOT NULL,
-  commit_id   INTEGER NOT NULL,
+  branch_id  INTEGER NOT NULL,
+  commit_id  INTEGER NOT NULL,
+  ordinal    INTEGER NOT NULL,
   UNIQUE (branch_id, commit_id),
+  UNIQUE (branch_id, ordinal),
   FOREIGN KEY (branch_id) REFERENCES Branch (id),
   FOREIGN KEY (commit_id) REFERENCES commit_entry (id)
 );
