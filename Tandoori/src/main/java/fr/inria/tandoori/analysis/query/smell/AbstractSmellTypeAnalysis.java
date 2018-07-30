@@ -8,6 +8,7 @@ import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -60,9 +61,9 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param renamedSmellsNewInstances The list of *new* instances of {@link Smell}s identified as renamed.
      */
     void insertLostSmellIntroductions(int since, int until,
-                                      List<Smell> previousSmells,
-                                      List<Smell> currentSmells,
-                                      List<Smell> renamedSmellsNewInstances) {
+                                      Collection<Smell> previousSmells,
+                                      Collection<Smell> currentSmells,
+                                      Collection<Smell> renamedSmellsNewInstances) {
         for (Smell smell : getIntroduced(previousSmells, currentSmells, renamedSmellsNewInstances)) {
             insertLostSmellInCategory(smell, SmellCategory.INTRODUCTION, since, until);
         }
@@ -78,9 +79,9 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param renamedSmellsOriginalInstances The list of *old* instances of {@link Smell}s identified as renamed.
      */
     void insertLostSmellRefactorings(int since, int until,
-                                     List<Smell> previousSmells,
-                                     List<Smell> currentSmells,
-                                     List<Smell> renamedSmellsOriginalInstances) {
+                                     Collection<Smell> previousSmells,
+                                     Collection<Smell> currentSmells,
+                                     Collection<Smell> renamedSmellsOriginalInstances) {
         for (Smell smell : getRefactored(previousSmells, currentSmells, renamedSmellsOriginalInstances)) {
             insertLostSmellInCategory(smell, SmellCategory.REFACTOR, since, until);
         }
@@ -95,9 +96,9 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param renamedSmellsNewInstances The list of *new* instances of {@link Smell}s identified as renamed.
      */
     void insertSmellIntroductions(Commit commit,
-                                  List<Smell> previousSmells,
-                                  List<Smell> currentSmells,
-                                  List<Smell> renamedSmellsNewInstances) {
+                                  Collection<Smell> previousSmells,
+                                  Collection<Smell> currentSmells,
+                                  Collection<Smell> renamedSmellsNewInstances) {
         for (Smell smell : getIntroduced(previousSmells, currentSmells, renamedSmellsNewInstances)) {
             insertSmellInCategory(smell, commit, SmellCategory.INTRODUCTION);
         }
@@ -112,9 +113,9 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param renamedSmellsOriginalInstances The list of *old* instances of {@link Smell}s identified as renamed.
      */
     void insertSmellRefactorings(Commit commit,
-                                 List<Smell> previousSmells,
-                                 List<Smell> currentSmells,
-                                 List<Smell> renamedSmellsOriginalInstances) {
+                                 Collection<Smell> previousSmells,
+                                 Collection<Smell> currentSmells,
+                                 Collection<Smell> renamedSmellsOriginalInstances) {
         for (Smell smell : getRefactored(previousSmells, currentSmells, renamedSmellsOriginalInstances)) {
             insertSmellInCategory(smell, commit, SmellCategory.REFACTOR);
         }
@@ -128,7 +129,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param renamedSmellsNewInstances The list of *new* instances of {@link Smell}s identified as renamed.
      * @return The list of {@link Smell} introduced in the current commit.
      */
-    private List<Smell> getIntroduced(List<Smell> previous, List<Smell> current, List<Smell> renamedSmellsNewInstances) {
+    private List<Smell> getIntroduced(Collection<Smell> previous, Collection<Smell> current, Collection<Smell> renamedSmellsNewInstances) {
         List<Smell> introduction = new ArrayList<>(current);
         introduction.removeAll(previous);
         introduction.removeAll(renamedSmellsNewInstances);
@@ -143,7 +144,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param renamedSmellsOriginalInstances The list of *old* instances of {@link Smell}s identified as renamed.
      * @return The list of {@link Smell} refactored in the current commit.
      */
-    private List<Smell> getRefactored(List<Smell> previous, List<Smell> current, List<Smell> renamedSmellsOriginalInstances) {
+    private List<Smell> getRefactored(Collection<Smell> previous, Collection<Smell> current, Collection<Smell> renamedSmellsOriginalInstances) {
         List<Smell> refactoring = new ArrayList<>(previous);
         refactoring.removeAll(current);
         refactoring.removeAll(renamedSmellsOriginalInstances);

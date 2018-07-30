@@ -347,15 +347,15 @@ public class JDBCPersistence implements Persistence {
         return "SELECT id FROM branch WHERE project_id='" + projectId + "' AND ordinal=" + branchOrdinal;
     }
 
-    public String branchOrdinalQueryStatement(int projectId, Commit commit) {
-        return "SELECT branch.ordinal FROM branch " +
+    public String branchIdQueryStatement(int projectId, Commit commit) {
+        return "SELECT branch.id FROM branch " +
                 "RIGHT JOIN branch_commit ON branch.id = branch_commit.branch_id " +
                 "RIGHT JOIN commit_entry ON commit_entry.id = branch_commit.commit_id " +
                 "WHERE commit_entry.sha1 = '" + commit.sha + "' AND commit_entry.project_id = '" + projectId + "'";
     }
 
     @Override
-    public String branchParentCommitSmellPresencesQuery(int projectId, int branchId) {
+    public String branchParentCommitSmellsQuery(int projectId, int branchId) {
         return commitSmellsQuery(projectId, branchParentCommitIdQuery(projectId, branchId));
     }
 
@@ -407,7 +407,7 @@ public class JDBCPersistence implements Persistence {
 
     @Override
     public String branchCommitOrdinalQuery(int projectId, int currentBranch, Commit commit) {
-        return "SELECT ordinal FROM branch_commit " +
+        return "SELECT branch_commit.ordinal FROM branch_commit " +
                 "LEFT JOIN commit_entry ON commit_entry.id = branch_commit.commit_id " +
                 "WHERE branch_commit.branch_id = " + currentBranch + " " +
                 "AND commit_entry.sha1 = '" + commit.sha + "'";

@@ -211,13 +211,13 @@ public interface Persistence {
     String branchIdQueryStatement(int projectId, int branchOrdinal);
 
     /**
-     * Return the statement to query branch ordinal for the given project in which the commit is located.
+     * Return the statement to query branch id for the given project in which the commit is located.
      *
      * @param projectId The project identifier.
      * @param commit    The commit identifier.
      * @return The generated query statement.
      */
-    String branchOrdinalQueryStatement(int projectId, Commit commit);
+    String branchIdQueryStatement(int projectId, Commit commit);
 
     /**
      * Return a list of {@link Smell} definitions extracted from the SmellPresence of the commit previous to the
@@ -227,9 +227,11 @@ public interface Persistence {
      * @param branchId  The branch identifier.
      * @return The generated query statement.
      */
-    String branchParentCommitSmellPresencesQuery(int projectId, int branchId);
+    String branchParentCommitSmellsQuery(int projectId, int branchId);
 
     /**
+     * Retrieve the smells present on the last commit of the branch merged in the given commit.
+     *
      * @param projectId The project identifier.
      * @param merge     The commit in which the branch is merged.
      * @return The generated query statement.
@@ -268,7 +270,7 @@ public interface Persistence {
      *
      * @param projectId     The project identifier.
      * @param currentBranch The branch on which we look for the last commit sha.
-     * @param commit The commit to look for.
+     * @param commit        The commit to look for.
      * @return The generated query statement.
      */
     String branchCommitOrdinalQuery(int projectId, int currentBranch, Commit commit);

@@ -28,11 +28,11 @@ public abstract class SmellTypeAnalysis {
     protected List<Map<String, Object>> smellList;
 
     protected final Smell firstSmell = new Smell(smellType, "instance", "/file");
-    protected final Smell secondSmell = new Smell(smellType, "anotherInstance", "/file");
+    protected final Smell secondSmell = new Smell(smellType, "secondInstance", "/file");
 
-    protected final Commit firstCommit = new Commit("sha1", 0);
-    protected final Commit secondCommit = new Commit("sha1-2", 1);
-    protected final Commit thirdCommit = new Commit("sha1-3", 2);
+    protected final Commit firstCommit = new Commit("A", 0);
+    protected final Commit secondCommit = new Commit("B", 1);
+    protected final Commit thirdCommit = new Commit("C", 2);
 
     @Before
     public void setUp() throws Exception {

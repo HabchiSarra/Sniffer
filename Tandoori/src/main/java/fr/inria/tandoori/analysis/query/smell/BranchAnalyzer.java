@@ -9,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 class BranchAnalyzer extends AbstractSmellTypeAnalysis {
     private static final Logger logger = LoggerFactory.getLogger(BranchAnalyzer.class.getName());
@@ -18,8 +20,8 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
     private final boolean handleGap;
 
     // Those attributes are the class state.
-    private final List<Smell> previousCommitSmells;
-    private final List<Smell> currentCommitSmells;
+    private final Set<Smell> previousCommitSmells;
+    private final Set<Smell> currentCommitSmells;
     private final List<Smell> currentCommitOriginal;
     private final List<Smell> currentCommitRenamed;
     private Commit underAnalysis;
@@ -34,16 +36,34 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
         this.duplicationChecker = duplicationChecker;
         this.handleGap = handleGap;
 
-        previousCommitSmells = new ArrayList<>();
-        currentCommitSmells = new ArrayList<>();
+        previousCommitSmells = new HashSet<>();
+        currentCommitSmells = new HashSet<>();
         currentCommitOriginal = new ArrayList<>();
         currentCommitRenamed = new ArrayList<>();
         underAnalysis = Commit.EMPTY;
         this.resetLostCommit();
     }
 
-    public void addCurrentSmells(List<Smell> smells) {
+    /**
+     * Add the {@link List} of {@link Smell} as already existing in the current branch.
+     * This means that the smells will be considered as already introduced, and existing in the smell table.
+     * For this we set them in both the previousCommitSmells and currentCommitSmells.
+     *
+     * @param smells The smells to add.
+     */
+    public void addExistingSmells(List<Smell> smells) {
+        previousCommitSmells.addAll(smells);
         currentCommitSmells.addAll(smells);
+    }
+
+    /**
+     * Specifically add smells to the previous ones.
+     * This method is used for adding all smells before a merge commit occurs.
+     *
+     * @param smells The smells to add.
+     */
+    public void addPreviousSmells(List<Smell> smells) {
+        previousCommitSmells.addAll(smells);
     }
 
     void addSmellCommit(Smell smell, Commit commit) {
@@ -78,7 +98,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
         finalizeAnalysis(fetchLastProjectCommitSha());
     }
 
-    void finalizeAnalysis(String lastCommitSha1) throws QueryException {
+    void finalizeAnalysis(String lastCommitSha1) {
         if (underAnalysis.equals(Commit.EMPTY)) {
             logger.info("[" + projectId + "] No smell found");
             return;
@@ -176,9 +196,11 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
      * @param commit The new commit.
      */
     private void persistCommitChanges(Commit commit) {
-        logger.debug("[" + projectId + "] ==> Handling commit: " + commit);
-        insertSmellIntroductions(commit, previousCommitSmells, currentCommitSmells, currentCommitRenamed);
-        insertSmellRefactorings(commit, previousCommitSmells, currentCommitSmells, currentCommitOriginal);
+        if (!commit.equals(Commit.EMPTY)) {
+            logger.debug("[" + projectId + "] ==> Persisting smells for commit: " + commit);
+            insertSmellIntroductions(commit, previousCommitSmells, currentCommitSmells, currentCommitRenamed);
+            insertSmellRefactorings(commit, previousCommitSmells, currentCommitSmells, currentCommitOriginal);
+        }
     }
 
     /**

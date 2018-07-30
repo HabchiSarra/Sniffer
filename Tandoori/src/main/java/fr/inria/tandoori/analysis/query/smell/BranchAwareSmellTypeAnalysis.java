@@ -47,12 +47,14 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
         Smell smell;
         Commit previousCommit;
         Commit commit = Commit.EMPTY;
-        int currentBranch;
+        Integer previousBranch;
+        Integer currentBranch = -1;
 
         Map<String, Object> instance;
         while (smells.hasNext()) {
             instance = smells.next();
             previousCommit = commit;
+            previousBranch = currentBranch;
             commit = Commit.fromInstance(instance);
             smell = Smell.fromPaprikaInstance(instance, smellType);
             try {
@@ -68,38 +70,52 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
                 initializeBranch(currentBranch);
             }
 
-            // We ensure to merge SmellPresence from the merged branch if necessary.
-            if (!previousCommit.equals(commit) && isMergeCommit(commit)) {
-                addSmellsToMergeCommit(commit, currentBranch);
-            }
-
             // We then submit the new smell to analysis
             commit.setOrdinal(fetchCommitOrdinal(currentBranch, commit));
             branchAnalyzers.get(currentBranch).addSmellCommit(smell, commit);
 
-            // If we reach the last branch commit, we will finalize the branch analysis,
+            // We ensure to merge SmellPresence from the merged branch if necessary.
+            if (!previousCommit.equals(commit) && getMergingBranchId(commit) != null) {
+                addSmellsToMergeCommit(commit, currentBranch);
+            }
+
+            // When we are sure that we passed the last branch commit, we will finalize the branch analysis,
             // i.e. setting introductions and refactoring for the last branch commit.
-            if (!previousCommit.equals(commit) && isLastBranchCommit(commit, currentBranch)) {
-                logger.debug("[" + projectId + "] => Finalizing branch: " + currentBranch);
-                String lastBranchCommit = getLastBranchCommit(currentBranch);
-                if (lastBranchCommit != null) {
-                    branchAnalyzers.get(currentBranch).finalizeAnalysis(lastBranchCommit);
-                } else {
-                    branchAnalyzers.get(currentBranch).finalizeAnalysis();
-                }
-                branchAnalyzers.remove(currentBranch);
+            if (!previousCommit.equals(commit) && isLastBranchCommit(previousCommit, previousBranch)) {
+                finalizeBranch(previousBranch);
+                branchAnalyzers.remove(previousBranch);
             }
         }
 
-        // We should'nt have to finalize any branch since every one should have a last commit.
-        for (int branchId : branchAnalyzers.keySet()) {
-            logger.warn("Finalizing branch without last commit: " + branchId);
-            String lastBranchCommit = getLastBranchCommit(branchId);
-            if (lastBranchCommit != null) {
-                branchAnalyzers.get(branchId).finalizeAnalysis(lastBranchCommit);
-            } else {
-                branchAnalyzers.get(branchId).finalizeAnalysis();
+        // If the last master commit is a merge commit, give him his smells.
+        Integer mergingBranchId = getMergingBranchId(commit);
+        if (mergingBranchId != null) {
+            try {
+                addSmellsToMergeCommit(commit, fetchCommitBranch(commit));
+            } catch (BranchNotFoundException e) {
+                logger.warn("[" + projectId + "] => Unable to find branch id for commit: " + commit, e.getMessage());
             }
+        }
+
+        // We should only perform operations for branch 0 since all other commits are looped around.
+        for (int branchId : branchAnalyzers.keySet()) {
+            finalizeBranch(branchId);
+        }
+    }
+
+    /**
+     * Call finalize on {@link BranchAnalyzer} with the correct end commit for this branch.
+     *
+     * @param branchId The branch identifier.
+     * @throws QueryException If anything goes wrong while querying the last commit for this project.
+     */
+    private void finalizeBranch(int branchId) throws QueryException {
+        logger.debug("[" + projectId + "] => Finalizing branch: " + branchId);
+        String lastBranchCommit = getLastBranchCommit(branchId);
+        if (lastBranchCommit != null) {
+            branchAnalyzers.get(branchId).finalizeAnalysis(lastBranchCommit);
+        } else {
+            branchAnalyzers.get(branchId).finalizeAnalysis();
         }
     }
 
@@ -130,7 +146,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @param currentBranch The branch to add commits onto.
      */
     private void addSmellsToMergeCommit(Commit merge, int currentBranch) {
-        branchAnalyzers.get(currentBranch).addCurrentSmells(retrieveMergedBranchFinalSmells(merge));
+        branchAnalyzers.get(currentBranch).addPreviousSmells(retrieveMergedBranchFinalSmells(merge));
     }
 
     /**
@@ -140,8 +156,8 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @param currentBranch Identifier of the branch to initialize.
      */
     private void initializeBranch(int currentBranch) {
-        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, true);
-        analyzer.addCurrentSmells(retrieveBranchParentSmells(currentBranch));
+        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, false);
+        analyzer.addExistingSmells(retrieveBranchParentSmells(currentBranch));
         branchAnalyzers.put(currentBranch, analyzer);
 
         List<Map<String, Object>> query = persistence.query(persistence.branchLastCommitShaQuery(projectId, currentBranch));
@@ -160,7 +176,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @return A {@link List} of present {@link Smell}.
      */
     private List<Smell> retrieveBranchParentSmells(int branchId) {
-        List<Map<String, Object>> results = persistence.query(persistence.branchParentCommitSmellPresencesQuery(projectId, branchId));
+        List<Map<String, Object>> results = persistence.query(persistence.branchParentCommitSmellsQuery(projectId, branchId));
         return toSmells(results);
     }
 
@@ -190,14 +206,15 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
     }
 
     /**
-     * Tells if the current commit is a merge commit.
+     * Tells if the current commit is a merge commit and its secondary branch is the branch
+     * referenced by the given id.
      *
      * @param commit The commit to test.
-     * @return True if it is a merge commit, false otherwise.
+     * @return the identifier of the merged branch, null if no branch is merged.
      */
-    private boolean isMergeCommit(Commit commit) {
+    private Integer getMergingBranchId(Commit commit) {
         List<Map<String, Object>> result = persistence.query(persistence.mergedBranchIdQuery(projectId, commit));
-        return !result.isEmpty();
+        return result.isEmpty() ? null : (Integer) result.get(0).get("id");
     }
 
     /**
@@ -220,10 +237,10 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      *                                 This can happen until there are no commit gap anymore on Paprika result.
      */
     private int fetchCommitBranch(Commit commit) throws BranchNotFoundException {
-        List<Map<String, Object>> result = persistence.query(persistence.branchOrdinalQueryStatement(projectId, commit));
+        List<Map<String, Object>> result = persistence.query(persistence.branchIdQueryStatement(projectId, commit));
         if (result.isEmpty()) {
             throw new BranchNotFoundException(projectId, commit.sha);
         }
-        return (int) result.get(0).get("ordinal");
+        return (int) result.get(0).get("id");
     }
 }
