@@ -4,6 +4,8 @@ import fr.inria.tandoori.analysis.model.Branch;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
@@ -14,13 +16,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Build a branch tree in the Persistence for the given project.
+ */
 public class BranchQuery extends PersistenceAnalyzer implements Query {
     private final Repository repository;
+    private final BranchQueries branchQueries;
+
     private int branchCounter;
 
-    public BranchQuery(int projectId, Repository repository, Persistence persistence) {
-        super(LoggerFactory.getLogger(BranchQuery.class.getName()), projectId, persistence);
+    public BranchQuery(int projectId, Repository repository,
+                       Persistence persistence, CommitQueries commitQueries, BranchQueries branchQueries) {
+        super(LoggerFactory.getLogger(BranchQuery.class.getName()), projectId, persistence, commitQueries);
         this.repository = repository;
+        this.branchQueries = branchQueries;
         branchCounter = 0;
     }
 
@@ -59,14 +68,14 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
      * @param branch The branch to persist.
      */
     private void persistBranch(Branch branch) {
-        String statement = persistence.branchInsertionStatement(projectId, branch.getOrdinal(),
+        String statement = branchQueries.branchInsertionStatement(projectId, branch.getOrdinal(),
                 branch.getParentCommit(), branch.getMergedInto());
         persistence.addStatements(statement);
 
         List<Commit> commits = branch.getCommits();
         Collections.reverse(commits);
         for (int i = 0; i < commits.size(); i++) {
-            statement = persistence.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commits.get(i).sha, i);
+            statement = branchQueries.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commits.get(i).sha, i);
             persistence.addStatements(statement);
 
         }

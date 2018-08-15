@@ -30,6 +30,13 @@ public class SmellDuplicationChecker {
         renamedSmells = new HashMap<>();
     }
 
+    /**
+     * Generate a query to fetch all file renames for a given project.
+     * TODO: Extract to {@link fr.inria.tandoori.analysis.persistence.queries.CommitQueries}
+     *
+     * @param projectId Project identifier.
+     * @return The generated statement.
+     */
     private static String getFileRenameStatement(int projectId) {
         return "SELECT subquery.sha1 AS " + SHA1_COLUMN
                 + ", file_rename.old_file AS " + OLD_FILE_COLUMN

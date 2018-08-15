@@ -3,6 +3,16 @@ package fr.inria.tandoori.analysis;
 import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.PostgresqlPersistence;
+import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.DeveloperQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCBranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCCommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCDeveloperQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCProjectQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCSmellQueries;
+import fr.inria.tandoori.analysis.persistence.queries.ProjectQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import fr.inria.tandoori.analysis.query.branch.BranchQuery;
@@ -32,12 +42,15 @@ public class SingleAppAnalysis {
     private final String githubToken;
     private final String projectUrl;
 
-    private List<Query> getAnalysisProcess(int appId, Repository repository, Persistence persistence) {
+    private List<Query> getAnalysisProcess(int appId, Repository repository, Persistence persistence,
+                                           ProjectQueries projectQueries, DeveloperQueries developerQueries,
+                                           CommitQueries commitQueries, SmellQueries smellQueries,
+                                           BranchQueries branchQueries) {
         List<Query> analysisProcess = new ArrayList<>();
 
-        analysisProcess.add(new CommitsQuery(appId, paprikaDB, repository, persistence));
-        analysisProcess.add(new BranchQuery(appId, repository, persistence));
-        analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence));
+        analysisProcess.add(new CommitsQuery(appId, paprikaDB, repository, persistence, developerQueries, commitQueries));
+        analysisProcess.add(new BranchQuery(appId, repository, persistence, commitQueries, branchQueries));
+        analysisProcess.add(new SmellQuery(appId, paprikaDB, persistence, commitQueries, smellQueries, branchQueries));
 
         // if (githubToken != null) {
         //     analysisProcess.add(new DevelopersQuery(appRepo, githubToken));
@@ -71,12 +84,12 @@ public class SingleAppAnalysis {
      * @param persistence The persistence to use.
      * @return The project identifier in the database.
      */
-    private static int persistApp(String appName, String url, Persistence persistence) {
+    private static int persistApp(String appName, String url, Persistence persistence, ProjectQueries projectQueries) {
         String projectInsert = "INSERT INTO Project (name, url) VALUES ('" + appName + "', '" + url + "') ON CONFLICT DO NOTHING;";
         persistence.addStatements(projectInsert);
         persistence.commit();
 
-        String idQuery = persistence.projectQueryStatement(appName);
+        String idQuery = projectQueries.idFromNameQuery(appName);
         List<Map<String, Object>> result = persistence.query(idQuery + ";");
         // TODO: Maybe be less violent / test the returned data
         return (int) result.get(0).get("id");
@@ -85,12 +98,20 @@ public class SingleAppAnalysis {
     public void analyze() throws AnalysisException {
         // Persistence persistence = new SQLitePersistence("output.sqlite");
         Persistence persistence = new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
-        this.analyze(persistence);
+        ProjectQueries projectQueries = new JDBCProjectQueries();
+        DeveloperQueries developerQueries = new JDBCDeveloperQueries();
+        CommitQueries commitQueries = new JDBCCommitQueries(developerQueries);
+        SmellQueries smellQueries = new JDBCSmellQueries(commitQueries);
+        BranchQueries branchQueries = new JDBCBranchQueries(commitQueries);
+        this.analyze(persistence, projectQueries, developerQueries, commitQueries, smellQueries, branchQueries);
     }
 
-    public void analyze(Persistence persistence) throws AnalysisException {
+    public void analyze(Persistence persistence,
+                        ProjectQueries projectQueries, DeveloperQueries developerQueries,
+                        CommitQueries commitQueries, SmellQueries smellQueries,
+                        BranchQueries branchQueries) throws AnalysisException {
         persistence.initialize();
-        int appId = persistApp(appName, projectUrl, persistence);
+        int appId = persistApp(appName, projectUrl, persistence, projectQueries);
 
         Repository repository = new Repository(appRepo);
         try {
@@ -99,7 +120,8 @@ public class SingleAppAnalysis {
             throw new AnalysisException("Unable to open repository", e);
         }
         logger.info("[" + appId + "] Analyzing application: " + appName);
-        for (Query process : getAnalysisProcess(appId, repository, persistence)) {
+        for (Query process : getAnalysisProcess(appId, repository, persistence,
+                projectQueries, developerQueries, commitQueries, smellQueries, branchQueries)) {
             try {
                 process.query();
             } catch (QueryException e) {

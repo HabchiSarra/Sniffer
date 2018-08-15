@@ -9,6 +9,13 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Retrieve all details of a commit using a runtime execution of the local Git program.
+ * <p>
+ * Version 2.13 is required, since we use the '-C' parameter.
+ * <p>
+ * This class will build a {@link CommitDetails} class, holding the fetched data.
+ */
 public class CommitDetailsChecker {
     private static final Logger logger = LoggerFactory.getLogger(CommitDetails.class.getName());
     private final String repository;

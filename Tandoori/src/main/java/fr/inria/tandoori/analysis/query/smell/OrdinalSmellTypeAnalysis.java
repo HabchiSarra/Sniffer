@@ -3,6 +3,8 @@ package fr.inria.tandoori.analysis.query.smell;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.LoggerFactory;
@@ -23,8 +25,9 @@ public class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis implemen
     private final SmellDuplicationChecker duplicationChecker;
 
     public OrdinalSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
-                                    String smellType, SmellDuplicationChecker duplicationChecker) {
-        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence);
+                                    String smellType, SmellDuplicationChecker duplicationChecker,
+                                    CommitQueries commitQueries, SmellQueries smellQueries) {
+        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence, commitQueries, smellQueries);
         this.smells = smells;
         this.smellType = smellType;
         this.duplicationChecker = duplicationChecker;
@@ -37,7 +40,7 @@ public class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis implemen
         Commit commit;
 
         Map<String, Object> instance;
-        BranchAnalyzer branchAnalyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker);
+        BranchAnalyzer branchAnalyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, commitQueries, smellQueries);
         while (smells.hasNext()) {
             instance = smells.next();
             smell = Smell.fromPaprikaInstance(instance, smellType);

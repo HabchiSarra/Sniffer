@@ -3,6 +3,8 @@ package fr.inria.tandoori.analysis.query.branch;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,24 +31,28 @@ public class BranchQueryTest {
     public static final String SELECT_HEAD = "select head";
     private final int projectId = 1;
     private Persistence persistence;
+    private BranchQueries branchQueries;
+    private CommitQueries commitQueries;
     private Repository repository;
 
     @Before
     public void setUp() throws Exception {
         repository = Mockito.mock(Repository.class);
         persistence = Mockito.mock(Persistence.class);
-        doReturn("BranchInsertion").when(persistence).branchInsertionStatement(eq(projectId), anyInt(), any(Commit.class), any(Commit.class));
-        doReturn("BranchInsertion").when(persistence).branchCommitInsertionQuery(eq(projectId), anyInt(), anyString(), anyInt());
+        branchQueries = Mockito.mock(BranchQueries.class);
+        commitQueries = Mockito.mock(CommitQueries.class);
+        doReturn("BranchInsertion").when(branchQueries).branchInsertionStatement(eq(projectId), anyInt(), any(Commit.class), any(Commit.class));
+        doReturn("BranchInsertion").when(branchQueries).branchCommitInsertionQuery(eq(projectId), anyInt(), anyString(), anyInt());
     }
 
     private BranchQuery getQuery() {
-        return new BranchQuery(projectId, repository, persistence);
+        return new BranchQuery(projectId, repository, persistence, commitQueries, branchQueries);
     }
 
     private void initializeHead(Commit commit) throws IOException {
         HashMap<Object, Object> map = new HashMap<>();
         map.put("sha1", commit.sha);
-        doReturn(SELECT_HEAD).when(persistence).lastProjectCommitSha1QueryStatement(projectId);
+        doReturn(SELECT_HEAD).when(commitQueries).lastProjectCommitShaQuery(projectId);
         doReturn(Collections.singletonList(map)).when(persistence).query(SELECT_HEAD);
     }
 
@@ -59,7 +65,7 @@ public class BranchQueryTest {
     private void initializeMocks(Commit... commits) throws IOException {
         for (Commit commit : commits) {
             doReturn(commit).when(repository).getCommitWithParents(commit.sha);
-            doReturn(commit.sha).when(persistence).commitIdQueryStatement(projectId, commit.sha);
+            doReturn(commit.sha).when(commitQueries).idFromShaQuery(projectId, commit.sha);
             HashMap<Object, Object> map = new HashMap<>();
             map.put("id", 1);
             doReturn(Collections.singletonList(map)).when(persistence).query(commit.sha);
@@ -91,10 +97,10 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(4)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
     }
 
     /**
@@ -128,15 +134,15 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(8)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, A, F);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, F);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
     }
 
     /**
@@ -178,20 +184,20 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(12)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, F, I);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha, 0);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, F, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 0);
 
-        verify(persistence).branchInsertionStatement(projectId, 2, A, F);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha, 1);
+        verify(branchQueries).branchInsertionStatement(projectId, 2, A, F);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 2, D.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 2, E.sha, 1);
     }
 
     /**
@@ -233,18 +239,18 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(11)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, A, I);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
 
 
     }
@@ -287,20 +293,20 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(12)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha, 3);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha, 4);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 4);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, A, I);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, F.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, F.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
 
-        verify(persistence).branchInsertionStatement(projectId, 2, D, G);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha, 0);
+        verify(branchQueries).branchInsertionStatement(projectId, 2, D, G);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 2, E.sha, 0);
     }
 
     /**
@@ -341,20 +347,20 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(12)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha, 3);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha, 4);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 4);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, A, I);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, F.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, F.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
 
-        verify(persistence).branchInsertionStatement(projectId, 2, A, H);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha, 0);
+        verify(branchQueries).branchInsertionStatement(projectId, 2, A, H);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 2, E.sha, 0);
     }
 
     /**
@@ -392,19 +398,19 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(11)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, B, H);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha, 1);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, B, H);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 1);
 
-        verify(persistence).branchInsertionStatement(projectId, 2, A, F);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha, 0);
+        verify(branchQueries).branchInsertionStatement(projectId, 2, A, F);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 2, D.sha, 0);
     }
 
     /**
@@ -445,18 +451,18 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(11)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, A, I);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
     }
 
     /**
@@ -498,20 +504,20 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(12)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, G.sha, 3);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, I.sha, 4);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, C.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, G.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 4);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, A, I);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, F.sha, 1);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, H.sha, 2);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, F.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, H.sha, 2);
 
-        verify(persistence).branchInsertionStatement(projectId, 2, D, G);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, E.sha, 0);
+        verify(branchQueries).branchInsertionStatement(projectId, 2, D, G);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 2, E.sha, 0);
     }
 
     /**
@@ -549,19 +555,19 @@ public class BranchQueryTest {
         getQuery().query();
 
         verify(persistence, times(10)).addStatements(any());
-        verify(persistence).branchInsertionStatement(projectId, 0, null, null);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 0, F.sha, 1);
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 1);
 
-        verify(persistence).branchInsertionStatement(projectId, 1, A, F);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, B.sha, 0);
-        verify(persistence).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, F);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, B.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
 
-        verify(persistence).branchInsertionStatement(projectId, 2, B, E);
-        verify(persistence).branchCommitInsertionQuery(projectId, 2, D.sha, 0);
+        verify(branchQueries).branchInsertionStatement(projectId, 2, B, E);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 2, D.sha, 0);
 
-        verify(persistence).branchInsertionStatement(projectId, 3, B, D);
-        verify(persistence).branchCommitInsertionQuery(projectId, 3, C.sha, 0);
+        verify(branchQueries).branchInsertionStatement(projectId, 3, B, D);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 3, C.sha, 0);
     }
 
     private void debugBranchCommitInsertions() {
@@ -569,7 +575,7 @@ public class BranchQueryTest {
         ArgumentCaptor<Integer> intCaptor = ArgumentCaptor.forClass(Integer.class);
         ArgumentCaptor<Integer> ordinalCaptor = ArgumentCaptor.forClass(Integer.class);
 
-        verify(persistence, atLeastOnce()).branchCommitInsertionQuery(eq(projectId),
+        verify(branchQueries, atLeastOnce()).branchCommitInsertionQuery(eq(projectId),
                 intCaptor.capture(), stringCaptor.capture(), ordinalCaptor.capture());
         List<Integer> ints = intCaptor.getAllValues();
         List<String> strs = stringCaptor.getAllValues();

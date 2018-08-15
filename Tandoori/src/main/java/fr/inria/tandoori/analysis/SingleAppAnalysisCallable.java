@@ -1,6 +1,16 @@
 package fr.inria.tandoori.analysis;
 
 import fr.inria.tandoori.analysis.persistence.PostgresqlPersistence;
+import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.DeveloperQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCBranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCCommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCDeveloperQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCProjectQueries;
+import fr.inria.tandoori.analysis.persistence.queries.JDBCSmellQueries;
+import fr.inria.tandoori.analysis.persistence.queries.ProjectQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
@@ -36,8 +46,14 @@ final class SingleAppAnalysisCallable implements Callable<Void> {
     @Override
     public Void call() throws Exception {
         SingleAppAnalysis analysis = new SingleAppAnalysis(application, repository, paprikaDB, githubToken, url);
+        PostgresqlPersistence persistence = new PostgresqlPersistence(connections.getConnection());
+        ProjectQueries projectQueries = new JDBCProjectQueries();
+        DeveloperQueries developerQueries = new JDBCDeveloperQueries();
+        CommitQueries commitQueries = new JDBCCommitQueries(developerQueries);
+        SmellQueries smellQueries = new JDBCSmellQueries(commitQueries);
+        BranchQueries branchQueries = new JDBCBranchQueries(commitQueries);
         try {
-            analysis.analyze(new PostgresqlPersistence(connections.getConnection()));
+            analysis.analyze(persistence, projectQueries, developerQueries, commitQueries, smellQueries, branchQueries);
         } catch (AnalysisException e) {
             logger.error("Unable to perform analysis on project " + application, e);
         }

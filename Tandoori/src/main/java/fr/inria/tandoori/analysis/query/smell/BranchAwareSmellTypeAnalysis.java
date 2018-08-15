@@ -3,6 +3,9 @@ package fr.inria.tandoori.analysis.query.smell;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
@@ -29,13 +32,16 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
 
     private final Map<Integer, BranchAnalyzer> branchAnalyzers;
     private final Map<Integer, String> branchLastCommitSha;
+    private final BranchQueries branchQueries;
 
     public BranchAwareSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
-                                        String smellType, SmellDuplicationChecker duplicationChecker) {
-        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence);
+                                        String smellType, SmellDuplicationChecker duplicationChecker,
+                                        CommitQueries commitQueries, SmellQueries smellQueries, BranchQueries branchQueries) {
+        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence, commitQueries, smellQueries);
         this.smells = smells;
         this.smellType = smellType;
         this.duplicationChecker = duplicationChecker;
+        this.branchQueries = branchQueries;
 
         branchAnalyzers = new HashMap<>();
         branchLastCommitSha = new HashMap<>();
@@ -120,7 +126,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
     }
 
     private int fetchCommitOrdinal(int branchId, Commit commit) throws QueryException {
-        List<Map<String, Object>> result = persistence.query(persistence.branchCommitOrdinalQuery(projectId, branchId, commit));
+        List<Map<String, Object>> result = persistence.query(branchQueries.commitOrdinalQuery(projectId, branchId, commit));
         if (result.isEmpty()) {
             throw new QueryException(logger.getName(), "Unable to find commit (" + commit.sha + ") in branch n°" + branchId);
         }
@@ -156,11 +162,12 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @param currentBranch Identifier of the branch to initialize.
      */
     private void initializeBranch(int currentBranch) {
-        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, false);
+        BranchAnalyzer analyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker,
+                commitQueries, smellQueries, false);
         analyzer.addExistingSmells(retrieveBranchParentSmells(currentBranch));
         branchAnalyzers.put(currentBranch, analyzer);
 
-        List<Map<String, Object>> query = persistence.query(persistence.branchLastCommitShaQuery(projectId, currentBranch));
+        List<Map<String, Object>> query = persistence.query(branchQueries.lastCommitShaQuery(projectId, currentBranch));
         if (query.isEmpty()) {
             logger.warn("No merge commit found for branch: " + currentBranch);
         } else {
@@ -176,7 +183,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @return A {@link List} of present {@link Smell}.
      */
     private List<Smell> retrieveBranchParentSmells(int branchId) {
-        List<Map<String, Object>> results = persistence.query(persistence.branchParentCommitSmellsQuery(projectId, branchId));
+        List<Map<String, Object>> results = persistence.query(branchQueries.parentCommitSmellsQuery(projectId, branchId));
         return toSmells(results);
     }
 
@@ -187,7 +194,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @return A {@link List} of {@link Smell}.
      */
     private List<Smell> retrieveMergedBranchFinalSmells(Commit merge) {
-        List<Map<String, Object>> results = persistence.query(persistence.branchLastCommitSmellsQuery(projectId, merge));
+        List<Map<String, Object>> results = persistence.query(branchQueries.lastCommitSmellsQuery(projectId, merge));
         return toSmells(results);
     }
 
@@ -213,7 +220,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @return the identifier of the merged branch, null if no branch is merged.
      */
     private Integer getMergingBranchId(Commit commit) {
-        List<Map<String, Object>> result = persistence.query(persistence.mergedBranchIdQuery(projectId, commit));
+        List<Map<String, Object>> result = persistence.query(branchQueries.mergedBranchIdQuery(projectId, commit));
         return result.isEmpty() ? null : (Integer) result.get(0).get("id");
     }
 
@@ -237,7 +244,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      *                                 This can happen until there are no commit gap anymore on Paprika result.
      */
     private int fetchCommitBranch(Commit commit) throws BranchNotFoundException {
-        List<Map<String, Object>> result = persistence.query(persistence.branchIdQueryStatement(projectId, commit));
+        List<Map<String, Object>> result = persistence.query(branchQueries.idFromCommitQueryStatement(projectId, commit));
         if (result.isEmpty()) {
             throw new BranchNotFoundException(projectId, commit.sha);
         }

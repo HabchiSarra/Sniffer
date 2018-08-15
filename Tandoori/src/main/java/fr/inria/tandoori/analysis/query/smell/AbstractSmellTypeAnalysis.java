@@ -4,6 +4,8 @@ import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.SmellCategory;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
 import org.slf4j.Logger;
 
@@ -17,12 +19,16 @@ import java.util.Map;
  * {@link fr.inria.tandoori.analysis.model.Smell} type analysis.
  */
 abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
-    AbstractSmellTypeAnalysis(Logger logger, int projectId, Persistence persistence) {
-        super(logger, projectId, persistence);
+    protected final SmellQueries smellQueries;
+
+    AbstractSmellTypeAnalysis(Logger logger, int projectId, Persistence persistence,
+                              CommitQueries commitQueries, SmellQueries smellQueries) {
+        super(logger, projectId, persistence, commitQueries);
+        this.smellQueries = smellQueries;
     }
 
     void insertSmellInstance(Smell smell) {
-        persistence.addStatements(persistence.smellInsertionStatement(projectId, smell));
+        persistence.addStatements(smellQueries.smellInsertionStatement(projectId, smell));
     }
 
     /**
@@ -33,7 +39,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @throws CommitNotFoundException if no commit exists for the given ordinal and project.
      */
     Commit createNoSmellCommit(int ordinal) throws CommitNotFoundException {
-        List<Map<String, Object>> result = persistence.query(persistence.commitSha1QueryStatement(projectId, ordinal));
+        List<Map<String, Object>> result = persistence.query(commitQueries.shaFromOrdinalQuery(projectId, ordinal));
         if (result.isEmpty()) {
             throw new CommitNotFoundException(projectId, ordinal);
         }
@@ -48,7 +54,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param category The table category, either SmellPresence, SmellIntroduction, or SmellRefactor
      */
     void insertSmellInCategory(Smell smell, Commit commit, SmellCategory category) {
-        persistence.addStatements(persistence.smellCategoryInsertionStatement(projectId, commit.sha, smell, category));
+        persistence.addStatements(smellQueries.smellCategoryInsertionStatement(projectId, commit.sha, smell, category));
     }
 
     /**
@@ -161,7 +167,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      */
     private void insertLostSmellInCategory(Smell smell, SmellCategory category, int since, int until) {
         persistence.addStatements(
-                persistence.lostSmellCategoryInsertionStatement(projectId, smell, category, since, until)
+                smellQueries.lostSmellCategoryInsertionStatement(projectId, smell, category, since, until)
         );
     }
 }

@@ -6,6 +6,8 @@ import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.GitRename;
 import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.DeveloperQueries;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,6 +34,8 @@ public class CommitsAnalysisTest {
     private final CommitDetails dummyDetails = new CommitDetails(GitDiff.EMPTY, Collections.emptyList());
 
     private Persistence persistence;
+    private CommitQueries commitQueries;
+    private DeveloperQueries developerQueries;
     private Repository repository;
     private CommitDetailsChecker detailsChecker;
     private List<Map<String, Object>> commitsList;
@@ -50,21 +53,23 @@ public class CommitsAnalysisTest {
     public void setUp() throws Exception {
         repository = Mockito.mock(Repository.class);
         persistence = Mockito.mock(Persistence.class);
+        commitQueries = Mockito.mock(CommitQueries.class);
+        developerQueries = Mockito.mock(DeveloperQueries.class);
         detailsChecker = Mockito.mock(CommitDetailsChecker.class);
 
         commitsList = new ArrayList<>();
-        doReturn("CommitInsertion").when(persistence).commitInsertionStatement(
+        doReturn("CommitInsertion").when(commitQueries).commitInsertionStatement(
                 eq(projectId), any(Commit.class), any(GitDiff.class), anyInt());
-        doReturn("DeveloperInsertion").when(persistence).developerInsertStatement(
+        doReturn("DeveloperInsertion").when(developerQueries).developerInsertStatement(
                 anyString());
-        doReturn("DeveloperProjectInsertion").when(persistence).projectDeveloperInsertStatement(
+        doReturn("DeveloperProjectInsertion").when(developerQueries).projectDeveloperInsertStatement(
                 eq(projectId), anyString());
-        doReturn("FileRenameInsertion").when(persistence).fileRenameInsertionStatement(
+        doReturn("FileRenameInsertion").when(commitQueries).fileRenameInsertionStatement(
                 eq(projectId), anyString(), any(GitRename.class));
     }
 
     private CommitsAnalysis getCommitsAnalysis() {
-        return new CommitsAnalysis(projectId, persistence, repository, commitsList.iterator(), detailsChecker);
+        return new CommitsAnalysis(projectId, persistence, repository, commitsList.iterator(), detailsChecker, developerQueries, commitQueries);
     }
 
     private void addCommit(Commit commit, CommitDetails details) throws IOException {
@@ -91,22 +96,22 @@ public class CommitsAnalysisTest {
 
         getCommitsAnalysis().query();
 
-        verify(persistence, times(4)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
-        verify(persistence).commitInsertionStatement(projectId, A, dummyDetails.diff, A.ordinal);
-        verify(persistence).commitInsertionStatement(projectId, B, dummyDetails.diff, B.ordinal);
-        verify(persistence).commitInsertionStatement(projectId, C, dummyDetails.diff, C.ordinal);
-        verify(persistence).commitInsertionStatement(projectId, D, dummyDetails.diff, D.ordinal);
+        verify(commitQueries, times(4)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
+        verify(commitQueries).commitInsertionStatement(projectId, A, dummyDetails.diff, A.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, B, dummyDetails.diff, B.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, C, dummyDetails.diff, C.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, D, dummyDetails.diff, D.ordinal);
 
         // Author insertion is brainlessly done at each encounter
-        verify(persistence, times(4)).developerInsertStatement(anyString());
-        verify(persistence, times(2)).developerInsertStatement(A.authorEmail);
-        verify(persistence, times(2)).developerInsertStatement(C.authorEmail);
-        verify(persistence, times(4)).projectDeveloperInsertStatement(eq(projectId), anyString());
-        verify(persistence, times(2)).projectDeveloperInsertStatement(projectId, A.authorEmail);
-        verify(persistence, times(2)).projectDeveloperInsertStatement(projectId, C.authorEmail);
+        verify(developerQueries, times(4)).developerInsertStatement(anyString());
+        verify(developerQueries, times(2)).developerInsertStatement(A.authorEmail);
+        verify(developerQueries, times(2)).developerInsertStatement(C.authorEmail);
+        verify(developerQueries, times(4)).projectDeveloperInsertStatement(eq(projectId), anyString());
+        verify(developerQueries, times(2)).projectDeveloperInsertStatement(projectId, A.authorEmail);
+        verify(developerQueries, times(2)).projectDeveloperInsertStatement(projectId, C.authorEmail);
 
         // No GitRename handled
-        verify(persistence, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
+        verify(commitQueries, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
     }
 
     @Test
@@ -119,21 +124,21 @@ public class CommitsAnalysisTest {
 
         getCommitsAnalysis().query();
 
-        verify(persistence, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
-        verify(persistence).commitInsertionStatement(projectId, A, dummyDetails.diff, A.ordinal);
-        verify(persistence).commitInsertionStatement(projectId, B, dummyDetails.diff, B.ordinal);
-        verify(persistence).commitInsertionStatement(projectId, D, dummyDetails.diff, D.ordinal);
+        verify(commitQueries, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
+        verify(commitQueries).commitInsertionStatement(projectId, A, dummyDetails.diff, A.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, B, dummyDetails.diff, B.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, D, dummyDetails.diff, D.ordinal);
 
         // Author insertion is brainlessly done at each encounter
-        verify(persistence, times(3)).developerInsertStatement(anyString());
-        verify(persistence, times(2)).developerInsertStatement(A.authorEmail);
-        verify(persistence, times(1)).developerInsertStatement(C.authorEmail);
-        verify(persistence, times(3)).projectDeveloperInsertStatement(eq(projectId), anyString());
-        verify(persistence, times(2)).projectDeveloperInsertStatement(projectId, A.authorEmail);
-        verify(persistence, times(1)).projectDeveloperInsertStatement(projectId, C.authorEmail);
+        verify(developerQueries, times(3)).developerInsertStatement(anyString());
+        verify(developerQueries, times(2)).developerInsertStatement(A.authorEmail);
+        verify(developerQueries, times(1)).developerInsertStatement(C.authorEmail);
+        verify(developerQueries, times(3)).projectDeveloperInsertStatement(eq(projectId), anyString());
+        verify(developerQueries, times(2)).projectDeveloperInsertStatement(projectId, A.authorEmail);
+        verify(developerQueries, times(1)).projectDeveloperInsertStatement(projectId, C.authorEmail);
 
         // No GitRename handled
-        verify(persistence, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
+        verify(commitQueries, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
     }
 
     @Test
@@ -150,16 +155,16 @@ public class CommitsAnalysisTest {
 
         getCommitsAnalysis().query();
 
-        verify(persistence).commitInsertionStatement(projectId, A, details.diff, A.ordinal);
-        verify(persistence, times(0)).fileRenameInsertionStatement(projectId, A.sha, notJavaRename);
-        verify(persistence).fileRenameInsertionStatement(projectId, A.sha, actualRename);
+        verify(commitQueries).commitInsertionStatement(projectId, A, details.diff, A.ordinal);
+        verify(commitQueries, times(0)).fileRenameInsertionStatement(projectId, A.sha, notJavaRename);
+        verify(commitQueries).fileRenameInsertionStatement(projectId, A.sha, actualRename);
 
-        verify(persistence).commitInsertionStatement(projectId, B, otherDetails.diff, B.ordinal);
-        verify(persistence).fileRenameInsertionStatement(projectId, B.sha, renameB);
+        verify(commitQueries).commitInsertionStatement(projectId, B, otherDetails.diff, B.ordinal);
+        verify(commitQueries).fileRenameInsertionStatement(projectId, B.sha, renameB);
 
         // A and B share the same author.
-        verify(persistence, times(2)).developerInsertStatement(A.authorEmail);
-        verify(persistence, times(2)).projectDeveloperInsertStatement(projectId, A.authorEmail);
+        verify(developerQueries, times(2)).developerInsertStatement(A.authorEmail);
+        verify(developerQueries, times(2)).projectDeveloperInsertStatement(projectId, A.authorEmail);
 
     }
 }

@@ -1,6 +1,7 @@
 package fr.inria.tandoori.analysis.query;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -13,11 +14,13 @@ public abstract class PersistenceAnalyzer {
     protected final Logger logger;
     protected final int projectId;
     protected final Persistence persistence;
+    protected final CommitQueries commitQueries;
 
-    protected PersistenceAnalyzer(Logger logger, int projectId, Persistence persistence) {
+    protected PersistenceAnalyzer(Logger logger, int projectId, Persistence persistence, CommitQueries commitQueries) {
         this.logger = logger;
         this.projectId = projectId;
         this.persistence = persistence;
+        this.commitQueries = commitQueries;
     }
 
 
@@ -28,7 +31,7 @@ public abstract class PersistenceAnalyzer {
      * @throws QueryException If we could not find the last paprika Commit, this should not happen.
      */
     protected String fetchLastProjectCommitSha() throws QueryException {
-        List<Map<String, Object>> result = persistence.query(persistence.lastProjectCommitSha1QueryStatement(projectId));
+        List<Map<String, Object>> result = persistence.query(commitQueries.lastProjectCommitShaQuery(projectId));
         if (result.isEmpty()) {
             throw new QueryException(logger.getName(), "Unable to fetch last commit for project: " + projectId);
         }
@@ -42,7 +45,7 @@ public abstract class PersistenceAnalyzer {
      * @return True if the commit is present in the CommitEntry table, False otherwise.
      */
     protected boolean paprikaHasCommit(String commitSha) {
-        String commitQuery = persistence.commitIdQueryStatement(this.projectId, commitSha);
+        String commitQuery = commitQueries.idFromShaQuery(this.projectId, commitSha);
         List<Map<String, Object>> result = persistence.query(commitQuery);
         if (logger.isTraceEnabled()) {
             if (!result.isEmpty()) {

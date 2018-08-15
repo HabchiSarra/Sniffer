@@ -3,6 +3,9 @@ package fr.inria.tandoori.analysis.query.smell;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import org.junit.Before;
 import org.mockito.Mockito;
 
@@ -24,6 +27,9 @@ public abstract class SmellTypeAnalysis {
     protected final String smellType = "TEST";
 
     protected Persistence persistence;
+    protected CommitQueries commitQueries;
+    protected BranchQueries branchQueries;
+    protected SmellQueries smellQueries;
     protected SmellDuplicationChecker duplicationChecker;
     protected List<Map<String, Object>> smellList;
 
@@ -39,10 +45,13 @@ public abstract class SmellTypeAnalysis {
         smellList = new ArrayList<>();
 
         persistence = Mockito.mock(Persistence.class);
+        smellQueries = Mockito.mock(SmellQueries.class);
+        commitQueries = Mockito.mock(CommitQueries.class);
+        branchQueries = Mockito.mock(BranchQueries.class);
         duplicationChecker = Mockito.mock(SmellDuplicationChecker.class);
 
-        doReturn(END_COMMIT_STATEMENT).when(persistence).lastProjectCommitSha1QueryStatement(projectId);
-        doReturn(GAP_COMMIT_STATEMENT).when(persistence).commitSha1QueryStatement(eq(projectId), anyInt());
+        doReturn(END_COMMIT_STATEMENT).when(commitQueries).lastProjectCommitShaQuery(projectId);
+        doReturn(GAP_COMMIT_STATEMENT).when(commitQueries).shaFromOrdinalQuery(eq(projectId), anyInt());
     }
 
     protected void addSmell(Commit commit, Smell smell) {

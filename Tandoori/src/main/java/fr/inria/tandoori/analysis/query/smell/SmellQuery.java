@@ -1,6 +1,9 @@
 package fr.inria.tandoori.analysis.query.smell;
 
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import neo4j.HashMapUsageQuery;
@@ -28,11 +31,18 @@ public class SmellQuery implements Query {
     private final String paprikaDB;
     private final Persistence persistence;
     private final int projectId;
+    private BranchQueries branchQueries;
+    private SmellQueries smellQueries;
+    private CommitQueries commitQueries;
 
-    public SmellQuery(int projectId, String paprikaDB, Persistence persistence) {
+    public SmellQuery(int projectId, String paprikaDB, Persistence persistence,
+                      CommitQueries commitQueries, SmellQueries smellQueries, BranchQueries branchQueries) {
         this.projectId = projectId;
         this.paprikaDB = paprikaDB;
         this.persistence = persistence;
+        this.commitQueries = commitQueries;
+        this.smellQueries = smellQueries;
+        this.branchQueries = branchQueries;
     }
 
     private List<neo4j.Query> queries(QueryEngine queryEngine) {
@@ -61,7 +71,7 @@ public class SmellQuery implements Query {
             Result result = query.streamResult(true, true);
             logger.trace("[" + projectId + "]   ==> Found smells: " + result);
 
-            new BranchAwareSmellTypeAnalysis(projectId, persistence, result, query.getSmellName(), duplicationChecker).query();
+            new BranchAwareSmellTypeAnalysis(projectId, persistence, result, query.getSmellName(), duplicationChecker, commitQueries, smellQueries, branchQueries).query();
 
             // Calling commit for each smell type to avoid too big request.
             persistence.commit();

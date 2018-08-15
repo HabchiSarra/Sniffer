@@ -4,6 +4,8 @@ import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.SmellCategory;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +29,15 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
     private Commit underAnalysis;
     private int lostCommitOrdinal;
 
-    BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker) {
-        this(projectId, persistence, duplicationChecker, true);
+    BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
+                   CommitQueries commitQueries, SmellQueries smellQueries) {
+        this(projectId, persistence, duplicationChecker, commitQueries, smellQueries, true);
     }
 
-    BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker, boolean handleGap) {
-        super(logger, projectId, persistence);
+    BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
+                   CommitQueries commitQueries, SmellQueries smellQueries,
+                   boolean handleGap) {
+        super(logger, projectId, persistence, commitQueries, smellQueries);
         this.duplicationChecker = duplicationChecker;
         this.handleGap = handleGap;
 
@@ -66,6 +71,15 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
         previousCommitSmells.addAll(smells);
     }
 
+    /**
+     * Add a new Smell bound to a commit into the analysis.
+     * <p>
+     * All smells bound to a specific commit has to be sent consecutively,
+     * furthermore, all commits should be sent in order.
+     *
+     * @param smell  The {@link Smell} to add.
+     * @param commit The {@link Commit} in which this {@link Smell} appear.
+     */
     void addSmellCommit(Smell smell, Commit commit) {
         // We handle the commit change in our result dataset.
         // This dataset MUST be ordered by commit_number to have right results.

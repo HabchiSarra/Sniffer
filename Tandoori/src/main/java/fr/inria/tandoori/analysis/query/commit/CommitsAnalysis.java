@@ -5,6 +5,8 @@ import fr.inria.tandoori.analysis.model.CommitDetails;
 import fr.inria.tandoori.analysis.model.GitRename;
 import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
+import fr.inria.tandoori.analysis.persistence.queries.DeveloperQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
@@ -24,19 +26,25 @@ public class CommitsAnalysis implements Query {
     public static final int BATCH_SIZE = 1000;
 
     private final int projectId;
-    private final Persistence persistence;
-    private Repository repository;
+    private final Repository repository;
     private final Iterator<Map<String, Object>> commits;
-    private CommitDetailsChecker detailsChecker;
+    private final CommitDetailsChecker detailsChecker;
+
+    private final Persistence persistence;
+    private final DeveloperQueries developerQueries;
+    private final CommitQueries commitQueries;
 
     public CommitsAnalysis(int projectId, Persistence persistence, Repository repository,
                            Iterator<Map<String, Object>> commits,
-                           CommitDetailsChecker detailsChecker) {
+                           CommitDetailsChecker detailsChecker,
+                           DeveloperQueries developerQueries, CommitQueries commitQueries) {
         this.projectId = projectId;
         this.persistence = persistence;
         this.repository = repository;
         this.commits = commits;
         this.detailsChecker = detailsChecker;
+        this.developerQueries = developerQueries;
+        this.commitQueries = commitQueries;
     }
 
     @Override
@@ -84,14 +92,13 @@ public class CommitsAnalysis implements Query {
      * @return The generated statements.
      */
     private List<String> authorStatements(String emailAddress) {
-        String developerQuery = persistence.developerQueryStatement(emailAddress);
         List<String> statements = new ArrayList<>();
 
         // Try to insert the developer if not exist
-        statements.add(persistence.developerInsertStatement(emailAddress));
+        statements.add(developerQueries.developerInsertStatement(emailAddress));
 
         // Try to insert the developer/project mapping if not exist
-        statements.add(persistence.projectDeveloperInsertStatement(projectId, emailAddress));
+        statements.add(developerQueries.projectDeveloperInsertStatement(projectId, emailAddress));
 
         return statements;
     }
@@ -105,7 +112,7 @@ public class CommitsAnalysis implements Query {
      * @return The generated persistence statement.
      */
     private String commitStatement(Commit commit, CommitDetails details, int ordinal) {
-        return persistence.commitInsertionStatement(projectId, commit, details.diff, ordinal);
+        return commitQueries.commitInsertionStatement(projectId, commit, details.diff, ordinal);
     }
 
     /**
@@ -127,7 +134,7 @@ public class CommitsAnalysis implements Query {
             logger.trace("[" + projectId + "]    => new file: " + rename.newFile);
             logger.trace("[" + projectId + "]    => Similarity: " + rename.similarity);
 
-            result.add(persistence.fileRenameInsertionStatement(projectId, commit.sha, rename));
+            result.add(commitQueries.fileRenameInsertionStatement(projectId, commit.sha, rename));
         }
         return result;
     }
