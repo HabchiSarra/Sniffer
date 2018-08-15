@@ -53,6 +53,9 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         when(branchQueries.lastCommitShaQuery(anyInt(), anyInt())).then((Answer<String>)
                 invocation -> branchLastCommitShaStatement(invocation.getArgument(0),
                         invocation.getArgument(1)));
+        when(branchQueries.shaFromOrdinalQuery(anyInt(), anyInt(), anyInt())).then((Answer<String>)
+                invocation -> commitShaFromOrdinalStatement(invocation.getArgument(0),
+                        invocation.getArgument(1), invocation.getArgument(2)));
     }
 
     private static String mergedBranchIdQuery(int projectId, String sha) {
@@ -75,9 +78,12 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         return "parentCommitSmellsQuery-" + projectId + "-" + branchId;
     }
 
-
     private static String branchLastCommitShaStatement(int projectId, int branchId) {
         return "branchLastCommitShaStatement-" + projectId + "-" + branchId;
+    }
+
+    private static String commitShaFromOrdinalStatement(int projectId, int branchId, int commitOrdinal) {
+        return "commitShaFromOrdinalStatement-" + projectId + "-" + branchId + "-" + commitOrdinal;
     }
 
     private BranchAwareSmellTypeAnalysis getAnalysis() {
@@ -88,12 +94,15 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     private void mockCommitBranch(Commit commit, int branch, int commitOrdinal) {
         List<Map<String, Object>> branchResult = new ArrayList<>();
         branchResult.add(Collections.singletonMap("id", branch));
-
         doReturn(branchResult).when(persistence).query(branchIdStatement(projectId, commit.sha));
 
         List<Map<String, Object>> ordinalResult = new ArrayList<>();
         ordinalResult.add(Collections.singletonMap("ordinal", commitOrdinal));
         doReturn(ordinalResult).when(persistence).query(branchCommitOrdinalStatement(projectId, branch, commit.sha));
+
+        List<Map<String, Object>> commitResult = new ArrayList<>();
+        commitResult.add(Collections.singletonMap("sha1", commit.sha));
+        doReturn(commitResult).when(persistence).query(commitShaFromOrdinalStatement(projectId, branch, commitOrdinal));
     }
 
     private void mockMergeCommit(Commit merge, int branchId) {
@@ -1219,7 +1228,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         getAnalysis().query();
         debugSmellInsertions();
 
-        verify(persistence, times(18)).addStatements(any());
+        verify(persistence, times(19)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellInsertionStatement(projectId, secondSmell);
@@ -1247,7 +1256,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         // Merge
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, thirdSmell, SmellCategory.PRESENCE);
-        // TODO: Call to insertSmellCategory: 0-F - REFACTOR - secondInstance
     }
 
 

@@ -56,6 +56,16 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
     }
 
     @Override
+    public String shaFromOrdinalQuery(int projectId, int currentBranch, int ordinal) {
+        String branchId = idFromOrdinalQueryStatement(projectId, currentBranch);
+        return "SELECT sha1 FROM commit_entry " +
+                "RIGHT JOIN branch_commit " +
+                "ON branch_commit.commit_id = commit_entry.id " +
+                "AND branch_commit.branch_id = (" + branchId + ") " +
+                "AND branch_commit.ordinal = " + ordinal;
+    }
+
+    @Override
     public String parentCommitIdQuery(int projectId, int branchId) {
         return "SELECT parent_commit FROM branch where id = " + branchId + " AND project_id = " + projectId;
     }

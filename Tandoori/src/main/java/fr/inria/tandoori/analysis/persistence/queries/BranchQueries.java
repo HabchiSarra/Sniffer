@@ -108,4 +108,14 @@ public interface BranchQueries {
      * @return The generated query statement.
      */
     String mergedBranchIdQuery(int projectId, Commit commit);
+
+    /**
+     * Return the sha1 from the commit in the given ordinal of the given branch ID.
+     *
+     * @param projectId The project identifier.
+     * @param currentBranch The branch on which we look for the commit sha.
+     * @param ordinal       {@link Commit} ordinal in the branch.
+     * @return The generated query statement.
+     */
+    String shaFromOrdinalQuery(int projectId, int currentBranch, int ordinal);
 }
