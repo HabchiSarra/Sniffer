@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * Actual analysis and persisting of commits and authors for a project.
  */
-public class CommitsAnalysis implements Query {
+class CommitsAnalysis implements Query {
     private static final Logger logger = LoggerFactory.getLogger(CommitsAnalysis.class.getName());
     public static final int BATCH_SIZE = 1000;
 
@@ -34,10 +34,10 @@ public class CommitsAnalysis implements Query {
     private final DeveloperQueries developerQueries;
     private final CommitQueries commitQueries;
 
-    public CommitsAnalysis(int projectId, Persistence persistence, Repository repository,
-                           Iterator<Map<String, Object>> commits,
-                           CommitDetailsChecker detailsChecker,
-                           DeveloperQueries developerQueries, CommitQueries commitQueries) {
+    CommitsAnalysis(int projectId, Persistence persistence, Repository repository,
+                    Iterator<Map<String, Object>> commits,
+                    CommitDetailsChecker detailsChecker,
+                    DeveloperQueries developerQueries, CommitQueries commitQueries) {
         this.projectId = projectId;
         this.persistence = persistence;
         this.repository = repository;

@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class SmellDuplicationChecker {
+class SmellDuplicationChecker {
     static final String SHA1_COLUMN = "sha1";
     static final String OLD_FILE_COLUMN = "old_file";
     static final String NEW_FILE_COLUMN = "new_file";

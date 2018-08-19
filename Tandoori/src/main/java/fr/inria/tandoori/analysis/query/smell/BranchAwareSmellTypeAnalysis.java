@@ -23,7 +23,7 @@ import java.util.Map;
  * <p>
  * This should reduce the number of false positive on smell analysis by sorting commits by branch.
  */
-public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Query {
+class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Query {
     private static final Logger logger = LoggerFactory.getLogger(BranchAwareSmellTypeAnalysis.class.getName());
 
     private final Iterator<Map<String, Object>> smells;
@@ -249,7 +249,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      */
     private int fetchCommitBranch(Commit commit) throws BranchNotFoundException {
         List<Map<String, Object>> result = persistence.query(branchQueries.idFromCommitQueryStatement(projectId, commit));
-        if (result.isEmpty()) {
+        if (result.isEmpty() || result.get(0).get("id") == null) {
             throw new BranchNotFoundException(projectId, commit.sha);
         }
         return (int) result.get(0).get("id");

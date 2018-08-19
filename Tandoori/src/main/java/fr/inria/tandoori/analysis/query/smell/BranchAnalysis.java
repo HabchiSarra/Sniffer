@@ -6,7 +6,7 @@ import fr.inria.tandoori.analysis.query.QueryException;
 
 import java.util.List;
 
-public interface BranchAnalysis {
+interface BranchAnalysis {
     /**
      * Add the {@link List} of {@link Smell} as already existing in the current branch.
      * This means that the smells will be considered as already introduced, and existing in the smell table.

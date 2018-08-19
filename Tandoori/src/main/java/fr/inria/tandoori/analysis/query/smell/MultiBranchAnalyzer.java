@@ -16,7 +16,7 @@ import java.util.Map;
  * Specialized branch analyzer which will fetch commit ordinal in the current branch
  * rather than in the 'commit_entry' table.
  */
-public class MultiBranchAnalyzer extends BranchAnalyzer {
+class MultiBranchAnalyzer extends BranchAnalyzer {
     private static final Logger logger = LoggerFactory.getLogger(MultiBranchAnalyzer.class.getName());
 
     private final BranchQueries branchQueries;

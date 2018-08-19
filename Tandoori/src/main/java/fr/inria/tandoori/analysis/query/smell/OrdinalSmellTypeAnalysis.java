@@ -19,7 +19,7 @@ import java.util.Map;
  *
  * @see <a href="https://git.evilantrules.xyz/antoine/test-git-log">https://git.evilantrules.xyz/antoine/test-git-log</a>
  */
-public class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Query {
+class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Query {
     private final Iterator<Map<String, Object>> smells;
     private String smellType;
     private final SmellDuplicationChecker duplicationChecker;

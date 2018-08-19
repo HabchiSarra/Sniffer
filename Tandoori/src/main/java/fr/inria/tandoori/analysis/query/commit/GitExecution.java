@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * Because sometimes libraries can't do everything...
  * // TODO: See if we can use Jgit instead of raw calls to git
  */
-public class GitExecution {
+class GitExecution {
     private static final Logger logger = LoggerFactory.getLogger(GitExecution.class.getName());
 
     public static List<String> execute(String repository, String query) {

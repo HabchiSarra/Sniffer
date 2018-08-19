@@ -16,11 +16,11 @@ import java.util.List;
  * <p>
  * This class will build a {@link CommitDetails} class, holding the fetched data.
  */
-public class CommitDetailsChecker {
+class CommitDetailsChecker {
     private static final Logger logger = LoggerFactory.getLogger(CommitDetails.class.getName());
     private final String repository;
 
-    public CommitDetailsChecker(String repository) {
+    CommitDetailsChecker(String repository) {
         this.repository = repository;
     }
 
