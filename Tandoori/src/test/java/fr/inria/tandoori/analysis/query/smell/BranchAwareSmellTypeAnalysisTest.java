@@ -738,7 +738,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, H.sha, firstSmell, SmellCategory.REFACTOR);
-        //TODO: H is not found :( -> Confusion on the ordinal concept between our Branch and global commit ordinal
 
         // First Branch
         verify(smellQueries).smellCategoryInsertionStatement(projectId, D.sha, firstSmell, SmellCategory.PRESENCE);

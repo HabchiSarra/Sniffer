@@ -139,6 +139,7 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
      */
     private void initializeBranch(int currentBranch) {
         logger.debug("[" + projectId + "] => Initializing branch: " + currentBranch);
+        persistence.commit();
         BranchAnalyzer analyzer = new MultiBranchAnalyzer(projectId, persistence, duplicationChecker,
                 commitQueries, smellQueries, branchQueries, currentBranch);
         analyzer.addExistingSmells(retrieveBranchParentSmells(currentBranch));
