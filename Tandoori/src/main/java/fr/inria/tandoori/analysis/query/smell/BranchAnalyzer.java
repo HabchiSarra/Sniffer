@@ -15,7 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-class BranchAnalyzer extends AbstractSmellTypeAnalysis {
+class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis {
     private static final Logger logger = LoggerFactory.getLogger(BranchAnalyzer.class.getName());
 
     private final SmellDuplicationChecker duplicationChecker;
@@ -49,38 +49,19 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
         this.resetLostCommit();
     }
 
-    /**
-     * Add the {@link List} of {@link Smell} as already existing in the current branch.
-     * This means that the smells will be considered as already introduced, and existing in the smell table.
-     * For this we set them in both the previousCommitSmells and currentCommitSmells.
-     *
-     * @param smells The smells to add.
-     */
+    @Override
     public void addExistingSmells(List<Smell> smells) {
         previousCommitSmells.addAll(smells);
         currentCommitSmells.addAll(smells);
     }
 
-    /**
-     * Specifically add smells to the previous ones.
-     * This method is used for adding all smells before a merge commit occurs.
-     *
-     * @param smells The smells to add.
-     */
+    @Override
     public void addPreviousSmells(List<Smell> smells) {
         previousCommitSmells.addAll(smells);
     }
 
-    /**
-     * Add a new Smell bound to a commit into the analysis.
-     * <p>
-     * All smells bound to a specific commit has to be sent consecutively,
-     * furthermore, all commits should be sent in order.
-     *
-     * @param smell  The {@link Smell} to add.
-     * @param commit The {@link Commit} in which this {@link Smell} appear.
-     */
-    void addSmellCommit(Smell smell, Commit commit) {
+    @Override
+    public void notifyCommit(Commit commit) {
         // We handle the commit change in our result dataset.
         // This dataset MUST be ordered by commit_number to have right results.
         if (!underAnalysis.equals(commit)) {
@@ -92,7 +73,10 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
             underAnalysis = commit;
             logger.debug("[" + projectId + "] => Now analysing commit: " + underAnalysis);
         }
+    }
 
+    @Override
+    public void notifySmell(Smell smell) {
         // We keep track of the smells present in our commit.
         currentCommitSmells.add(smell);
 
@@ -105,14 +89,16 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis {
             insertSmellInstance(smell);
         }
 
-        insertSmellInCategory(smell, commit, SmellCategory.PRESENCE);
+        insertSmellInCategory(smell, underAnalysis, SmellCategory.PRESENCE);
     }
 
-    void finalizeAnalysis() throws QueryException {
-        finalizeAnalysis(fetchLastProjectCommitSha());
+    @Override
+    public void notifyEnd() throws QueryException {
+        notifyEnd(fetchLastProjectCommitSha());
     }
 
-    void finalizeAnalysis(String lastCommitSha1) {
+    @Override
+    public void notifyEnd(String lastCommitSha1) {
         if (underAnalysis.equals(Commit.EMPTY)) {
             logger.info("[" + projectId + "] No smell found");
             return;

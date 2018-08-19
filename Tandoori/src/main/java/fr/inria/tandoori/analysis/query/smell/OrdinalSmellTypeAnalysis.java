@@ -45,9 +45,10 @@ public class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis implemen
             instance = smells.next();
             smell = Smell.fromPaprikaInstance(instance, smellType);
             commit = Commit.fromInstance(instance);
-            branchAnalyzer.addSmellCommit(smell, commit);
+            branchAnalyzer.notifyCommit(commit);
+            branchAnalyzer.notifySmell(smell);
         }
 
-        branchAnalyzer.finalizeAnalysis();
+        branchAnalyzer.notifyEnd();
     }
 }

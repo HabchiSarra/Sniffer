@@ -23,7 +23,6 @@ public abstract class PersistenceAnalyzer {
         this.commitQueries = commitQueries;
     }
 
-
     /**
      * Retrieve the sha1 of the last commit analyzed by Paprika.
      *

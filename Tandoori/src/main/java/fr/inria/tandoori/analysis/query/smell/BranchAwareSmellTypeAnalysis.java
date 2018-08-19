@@ -78,12 +78,15 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
 
             // We then submit the new smell to analysis
             commit.setOrdinal(fetchCommitOrdinal(currentBranch, commit));
-            branchAnalyzers.get(currentBranch).addSmellCommit(smell, commit);
+            branchAnalyzers.get(currentBranch).notifyCommit(commit);
 
             // We ensure to merge SmellPresence from the merged branch if necessary.
             if (!previousCommit.equals(commit) && getMergingBranchId(commit) != null) {
                 addSmellsToMergeCommit(commit, currentBranch);
             }
+
+            // Once the previous Smells are all set, notify our newly found smell.
+            branchAnalyzers.get(currentBranch).notifySmell(smell);
 
             // When we are sure that we passed the last branch commit, we will finalize the branch analysis,
             // i.e. setting introductions and refactoring for the last branch commit.
@@ -119,9 +122,9 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
         logger.debug("[" + projectId + "] => Finalizing branch: " + branchId);
         String lastBranchCommit = getLastBranchCommit(branchId);
         if (lastBranchCommit != null) {
-            branchAnalyzers.get(branchId).finalizeAnalysis(lastBranchCommit);
+            branchAnalyzers.get(branchId).notifyEnd(lastBranchCommit);
         } else {
-            branchAnalyzers.get(branchId).finalizeAnalysis();
+            branchAnalyzers.get(branchId).notifyEnd();
         }
     }
 

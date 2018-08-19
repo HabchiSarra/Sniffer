@@ -728,7 +728,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         mockBranchParentCommitSmells(2, firstSmell);
 
         getAnalysis().query();
-        debugSmellInsertions();
 
         verify(persistence, times(21)).addStatements(any());
         // Initial branch
@@ -1029,9 +1028,8 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         mockBranchParentCommitSmells(1, Collections.emptyList());
 
         getAnalysis().query();
-        debugSmellInsertions();
 
-        verify(persistence, times(21)).addStatements(any());
+        verify(persistence, times(20)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, firstSmell, SmellCategory.PRESENCE);
@@ -1127,9 +1125,8 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         mockBranchParentCommitSmells(2, firstSmell, secondSmell);
 
         getAnalysis().query();
-        debugSmellInsertions();
 
-        verify(persistence, times(22)).addStatements(any());
+        verify(persistence, times(21)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
@@ -1226,7 +1223,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         mockBranchParentCommitSmells(3, firstSmell);
 
         getAnalysis().query();
-        debugSmellInsertions();
 
         verify(persistence, times(19)).addStatements(any());
         // Initial branch

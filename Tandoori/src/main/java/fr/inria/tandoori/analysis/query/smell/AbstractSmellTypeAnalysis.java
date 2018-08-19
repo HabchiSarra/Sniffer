@@ -128,7 +128,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
     }
 
     /**
-     * Retrieve the list of introced commits from the list of smell presence of the previous and current commit.
+     * Retrieve the list of introduced commits from the list of smell presence of the previous and current commit.
      *
      * @param previous                  The list of smells present in the previous commit.
      * @param current                   The list of smells present in the current commit.
