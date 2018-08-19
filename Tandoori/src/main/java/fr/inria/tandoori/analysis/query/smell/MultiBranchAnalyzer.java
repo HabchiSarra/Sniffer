@@ -29,7 +29,9 @@ public class MultiBranchAnalyzer extends BranchAnalyzer {
         this.branchId = branchId;
     }
 
-/*    @Override
+/*
+   // TODO: This doewsn't work on unit tests
+    @Override
     public void notifyEnd() throws QueryException {
         super.notifyEnd(fetchLastBranchCommitSha());
     }

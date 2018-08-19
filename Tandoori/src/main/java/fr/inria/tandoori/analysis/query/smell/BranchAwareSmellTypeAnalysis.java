@@ -27,7 +27,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
     private static final Logger logger = LoggerFactory.getLogger(BranchAwareSmellTypeAnalysis.class.getName());
 
     private final Iterator<Map<String, Object>> smells;
-    private String smellType;
+    private final String smellType;
     private final SmellDuplicationChecker duplicationChecker;
 
     private final Map<Integer, BranchAnalyzer> branchAnalyzers;
@@ -46,7 +46,6 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
         branchAnalyzers = new HashMap<>();
         branchLastCommitSha = new HashMap<>();
     }
-
 
     @Override
     public void query() throws QueryException {
@@ -112,38 +111,12 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
         }
     }
 
-    /**
-     * Call finalize on {@link BranchAnalyzer} with the correct end commit for this branch.
-     *
-     * @param branchId The branch identifier.
-     * @throws QueryException If anything goes wrong while querying the last commit for this project.
-     */
-    private void finalizeBranch(int branchId) throws QueryException {
-        logger.debug("[" + projectId + "] => Finalizing branch: " + branchId);
-        String lastBranchCommit = getLastBranchCommit(branchId);
-        if (lastBranchCommit != null) {
-            branchAnalyzers.get(branchId).notifyEnd(lastBranchCommit);
-        } else {
-            branchAnalyzers.get(branchId).notifyEnd();
-        }
-    }
-
     private int fetchCommitOrdinal(int branchId, Commit commit) throws QueryException {
         List<Map<String, Object>> result = persistence.query(branchQueries.commitOrdinalQuery(projectId, branchId, commit));
         if (result.isEmpty()) {
             throw new QueryException(logger.getName(), "Unable to find commit (" + commit.sha + ") in branch n°" + branchId);
         }
         return (int) result.get(0).get("ordinal");
-    }
-
-    /**
-     * Return the sha of the branch's last commit.
-     *
-     * @param branchId The branch to lookup onto.
-     * @return The last commit sha.
-     */
-    private String getLastBranchCommit(int branchId) {
-        return branchLastCommitSha.get(branchId);
     }
 
     /**
@@ -165,6 +138,7 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @param currentBranch Identifier of the branch to initialize.
      */
     private void initializeBranch(int currentBranch) {
+        logger.debug("[" + projectId + "] => Initializing branch: " + currentBranch);
         BranchAnalyzer analyzer = new MultiBranchAnalyzer(projectId, persistence, duplicationChecker,
                 commitQueries, smellQueries, branchQueries, currentBranch);
         analyzer.addExistingSmells(retrieveBranchParentSmells(currentBranch));
@@ -176,7 +150,32 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
         } else {
             branchLastCommitSha.put(currentBranch, (String) query.get(0).get("sha1"));
         }
+    }
 
+    /**
+     * Return the sha of the branch's last commit.
+     *
+     * @param branchId The branch to lookup onto.
+     * @return The last commit sha.
+     */
+    private String getLastBranchCommit(int branchId) {
+        return branchLastCommitSha.get(branchId);
+    }
+
+    /**
+     * Call finalize on {@link BranchAnalyzer} with the correct end commit for this branch.
+     *
+     * @param branchId The branch identifier.
+     * @throws QueryException If anything goes wrong while querying the last commit for this project.
+     */
+    private void finalizeBranch(int branchId) throws QueryException {
+        logger.debug("[" + projectId + "] => Finalizing branch: " + branchId);
+        String lastBranchCommit = getLastBranchCommit(branchId);
+        if (lastBranchCommit != null) {
+            branchAnalyzers.get(branchId).notifyEnd(lastBranchCommit);
+        } else {
+            branchAnalyzers.get(branchId).notifyEnd();
+        }
     }
 
     /**
@@ -186,7 +185,8 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @return A {@link List} of present {@link Smell}.
      */
     private List<Smell> retrieveBranchParentSmells(int branchId) {
-        List<Map<String, Object>> results = persistence.query(branchQueries.parentCommitSmellsQuery(projectId, branchId));
+        String parentSmellsQuery = branchQueries.parentCommitSmellsQuery(projectId, branchId, smellType);
+        List<Map<String, Object>> results = persistence.query(parentSmellsQuery);
         return toSmells(results);
     }
 
@@ -197,7 +197,8 @@ public class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis impl
      * @return A {@link List} of {@link Smell}.
      */
     private List<Smell> retrieveMergedBranchFinalSmells(Commit merge) {
-        List<Map<String, Object>> results = persistence.query(branchQueries.lastCommitSmellsQuery(projectId, merge));
+        String lastCommitSmellsQuery = branchQueries.lastCommitSmellsQuery(projectId, merge, smellType);
+        List<Map<String, Object>> results = persistence.query(lastCommitSmellsQuery);
         return toSmells(results);
     }
 

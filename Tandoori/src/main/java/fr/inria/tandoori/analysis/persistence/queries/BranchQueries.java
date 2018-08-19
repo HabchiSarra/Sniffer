@@ -59,9 +59,10 @@ public interface BranchQueries {
      *
      * @param projectId The project identifier.
      * @param branchId  The branch identifier.
+     * @param smellType Filter the type of smells to retrieve.
      * @return The generated query statement.
      */
-    String parentCommitSmellsQuery(int projectId, int branchId);
+    String parentCommitSmellsQuery(int projectId, int branchId, String smellType);
 
     /**
      * Retrieve the id of the branch last commit.
@@ -86,9 +87,10 @@ public interface BranchQueries {
      *
      * @param projectId The project identifier.
      * @param merge     The {@link Commit} in which the branch is merged.
+     * @param smellType Filter the type of smells to retrieve.
      * @return The generated query statement.
      */
-    String lastCommitSmellsQuery(int projectId, Commit merge);
+    String lastCommitSmellsQuery(int projectId, Commit merge, String smellType);
 
     /**
      * Retrieve the commit ordinal in the given branch.
@@ -112,7 +114,7 @@ public interface BranchQueries {
     /**
      * Return the sha1 from the commit in the given ordinal of the given branch ID.
      *
-     * @param projectId The project identifier.
+     * @param projectId     The project identifier.
      * @param currentBranch The branch on which we look for the commit sha.
      * @param ordinal       {@link Commit} ordinal in the branch.
      * @return The generated query statement.

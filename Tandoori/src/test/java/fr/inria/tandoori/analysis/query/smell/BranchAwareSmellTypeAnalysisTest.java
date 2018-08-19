@@ -19,6 +19,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
@@ -44,12 +45,12 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         when(branchQueries.mergedBranchIdQuery(anyInt(), any(Commit.class))).then((Answer<String>)
                 invocation -> mergedBranchIdQuery(invocation.getArgument(0),
                         ((Commit) invocation.getArgument(1)).sha));
-        when(branchQueries.lastCommitSmellsQuery(anyInt(), any(Commit.class))).then((Answer<String>)
+        when(branchQueries.lastCommitSmellsQuery(anyInt(), any(Commit.class), anyString())).then((Answer<String>)
                 invocation -> branchLastCommitSmellStatement(invocation.getArgument(0),
-                        ((Commit) invocation.getArgument(1)).sha));
-        when(branchQueries.parentCommitSmellsQuery(anyInt(), anyInt())).then((Answer<String>)
+                        ((Commit) invocation.getArgument(1)).sha, invocation.getArgument(2)));
+        when(branchQueries.parentCommitSmellsQuery(anyInt(), anyInt(), anyString())).then((Answer<String>)
                 invocation -> branchParentCommitSmellStatement(invocation.getArgument(0),
-                        invocation.getArgument(1)));
+                        invocation.getArgument(1), invocation.getArgument(2)));
         when(branchQueries.lastCommitShaQuery(anyInt(), anyInt())).then((Answer<String>)
                 invocation -> branchLastCommitShaStatement(invocation.getArgument(0),
                         invocation.getArgument(1)));
@@ -70,12 +71,12 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         return "BranchCommitOrdinalQueryStatement-" + projectId + "-" + branchId + "-" + sha;
     }
 
-    private static String branchLastCommitSmellStatement(int projectId, String sha) {
-        return "branchLastCommitSmellStatement-" + projectId + "-" + sha;
+    private static String branchLastCommitSmellStatement(int projectId, String sha, String smellType) {
+        return "branchLastCommitSmellStatement-" + projectId + "-" + sha + "-" + smellType;
     }
 
-    private static String branchParentCommitSmellStatement(int projectId, int branchId) {
-        return "parentCommitSmellsQuery-" + projectId + "-" + branchId;
+    private static String branchParentCommitSmellStatement(int projectId, int branchId, String smellType) {
+        return "parentCommitSmellsQuery-" + projectId + "-" + branchId + "-" + smellType;
     }
 
     private static String branchLastCommitShaStatement(int projectId, int branchId) {
@@ -121,7 +122,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
             content.put("file", smell.file);
             smellResult.add(content);
         }
-        doReturn(smellResult).when(persistence).query(branchLastCommitSmellStatement(projectId, merge.sha));
+        doReturn(smellResult).when(persistence).query(branchLastCommitSmellStatement(projectId, merge.sha, smellType));
     }
 
 
@@ -135,7 +136,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
             content.put("file", smell.file);
             smellResult.add(content);
         }
-        doReturn(smellResult).when(persistence).query(branchParentCommitSmellStatement(projectId, branchId));
+        doReturn(smellResult).when(persistence).query(branchParentCommitSmellStatement(projectId, branchId, smellType));
     }
 
     private void mockBranchParentCommitSmells(int branchId, Smell... smells) {

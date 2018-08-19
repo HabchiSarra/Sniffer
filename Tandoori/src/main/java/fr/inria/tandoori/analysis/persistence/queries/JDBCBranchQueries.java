@@ -39,14 +39,14 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
     }
 
     @Override
-    public String parentCommitSmellsQuery(int projectId, int branchId) {
-        return commitSmellsQuery(projectId, parentCommitIdQuery(projectId, branchId));
+    public String parentCommitSmellsQuery(int projectId, int branchId, String smellType) {
+        return commitSmellsQuery(projectId, parentCommitIdQuery(projectId, branchId), smellType);
     }
 
     @Override
-    public String lastCommitSmellsQuery(int projectId, Commit merge) {
+    public String lastCommitSmellsQuery(int projectId, Commit merge, String smellType) {
         String branchId = "(" + mergedBranchIdQuery(projectId, merge) + ")";
-        return commitSmellsQuery(projectId, branchLastCommitQuery(projectId, branchId, "id"));
+        return commitSmellsQuery(projectId, branchLastCommitQuery(projectId, branchId, "id"), smellType);
     }
 
 
@@ -123,11 +123,13 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
      *
      * @param projectId     The project identifier.
      * @param commitIdQuery Query returning the commit identifier.
+     * @param smellType     Filter the type of smells to retrieve.
      * @return The generated query statement.
      */
-    private static String commitSmellsQuery(int projectId, String commitIdQuery) {
+    private static String commitSmellsQuery(int projectId, String commitIdQuery, String smellType) {
         return "SELECT type, instance, file FROM smell " +
                 "RIGHT JOIN smell_presence ON smell_presence.smell_id = smell.id " +
-                "WHERE smell_presence.commit_id = (" + commitIdQuery + ") ";
+                "WHERE smell_presence.commit_id = (" + commitIdQuery + ") " +
+                "AND smell.type = '" + smellType + "'";
     }
 }
