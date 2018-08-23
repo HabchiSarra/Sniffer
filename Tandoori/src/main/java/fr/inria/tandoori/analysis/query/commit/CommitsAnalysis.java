@@ -61,6 +61,8 @@ class CommitsAnalysis implements Query {
             paprikaCommit = Commit.fromInstance(commits.next());
             try {
                 gitCommit = repository.getCommitWithDetails(paprikaCommit.sha);
+                // Add parents to the gitCommit.
+                gitCommit.setParents(repository.getCommitWithParents(paprikaCommit.sha).parents);
             } catch (IOException e) {
                 throw new QueryException(logger.getName(),
                         "Unable to retrieve commit " + paprikaCommit.sha + " in git repository " + repository);

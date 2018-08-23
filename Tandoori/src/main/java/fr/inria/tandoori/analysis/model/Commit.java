@@ -4,6 +4,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +93,7 @@ public class Commit {
                 new DateTime(((long) revCommit.getCommitTime()) * 1000),
                 revCommit.getFullMessage(),
                 revCommit.getAuthorIdent().getEmailAddress(),
-                Collections.emptyList());
+                new ArrayList<>());
     }
 
     /**
@@ -183,5 +184,10 @@ public class Commit {
                 "sha='" + sha + '\'' +
                 ", ordinal=" + ordinal +
                 '}';
+    }
+
+    public void setParents(Collection<Commit> newParents) {
+        parents.clear();
+        parents.addAll(newParents);
     }
 }

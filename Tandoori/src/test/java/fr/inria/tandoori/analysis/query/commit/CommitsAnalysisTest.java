@@ -8,6 +8,7 @@ import fr.inria.tandoori.analysis.model.Repository;
 import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.DeveloperQueries;
+import fr.inria.tandoori.analysis.query.QueryException;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,11 +81,49 @@ public class CommitsAnalysisTest {
 
         // Prepare repository to return this commit.
         doReturn(commit).when(repository).getCommitWithDetails(eq(commit.sha));
+        doReturn(commit).when(repository).getCommitWithParents(commit.sha);
         doReturn(details).when(detailsChecker).fetch(commit.sha);
     }
 
     private void addCommit(Commit commit) throws IOException {
         addCommit(commit, dummyDetails);
+    }
+
+    @Test
+    public void testMergeCommitInserted() throws IOException, QueryException {
+        Commit merged = new Commit("a", 51,
+                DateTime.now(), "message", "first@email.com", new ArrayList<>());
+        Commit parent = new Commit("b", 53,
+                DateTime.now(), "message", "second@email.com", new ArrayList<>());
+        ArrayList<Commit> parents = new ArrayList<>();
+        parents.add(parent);
+        parents.add(merged);
+        Commit merge = new Commit("c", 54,
+                DateTime.now(), "message", "author@email.com", parents);
+
+        addCommit(merged);
+        addCommit(parent);
+        addCommit(merge);
+
+        getCommitsAnalysis().query();
+
+        verify(commitQueries, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
+        verify(commitQueries).commitInsertionStatement(projectId, merged, dummyDetails.diff, merged.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, parent, dummyDetails.diff, parent.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, merge, dummyDetails.diff, merge.ordinal);
+
+        // Author insertion is brainlessly done at each encounter
+        verify(developerQueries, times(3)).developerInsertStatement(anyString());
+        verify(developerQueries, times(1)).developerInsertStatement(merged.authorEmail);
+        verify(developerQueries, times(1)).developerInsertStatement(parent.authorEmail);
+        verify(developerQueries, times(1)).developerInsertStatement(merge.authorEmail);
+        verify(developerQueries, times(3)).projectDeveloperInsertStatement(eq(projectId), anyString());
+        verify(developerQueries, times(1)).projectDeveloperInsertStatement(projectId, merged.authorEmail);
+        verify(developerQueries, times(1)).projectDeveloperInsertStatement(projectId, parent.authorEmail);
+        verify(developerQueries, times(1)).projectDeveloperInsertStatement(projectId, merge.authorEmail);
+
+        // No GitRename handled
+        verify(commitQueries, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
     }
 
     @Test

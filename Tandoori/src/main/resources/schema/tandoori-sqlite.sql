@@ -43,9 +43,11 @@ CREATE TABLE IF NOT EXISTS `commit_entry` (
   files_changed INTEGER UNSIGNED NOT NULL,
   message      TEXT NOT NULL,
   date        DATE             NOT NULL,
+  merged_commit_id INTEGER,
   UNIQUE (project_id, sha1),
   FOREIGN KEY (project_id) REFERENCES Project (id),
-  FOREIGN KEY (developer_id) REFERENCES Developer (id)
+  FOREIGN KEY (developer_id) REFERENCES Developer (id),
+  FOREIGN KEY (merged_commit_id) REFERENCES commit_entry (id)
 );
 
 CREATE TABLE IF NOT EXISTS Branch (
@@ -68,7 +70,8 @@ CREATE TABLE IF NOT EXISTS branch_commit (
   UNIQUE (branch_id, commit_id),
   UNIQUE (branch_id, ordinal),
   FOREIGN KEY (branch_id) REFERENCES Branch (id),
-  FOREIGN KEY (commit_id) REFERENCES commit_entry (id)
+  FOREIGN KEY (commit_id) REFERENCES commit_entry (id),
+  FOREIGN KEY (merged_commit_id) REFERENCES commit_entry (id)
 );
 
 CREATE TABLE IF NOT EXISTS `file_rename` (

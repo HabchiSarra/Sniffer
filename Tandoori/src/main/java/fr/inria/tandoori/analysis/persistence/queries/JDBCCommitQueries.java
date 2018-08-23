@@ -20,11 +20,15 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
         // Escaping double dollars to avoid exiting dollar quoted string too soon.
         String commitMessage = escapeStringEntry(commit.message);
 
+        String mergedCommit = commit.getParentCount() >= 2 ?
+                "(" + idFromShaQuery(projectId, commit.getParent(1).sha) + ")" : null;
+
         String developerQuery = developerQueries.idFromEmailQuery(commit.authorEmail);
-        return "INSERT INTO commit_entry (project_id, developer_id, sha1, ordinal, date, additions, deletions, files_changed, message) VALUES ('" +
+        return "INSERT INTO commit_entry (project_id, developer_id, sha1, ordinal, date, " +
+                "additions, deletions, files_changed, message, merged_commit_id) VALUES ('" +
                 projectId + "', (" + developerQuery + "), '" + commit.sha + "', " + ordinal + ", '" + commit.date.toString() +
                 "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() +
-                ", $$" + commitMessage + "$$) ON CONFLICT DO NOTHING;";
+                ", $$" + commitMessage + "$$, " + mergedCommit + ") ON CONFLICT DO NOTHING;";
     }
 
     @Override
