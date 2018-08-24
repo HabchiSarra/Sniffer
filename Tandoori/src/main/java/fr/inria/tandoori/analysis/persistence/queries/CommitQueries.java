@@ -51,4 +51,13 @@ public interface CommitQueries {
      * @return The generated query statement.
      */
     String lastProjectCommitShaQuery(int projectId);
+
+    /**
+     * Returns the id of the commit merged into this one, if exists.
+     *
+     * @param projectId Project to look into.
+     * @param commit    The commit to look on.
+     * @return The generated query statement.
+     */
+    String mergedCommitIdQuery(int projectId, Commit commit);
 }

@@ -45,4 +45,13 @@ public interface SmellQueries {
      */
     String smellIdQuery(int projectId, String instance, String type, boolean onlyLast);
 
+    /**
+     * Query the {@link Smell} instances for a specific commit identifier.
+     *
+     * @param projectId The project identifier.
+     * @param commitId  Commit identifier or query returning the commit identifier between parenthesis.
+     * @param smellType Filter the type of smells to retrieve. Unused if null
+     * @return The generated query statement.
+     */
+    String commitSmellsQuery(int projectId, String commitId, String smellType);
 }

@@ -1,13 +1,14 @@
 package fr.inria.tandoori.analysis.persistence.queries;
 
 import fr.inria.tandoori.analysis.model.Commit;
-import fr.inria.tandoori.analysis.model.Smell;
 
 public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQueries {
     private CommitQueries commitQueries;
+    private SmellQueries smellQueries;
 
-    public JDBCBranchQueries(CommitQueries commitQueries) {
+    public JDBCBranchQueries(CommitQueries commitQueries, SmellQueries smellQueries) {
         this.commitQueries = commitQueries;
+        this.smellQueries = smellQueries;
     }
 
     @Override
@@ -40,13 +41,13 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
 
     @Override
     public String parentCommitSmellsQuery(int projectId, int branchId, String smellType) {
-        return commitSmellsQuery(projectId, parentCommitIdQuery(projectId, branchId), smellType);
+        return smellQueries.commitSmellsQuery(projectId, "(" + parentCommitIdQuery(projectId, branchId) + ")", smellType);
     }
 
     @Override
     public String lastCommitSmellsQuery(int projectId, Commit merge, String smellType) {
         String branchId = "(" + mergedBranchIdQuery(projectId, merge) + ")";
-        return commitSmellsQuery(projectId, branchLastCommitQuery(projectId, branchId, "id"), smellType);
+        return smellQueries.commitSmellsQuery(projectId, "(" + branchLastCommitQuery(projectId, branchId, "id") + ")", smellType);
     }
 
 
@@ -115,21 +116,5 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
                 "AND branch_commit.commit_id = commit_entry.id " +
                 "WHERE commit_entry.project_id = " + projectId + " " +
                 "ORDER BY commit_entry.ordinal DESC LIMIT 1";
-    }
-
-    /**
-     * Helper method to fetch {@link Smell} instances for a specific commit identifier.
-     * TODO: extract to {@link SmellQueries} interface.
-     *
-     * @param projectId     The project identifier.
-     * @param commitIdQuery Query returning the commit identifier.
-     * @param smellType     Filter the type of smells to retrieve.
-     * @return The generated query statement.
-     */
-    private static String commitSmellsQuery(int projectId, String commitIdQuery, String smellType) {
-        return "SELECT type, instance, file FROM smell " +
-                "RIGHT JOIN smell_presence ON smell_presence.smell_id = smell.id " +
-                "WHERE smell_presence.commit_id = (" + commitIdQuery + ") " +
-                "AND smell.type = '" + smellType + "'";
     }
 }

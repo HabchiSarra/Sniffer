@@ -22,6 +22,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     private final boolean handleGap;
 
     // Those attributes are the class state.
+    // TODO: Delegate previousCommitSmells, currentCommitSmells, currentCommitOriginal, and currentCommitRenamed to Commit object.
     private final Set<Smell> previousCommitSmells;
     private final Set<Smell> currentCommitSmells;
     private final List<Smell> currentCommitOriginal;

@@ -52,4 +52,9 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
                 projectId + "', (" + idFromShaQuery(projectId, commitSha) + "), '" + rename.oldFile + "', '" +
                 rename.newFile + "', " + rename.similarity + ") ON CONFLICT DO NOTHING;";
     }
+
+    @Override
+    public String mergedCommitIdQuery(int projectId, Commit commit) {
+        return "SELECT merged_commit_id AS id FROM commit_entry where sha1 = '" + commit.sha + "'";
+    }
 }

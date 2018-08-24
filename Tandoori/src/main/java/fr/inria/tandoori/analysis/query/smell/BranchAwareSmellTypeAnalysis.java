@@ -79,9 +79,9 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
             commit.setOrdinal(fetchCommitOrdinal(currentBranch, commit));
             branchAnalyzers.get(currentBranch).notifyCommit(commit);
 
-            // We ensure to merge SmellPresence from the merged branch if necessary.
-            if (!previousCommit.equals(commit) && getMergingBranchId(commit) != null) {
-                addSmellsToMergeCommit(commit, currentBranch);
+            // On commit change, we ensure to merge SmellPresence from the merged commit if necessary.
+            if (!previousCommit.equals(commit)) {
+                synchronizeMergeSmells(commit, currentBranch);
             }
 
             // Once the previous Smells are all set, notify our newly found smell.
@@ -95,19 +95,33 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
             }
         }
 
+        /* TODO: Remove this block if useless
         // If the last master commit is a merge commit, give him his smells.
-        Integer mergingBranchId = getMergingBranchId(commit);
-        if (mergingBranchId != null) {
-            try {
-                addSmellsToMergeCommit(commit, fetchCommitBranch(commit));
-            } catch (BranchNotFoundException e) {
-                logger.warn("[" + projectId + "] => Unable to find branch id for commit: " + commit, e.getMessage());
-            }
+        try {
+            synchronizeMergeSmells(commit, fetchCommitBranch(commit));
+        } catch (BranchNotFoundException e) {
+            logger.warn("[" + projectId + "] => Unable to find branch id for commit: " + commit, e.getMessage());
         }
+        //*/
 
         // We should only perform operations for branch 0 since all other commits are looped around.
         for (int branchId : branchAnalyzers.keySet()) {
             finalizeBranch(branchId);
+        }
+    }
+
+    /**
+     * This method will check if the current commit is a merge commit.
+     * It will then load every smell from the merged commit in its branch.
+     *
+     * @param commit        The commit to check.
+     * @param currentBranch The commit branch to insert smells into.
+     */
+    private void synchronizeMergeSmells(Commit commit, Integer currentBranch) {
+        Integer mergedCommitId = getMergedCommitId(commit);
+        if (mergedCommitId != null) {
+            persistence.commit();
+            addSmellsToMergeCommit(mergedCommitId, currentBranch);
         }
     }
 
@@ -124,11 +138,11 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
      * if we have one, we will retrieve all smells from the merged branch last commit, in order
      * to keep a realistic track of the introductions and refactoring.
      *
-     * @param merge         The commit in which the branch is merged.
-     * @param currentBranch The branch to add commits onto.
+     * @param mergedCommitId The commit being merged.
+     * @param currentBranch  The branch to add commits onto.
      */
-    private void addSmellsToMergeCommit(Commit merge, int currentBranch) {
-        branchAnalyzers.get(currentBranch).addPreviousSmells(retrieveMergedBranchFinalSmells(merge));
+    private void addSmellsToMergeCommit(int mergedCommitId, int currentBranch) {
+        branchAnalyzers.get(currentBranch).addPreviousSmells(retrieveMergedCommitSmells(mergedCommitId));
     }
 
     /**
@@ -192,13 +206,13 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
     }
 
     /**
-     * Fetch the SmellPresences of the given branch's last commit.
+     * Fetch the SmellPresences of the given commit.
      *
-     * @param merge The commit in which the branch is merged.
+     * @param mergedCommitId Identifier of the commit being merged.
      * @return A {@link List} of {@link Smell}.
      */
-    private List<Smell> retrieveMergedBranchFinalSmells(Commit merge) {
-        String lastCommitSmellsQuery = branchQueries.lastCommitSmellsQuery(projectId, merge, smellType);
+    private List<Smell> retrieveMergedCommitSmells(int mergedCommitId) {
+        String lastCommitSmellsQuery = smellQueries.commitSmellsQuery(projectId, String.valueOf(mergedCommitId), smellType);
         List<Map<String, Object>> results = persistence.query(lastCommitSmellsQuery);
         return toSmells(results);
     }
@@ -218,15 +232,14 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
     }
 
     /**
-     * Tells if the current commit is a merge commit and its secondary branch is the branch
-     * referenced by the given id.
+     * Gives the identifier of the merged commit, if any.
      *
      * @param commit The commit to test.
-     * @return the identifier of the merged branch, null if no branch is merged.
+     * @return An {@link Integer} identifying the merged commit, null if commit is not a merge commit.
      */
-    private Integer getMergingBranchId(Commit commit) {
-        List<Map<String, Object>> result = persistence.query(branchQueries.mergedBranchIdQuery(projectId, commit));
-        return result.isEmpty() ? null : (Integer) result.get(0).get("id");
+    private Integer getMergedCommitId(Commit commit) {
+        List<Map<String, Object>> result = persistence.query(commitQueries.mergedCommitIdQuery(projectId, commit));
+        return (result.isEmpty() || result.get(0).isEmpty()) ? null : (Integer) result.get(0).get("id");
     }
 
     /**

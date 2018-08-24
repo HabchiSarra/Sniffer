@@ -50,4 +50,16 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
         }
         return statement;
     }
+
+
+    @Override
+    public String commitSmellsQuery(int projectId, String commitId, String smellType) {
+        String query = "SELECT type, instance, file FROM smell " +
+                "RIGHT JOIN smell_presence ON smell_presence.smell_id = smell.id " +
+                "WHERE smell_presence.commit_id = " + commitId;
+        if (smellType != null) {
+            query += " AND smell.type = '" + smellType + "'";
+        }
+        return query;
+    }
 }

@@ -51,7 +51,7 @@ final class SingleAppAnalysisCallable implements Callable<Void> {
         DeveloperQueries developerQueries = new JDBCDeveloperQueries();
         CommitQueries commitQueries = new JDBCCommitQueries(developerQueries);
         SmellQueries smellQueries = new JDBCSmellQueries(commitQueries);
-        BranchQueries branchQueries = new JDBCBranchQueries(commitQueries);
+        BranchQueries branchQueries = new JDBCBranchQueries(commitQueries, smellQueries);
         try {
             analysis.analyze(persistence, projectQueries, developerQueries, commitQueries, smellQueries, branchQueries);
         } catch (AnalysisException e) {

@@ -96,13 +96,14 @@ public class SingleAppAnalysis {
     }
 
     public void analyze() throws AnalysisException {
+        // TODO: Use dependency injection someday
         // Persistence persistence = new SQLitePersistence("output.sqlite");
         Persistence persistence = new PostgresqlPersistence(DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD);
         ProjectQueries projectQueries = new JDBCProjectQueries();
         DeveloperQueries developerQueries = new JDBCDeveloperQueries();
         CommitQueries commitQueries = new JDBCCommitQueries(developerQueries);
         SmellQueries smellQueries = new JDBCSmellQueries(commitQueries);
-        BranchQueries branchQueries = new JDBCBranchQueries(commitQueries);
+        BranchQueries branchQueries = new JDBCBranchQueries(commitQueries, smellQueries);
         this.analyze(persistence, projectQueries, developerQueries, commitQueries, smellQueries, branchQueries);
     }
 
