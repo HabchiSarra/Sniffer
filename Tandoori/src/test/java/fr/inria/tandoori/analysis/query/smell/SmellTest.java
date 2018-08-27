@@ -31,7 +31,7 @@ public class SmellTest {
         Smell differentFile = new Smell(smell.type, smell.instance, anotherFile);
         Smell sameSmell = new Smell(smell.type, smell.instance, smell.file);
 
-        assertEquals(smell, differentFile);
+        assertNotEquals(smell, differentFile);
         assertEquals(smell, sameSmell);
     }
 

@@ -14,7 +14,7 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
     @Override
     public String smellInsertionStatement(int projectId, Smell smell) {
         // We know that the parent smell is the last inserted one.
-        String parentSmellQuery = smellIdQuery(projectId, smell.parentInstance, smell.type, true);
+        String parentSmellQuery = smellIdQuery(projectId, smell.parentInstance, smell.file, smell.type, true);
         String parentQueryOrNull = smell.parentInstance != null ? "(" + parentSmellQuery + ")" : null;
 
         return "INSERT INTO smell (project_id, instance, type, file, renamed_from) VALUES" +
@@ -27,7 +27,7 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
         // We fetch only the last matching inserted smell
         // This helps us handling the case of Gaps between commits
         return "INSERT INTO " + category.getName() + " (project_id, smell_id, commit_id) VALUES " +
-                "(" + projectId + ", (" + smellIdQuery(projectId, smell.instance, smell.type, true) + "), (" +
+                "(" + projectId + ", (" + smellIdQuery(projectId, smell.instance, smell.file, smell.type, true) + "), (" +
                 commitQueries.idFromShaQuery(projectId, sha1) + "));";
     }
 
@@ -37,14 +37,14 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
         // This helps us handling the case of Gaps between commits
         String lostCategory = "lost_" + category.getName();
         return "INSERT INTO " + lostCategory + " (project_id, smell_id, since, until) VALUES " +
-                "(" + projectId + ", (" + smellIdQuery(projectId, smell.instance, smell.type, true) +
+                "(" + projectId + ", (" + smellIdQuery(projectId, smell.instance, smell.file, smell.type, true) +
                 "), " + "" + since + " , " + until + ");";
     }
 
     @Override
-    public String smellIdQuery(int projectId, String instance, String type, boolean onlyLast) {
+    public String smellIdQuery(int projectId, String instance, String file, String type, boolean onlyLast) {
         String statement = "SELECT id FROM smell WHERE instance = '" + instance + "' " +
-                "AND type = '" + type + "' AND project_id = " + projectId;
+                "AND type = '" + type + "' AND file = '" + file + "' AND project_id = " + projectId;
         if (onlyLast) {
             statement += " ORDER BY id desc LIMIT 1";
         }

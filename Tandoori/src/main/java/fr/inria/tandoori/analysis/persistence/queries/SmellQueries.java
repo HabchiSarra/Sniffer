@@ -39,11 +39,12 @@ public interface SmellQueries {
      *
      * @param projectId Project to look into.
      * @param instance  Smell instance name.
+     * @param file      Smell file name.
      * @param type      Smell type.
      * @param onlyLast  Ensure that only the last matching smell is returned.
      * @return The generated query statement.
      */
-    String smellIdQuery(int projectId, String instance, String type, boolean onlyLast);
+    String smellIdQuery(int projectId, String instance, String file, String type, boolean onlyLast);
 
     /**
      * Query the {@link Smell} instances for a specific commit identifier.

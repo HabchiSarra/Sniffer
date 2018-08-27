@@ -59,7 +59,7 @@ public abstract class SmellTypeAnalysis {
         smellMap.put("key", commit.sha);
         smellMap.put("commit_number", commit.ordinal);
         smellMap.put("instance", smell.instance);
-        smellMap.put("file_path", smell.file);
+        smellMap.put("file_path", "/" + smell.file);
         smellList.add(smellMap);
     }
 

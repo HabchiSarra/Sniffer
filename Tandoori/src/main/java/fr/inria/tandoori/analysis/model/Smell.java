@@ -37,12 +37,13 @@ public class Smell {
         if (o == null || getClass() != o.getClass()) return false;
         Smell smell = (Smell) o;
         return Objects.equals(type, smell.type) &&
-                Objects.equals(instance, smell.instance);
+                Objects.equals(instance, smell.instance) &&
+                Objects.equals(file, smell.file);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, instance);
+        return Objects.hash(type, instance, file);
     }
 
     @Override
