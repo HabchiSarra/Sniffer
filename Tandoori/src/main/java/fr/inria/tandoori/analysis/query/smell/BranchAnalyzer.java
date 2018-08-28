@@ -86,7 +86,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
 
         // Check if we already inserted smell previously to avoid having too much insert statements.
         // This could be removed and still checked by our unicity constraint.
-        // TODO: check smell.parentInstance == null not in previousCommitSmells
+        // TODO: check smell.parent == null not in previousCommitSmells
         if (!previousCommitSmells.contains(smell)) {
             insertSmellInstance(smell);
             persistence.commit();
@@ -160,7 +160,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
             logger.trace("[" + projectId + "]   => potential parent: " + original);
             currentCommitOriginal.add(original);
             currentCommitRenamed.add(smell);
-            smell.parentInstance = original.instance;
+            smell.parent = original;
         }
     }
 

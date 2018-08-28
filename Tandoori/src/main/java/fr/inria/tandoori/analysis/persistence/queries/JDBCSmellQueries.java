@@ -14,8 +14,8 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
     @Override
     public String smellInsertionStatement(int projectId, Smell smell) {
         // We know that the parent smell is the last inserted one.
-        String parentSmellQuery = smellIdQuery(projectId, smell.parentInstance, smell.file, smell.type, true);
-        String parentQueryOrNull = smell.parentInstance != null ? "(" + parentSmellQuery + ")" : null;
+        String parentSmellQuery = smellIdQuery(projectId, smell.parent.instance, smell.file, smell.type, true);
+        String parentQueryOrNull = smell.parent != null ? "(" + parentSmellQuery + ")" : null;
 
         return "INSERT INTO smell (project_id, instance, type, file, renamed_from) VALUES" +
                 "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '"

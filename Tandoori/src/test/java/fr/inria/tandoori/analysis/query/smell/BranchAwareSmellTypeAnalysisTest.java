@@ -25,7 +25,6 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
@@ -337,10 +336,10 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         verify(smellQueries, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
 
-        // Check that the renamed commit has a set parentInstance
+        // Check that the renamed commit has a set parent
         Smell renamed = smellCaptor.getAllValues().get(1);
         assertEquals(secondSmell, renamed);
-        assertEquals(firstSmell.instance, renamed.parentInstance);
+        assertEquals(firstSmell, renamed.parent);
     }
 
     @Test
@@ -367,10 +366,10 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         // Since we use a captor we have to check all invocations of smellInsertionStatement...
         verify(smellQueries, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
-        // Check that the renamed commit has a set parentInstance
+        // Check that the renamed commit has a set parent
         Smell renamed = smellCaptor.getAllValues().get(1);
         assertEquals(secondSmell, renamed);
-        assertEquals(firstSmell.instance, renamed.parentInstance);
+        assertEquals(firstSmell, renamed.parent);
 
         // We won't introduce the same rename multiple times, as before.
         verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.PRESENCE);

@@ -7,13 +7,13 @@ public class Smell {
     public final String type;
     public final String instance;
     public final String file;
-    public String parentInstance;
+    public Smell parent;
 
     public Smell(String type, String instance, String file) {
         this.type = type;
         this.instance = instance;
         this.file = file;
-        this.parentInstance = null;
+        this.parent = null;
     }
 
 
@@ -52,7 +52,7 @@ public class Smell {
                 "type='" + type + '\'' +
                 ", instance='" + instance + '\'' +
                 ", file='" + file + '\'' +
-                ", parentInstance='" + parentInstance + '\'' +
+                ", parent='" + parent + '\'' +
                 '}';
     }
 }
