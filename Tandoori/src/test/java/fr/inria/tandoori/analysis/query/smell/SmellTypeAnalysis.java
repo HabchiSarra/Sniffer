@@ -3,10 +3,12 @@ package fr.inria.tandoori.analysis.query.smell;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import fr.inria.tandoori.analysis.persistence.SmellCategory;
 import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
 import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import org.junit.Before;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -17,7 +19,9 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 
 public abstract class SmellTypeAnalysis {
     public static final String END_COMMIT_STATEMENT = "EndCommitStatement";
@@ -85,6 +89,35 @@ public abstract class SmellTypeAnalysis {
 
     protected void mockNoGapCommit() {
         doReturn(Collections.emptyList()).when(persistence).query(GAP_COMMIT_STATEMENT);
+    }
+
+    protected void debugSmellInsertions() {
+        ArgumentCaptor<Smell> instancesCaptor = ArgumentCaptor.forClass(Smell.class);
+
+        ArgumentCaptor<Smell> instancesCateCaptor = ArgumentCaptor.forClass(Smell.class);
+        ArgumentCaptor<String> shaCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<SmellCategory> typeCaptor = ArgumentCaptor.forClass(SmellCategory.class);
+
+        verify(smellQueries, atLeastOnce()).smellInsertionStatement(eq(projectId), instancesCaptor.capture());
+        verify(smellQueries, atLeastOnce()).smellCategoryInsertionStatement(eq(projectId),
+                shaCaptor.capture(), instancesCateCaptor.capture(), typeCaptor.capture());
+
+        List<Smell> instances = instancesCaptor.getAllValues();
+        System.out.println("--------");
+        for (Smell instance : instances) {
+            System.out.println("Call to insertSmellInstance: " + instance);
+        }
+        System.out.println("--------");
+
+        List<Smell> instancesCategory = instancesCateCaptor.getAllValues();
+        List<String> shas = shaCaptor.getAllValues();
+        List<SmellCategory> categories = typeCaptor.getAllValues();
+        for (int i = 0; i < instancesCategory.size(); i++) {
+            System.out.println("Call to insertSmellCategory: " + shas.get(i) + " - " + categories.get(i) + " - " +
+                    instancesCategory.get(i).instance
+            );
+        }
+        System.out.println("--------");
     }
 
 }

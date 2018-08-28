@@ -1279,34 +1279,4 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, secondSmell, SmellCategory.PRESENCE);
     }
-
-
-    private void debugSmellInsertions() {
-        ArgumentCaptor<Smell> instancesCaptor = ArgumentCaptor.forClass(Smell.class);
-
-        ArgumentCaptor<Smell> instancesCateCaptor = ArgumentCaptor.forClass(Smell.class);
-        ArgumentCaptor<String> shaCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<SmellCategory> typeCaptor = ArgumentCaptor.forClass(SmellCategory.class);
-
-        verify(smellQueries, atLeastOnce()).smellInsertionStatement(eq(projectId), instancesCaptor.capture());
-        verify(smellQueries, atLeastOnce()).smellCategoryInsertionStatement(eq(projectId),
-                shaCaptor.capture(), instancesCateCaptor.capture(), typeCaptor.capture());
-
-        List<Smell> instances = instancesCaptor.getAllValues();
-        System.out.println("--------");
-        for (Smell instance : instances) {
-            System.out.println("Call to insertSmellInstance: " + instance);
-        }
-        System.out.println("--------");
-
-        List<Smell> instancesCategory = instancesCateCaptor.getAllValues();
-        List<String> shas = shaCaptor.getAllValues();
-        List<SmellCategory> categories = typeCaptor.getAllValues();
-        for (int i = 0; i < instancesCategory.size(); i++) {
-            System.out.println("Call to insertSmellCategory: " + shas.get(i) + " - " + categories.get(i) + " - " +
-                    instancesCategory.get(i).instance
-            );
-        }
-        System.out.println("--------");
-    }
 }
