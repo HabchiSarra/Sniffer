@@ -37,12 +37,12 @@ public abstract class SmellTypeAnalysis {
     protected SmellDuplicationChecker duplicationChecker;
     protected List<Map<String, Object>> smellList;
 
-    protected final Smell firstSmell = new Smell(smellType, "instance", "/file");
-    protected final Smell secondSmell = new Smell(smellType, "secondInstance", "/file");
+    protected Smell firstSmell;
+    protected Smell secondSmell;
 
-    protected final Commit firstCommit = new Commit("A", 0);
-    protected final Commit secondCommit = new Commit("B", 1);
-    protected final Commit thirdCommit = new Commit("C", 2);
+    protected Commit firstCommit;
+    protected Commit secondCommit;
+    protected Commit thirdCommit;
 
     @Before
     public void setUp() throws Exception {
@@ -56,6 +56,12 @@ public abstract class SmellTypeAnalysis {
 
         doReturn(END_COMMIT_STATEMENT).when(commitQueries).lastProjectCommitShaQuery(projectId);
         doReturn(GAP_COMMIT_STATEMENT).when(commitQueries).shaFromOrdinalQuery(eq(projectId), anyInt());
+
+        firstSmell = new Smell(smellType, "instance", "/file");
+        secondSmell = new Smell(smellType, "secondInstance", "/file");
+        firstCommit = new Commit("A", 0);
+        secondCommit = new Commit("B", 1);
+        thirdCommit = new Commit("C", 2);
     }
 
     protected void addSmell(Commit commit, Smell smell) {

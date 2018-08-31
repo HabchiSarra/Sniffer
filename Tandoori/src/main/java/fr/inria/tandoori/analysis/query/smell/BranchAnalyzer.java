@@ -58,10 +58,9 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
             handleCommitChanges(underAnalysis);
             // Compare the two commits ordinal to find a gap.
             if (handleGap && underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.EMPTY)) {
-                handleCommitGap(underAnalysis);
+                handleCommitGap();
             }
-            previous = underAnalysis;
-            underAnalysis = commit;
+            updateCommitTracking(commit);
             logger.debug("[" + projectId + "] => Now analysing commit: " + underAnalysis);
         }
     }
@@ -76,7 +75,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
 
         // Check if we already inserted smell previously to avoid having too much insert statements.
         // This could be removed and still checked by our unicity constraint.
-        if (!previous.getSmells().contains(smell) && !previous.getSmells().contains(smell.parent)) {
+        if (!previous.getSmells().contains(smell)) {
             insertSmellInstance(smell);
             persistence.commit();
         }
@@ -105,7 +104,8 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
             logger.info("[" + projectId + "] Last analyzed commit is not last present commit: "
                     + underAnalysis.sha + " / " + lastCommitSha1);
             // The ordinal is unused here, so we can safely put current + 1
-            handleCommitChanges(new Commit(lastCommitSha1, underAnalysis.ordinal + 1));
+            updateCommitTracking(new Commit(lastCommitSha1, underAnalysis.ordinal + 1));
+            handleCommitChanges(underAnalysis);
         } else {
             logger.info("[" + projectId + "] Last analysed commit is last project commit: " + underAnalysis.sha);
         }
@@ -114,21 +114,19 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     /**
      * If we found a gap, it means that we have to smell of this type in the next commit.
      * Thus we consider that every smells has been refactored.
-     *
-     * @param commit The currently analyzed commit that has no direct child with smells.
      */
-    private void handleCommitGap(Commit commit) {
-        logger.info("[" + projectId + "] ==> Handling gap after commit: " + commit);
-        int nextOrdinal = commit.ordinal + 1;
+    private void handleCommitGap() {
+        logger.info("[" + projectId + "] ==> Handling gap after commit: " + underAnalysis);
+        int nextOrdinal = underAnalysis.ordinal + 1;
         try {
-            commit = createNoSmellCommit(nextOrdinal);
+            Commit emptyCommit = createNoSmellCommit(nextOrdinal);
+            // If we found the gap commit, we insert it as any other before continuing
+            updateCommitTracking(emptyCommit);
+            persistCommitChanges(emptyCommit);
         } catch (CommitNotFoundException e) {
             logger.warn("An error occurred while treating gap, inserting in lost smells: " + e.getMessage());
             setLostCommit(nextOrdinal);
-            return;
         }
-        // If we found the gap commit, we insert it as any other before continuing
-        persistCommitChanges(commit);
     }
 
     /**
@@ -201,5 +199,10 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
         logger.debug("[" + projectId + "] ==> Handling lost commit from " + lostCommitOrdinal + " to " + commit.ordinal);
         insertLostSmellIntroductions(lostCommitOrdinal, commit.ordinal, previous, commit);
         insertLostSmellRefactorings(lostCommitOrdinal, commit.ordinal, previous, commit);
+    }
+
+    private void updateCommitTracking(Commit commit) {
+        previous = underAnalysis;
+        underAnalysis = commit;
     }
 }
