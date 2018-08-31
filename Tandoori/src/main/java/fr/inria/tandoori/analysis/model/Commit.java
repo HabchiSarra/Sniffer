@@ -6,6 +6,7 @@ import org.joda.time.DateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,6 +23,9 @@ public class Commit {
     public final String message;
     public final DateTime date;
     public final String authorEmail;
+
+    private final List<Smell> smells;
+    private final Map<Smell, Smell> renamedSmells;
 
 
     /**
@@ -63,6 +67,32 @@ public class Commit {
         this.message = message;
         this.authorEmail = authorEmail;
         this.parents = parents;
+        this.smells = new ArrayList<>();
+        this.renamedSmells = new HashMap<>();
+    }
+
+    public void addSmell(Smell smell) {
+        addSmells(Collections.singleton(smell));
+    }
+
+    public void addSmells(Collection<Smell> smells) {
+        this.smells.addAll(smells);
+    }
+
+    public Collection<Smell> getSmells() {
+        return this.smells;
+    }
+
+    public void setRenamedSmell(Smell origin, Smell renamed) {
+        this.renamedSmells.put(origin, renamed);
+    }
+
+    public Collection<Smell> getRenamedSmellsOrigins() {
+        return this.renamedSmells.keySet();
+    }
+
+    public Collection<Smell> getRenamedSmells() {
+        return this.renamedSmells.values();
     }
 
     /**

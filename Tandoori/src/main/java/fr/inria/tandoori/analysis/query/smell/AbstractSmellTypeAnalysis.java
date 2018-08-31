@@ -10,7 +10,6 @@ import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -60,17 +59,13 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
     /**
      * Insert into persistence all smells introductions that has been lost in a commit gap.
      *
-     * @param since                     The lower ordinal of the interval in which the smell it lost.
-     * @param until                     The upper ordinal of the interval in which the smell it lost.
-     * @param previousSmells            The list of smell present in last commit before gap.
-     * @param currentSmells             The list of smell present in first commit after gap.
-     * @param renamedSmellsNewInstances The list of *new* instances of {@link Smell}s identified as renamed.
+     * @param since    The lower ordinal of the interval in which the smell it lost.
+     * @param until    The upper ordinal of the interval in which the smell it lost.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
      */
-    void insertLostSmellIntroductions(int since, int until,
-                                      Collection<Smell> previousSmells,
-                                      Collection<Smell> currentSmells,
-                                      Collection<Smell> renamedSmellsNewInstances) {
-        for (Smell smell : getIntroduced(previousSmells, currentSmells, renamedSmellsNewInstances)) {
+    void insertLostSmellIntroductions(int since, int until, Commit previous, Commit current) {
+        for (Smell smell : getIntroduced(previous, current)) {
             insertLostSmellInCategory(smell, SmellCategory.INTRODUCTION, since, until);
         }
     }
@@ -78,17 +73,13 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
     /**
      * Insert into persistence all smells refactorings that has been lost in a commit gap.
      *
-     * @param since                          The lower ordinal of the interval in which the smell it lost.
-     * @param until                          The upper ordinal of the interval in which the smell it lost.
-     * @param previousSmells                 The list of smell present in last commit before gap.
-     * @param currentSmells                  The list of smell present in first commit after gap.
-     * @param renamedSmellsOriginalInstances The list of *old* instances of {@link Smell}s identified as renamed.
+     * @param since    The lower ordinal of the interval in which the smell it lost.
+     * @param until    The upper ordinal of the interval in which the smell it lost.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
      */
-    void insertLostSmellRefactorings(int since, int until,
-                                     Collection<Smell> previousSmells,
-                                     Collection<Smell> currentSmells,
-                                     Collection<Smell> renamedSmellsOriginalInstances) {
-        for (Smell smell : getRefactored(previousSmells, currentSmells, renamedSmellsOriginalInstances)) {
+    void insertLostSmellRefactorings(int since, int until, Commit previous, Commit current) {
+        for (Smell smell : getRefactored(previous, current)) {
             insertLostSmellInCategory(smell, SmellCategory.REFACTOR, since, until);
         }
     }
@@ -96,64 +87,52 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
     /**
      * Insert into persistence all smells introductions that happened between two commits.
      *
-     * @param commit                    The new commit to bing those introductions onto.
-     * @param previousSmells            The list of smells present in the previous commit.
-     * @param currentSmells             The list of smells present in the current commit.
-     * @param renamedSmellsNewInstances The list of *new* instances of {@link Smell}s identified as renamed.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
      */
-    void insertSmellIntroductions(Commit commit,
-                                  Collection<Smell> previousSmells,
-                                  Collection<Smell> currentSmells,
-                                  Collection<Smell> renamedSmellsNewInstances) {
-        for (Smell smell : getIntroduced(previousSmells, currentSmells, renamedSmellsNewInstances)) {
-            insertSmellInCategory(smell, commit, SmellCategory.INTRODUCTION);
+    void insertSmellIntroductions(Commit previous, Commit current) {
+        for (Smell smell : getIntroduced(previous, current)) {
+            insertSmellInCategory(smell, current, SmellCategory.INTRODUCTION);
         }
     }
 
     /**
      * Insert into persistence all smells refactorings that happened between two commits.
      *
-     * @param commit                         The new commit to bing those introductions onto.
-     * @param previousSmells                 The list of smells present in the previous commit.
-     * @param currentSmells                  The list of smells present in the current commit.
-     * @param renamedSmellsOriginalInstances The list of *old* instances of {@link Smell}s identified as renamed.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
      */
-    void insertSmellRefactorings(Commit commit,
-                                 Collection<Smell> previousSmells,
-                                 Collection<Smell> currentSmells,
-                                 Collection<Smell> renamedSmellsOriginalInstances) {
-        for (Smell smell : getRefactored(previousSmells, currentSmells, renamedSmellsOriginalInstances)) {
-            insertSmellInCategory(smell, commit, SmellCategory.REFACTOR);
+    void insertSmellRefactorings(Commit previous, Commit current) {
+        for (Smell smell : getRefactored(previous, current)) {
+            insertSmellInCategory(smell, current, SmellCategory.REFACTOR);
         }
     }
 
     /**
      * Retrieve the list of introduced commits from the list of smell presence of the previous and current commit.
      *
-     * @param previous                  The list of smells present in the previous commit.
-     * @param current                   The list of smells present in the current commit.
-     * @param renamedSmellsNewInstances The list of *new* instances of {@link Smell}s identified as renamed.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
      * @return The list of {@link Smell} introduced in the current commit.
      */
-    private List<Smell> getIntroduced(Collection<Smell> previous, Collection<Smell> current, Collection<Smell> renamedSmellsNewInstances) {
-        List<Smell> introduction = new ArrayList<>(current);
-        introduction.removeAll(previous);
-        introduction.removeAll(renamedSmellsNewInstances);
+    private List<Smell> getIntroduced(Commit previous, Commit current) {
+        List<Smell> introduction = new ArrayList<>(current.getSmells());
+        introduction.removeAll(previous.getSmells());
+        introduction.removeAll(current.getRenamedSmells());
         return introduction;
     }
 
     /**
      * Retrieve the list of refactored commits from the list of smell presence of the previous and current commit.
      *
-     * @param previous                       The list of smells present in the previous commit.
-     * @param current                        The list of smells present in the current commit.
-     * @param renamedSmellsOriginalInstances The list of *old* instances of {@link Smell}s identified as renamed.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
      * @return The list of {@link Smell} refactored in the current commit.
      */
-    private List<Smell> getRefactored(Collection<Smell> previous, Collection<Smell> current, Collection<Smell> renamedSmellsOriginalInstances) {
-        List<Smell> refactoring = new ArrayList<>(previous);
-        refactoring.removeAll(current);
-        refactoring.removeAll(renamedSmellsOriginalInstances);
+    private List<Smell> getRefactored(Commit previous, Commit current) {
+        List<Smell> refactoring = new ArrayList<>(previous.getSmells());
+        refactoring.removeAll(current.getSmells());
+        refactoring.removeAll(current.getRenamedSmellsOrigins());
         return refactoring;
     }
 

@@ -10,10 +10,7 @@ import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis {
     private static final Logger logger = LoggerFactory.getLogger(BranchAnalyzer.class.getName());
@@ -22,11 +19,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     private final boolean handleGap;
 
     // Those attributes are the class state.
-    // TODO: Delegate previousCommitSmells, currentCommitSmells, currentCommitOriginal, and currentCommitRenamed to Commit object.
-    private final Set<Smell> previousCommitSmells;
-    private final Set<Smell> currentCommitSmells;
-    private final List<Smell> currentCommitOriginal;
-    private final List<Smell> currentCommitRenamed;
+    private Commit previous;
     private Commit underAnalysis;
     private int lostCommitOrdinal;
 
@@ -42,23 +35,19 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
         this.duplicationChecker = duplicationChecker;
         this.handleGap = handleGap;
 
-        previousCommitSmells = new HashSet<>();
-        currentCommitSmells = new HashSet<>();
-        currentCommitOriginal = new ArrayList<>();
-        currentCommitRenamed = new ArrayList<>();
+        previous = Commit.EMPTY;
         underAnalysis = Commit.EMPTY;
         this.resetLostCommit();
     }
 
     @Override
     public void addExistingSmells(List<Smell> smells) {
-        previousCommitSmells.addAll(smells);
-        currentCommitSmells.addAll(smells);
+        underAnalysis.addSmells(smells);
     }
 
     @Override
     public void addPreviousSmells(List<Smell> smells) {
-        previousCommitSmells.addAll(smells);
+        previous.addSmells(smells);
     }
 
     @Override
@@ -71,6 +60,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
             if (handleGap && underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.EMPTY)) {
                 handleCommitGap(underAnalysis);
             }
+            previous = underAnalysis;
             underAnalysis = commit;
             logger.debug("[" + projectId + "] => Now analysing commit: " + underAnalysis);
         }
@@ -79,15 +69,14 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     @Override
     public void notifySmell(Smell smell) {
         // We keep track of the smells present in our commit.
-        currentCommitSmells.add(smell);
+        underAnalysis.addSmell(smell);
 
         // Update smell with parent instance, if any
         handleSmellRename(smell, underAnalysis);
 
         // Check if we already inserted smell previously to avoid having too much insert statements.
         // This could be removed and still checked by our unicity constraint.
-        // TODO: check smell.parent == null not in previousCommitSmells
-        if (!previousCommitSmells.contains(smell)) {
+        if (!previous.getSmells().contains(smell) && !previous.getSmells().contains(smell.parent)) {
             insertSmellInstance(smell);
             persistence.commit();
         }
@@ -140,7 +129,6 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
         }
         // If we found the gap commit, we insert it as any other before continuing
         persistCommitChanges(commit);
-        updateCommitTrackingCounters();
     }
 
     /**
@@ -155,11 +143,10 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
         Smell original = duplicationChecker.original(smell, commit);
 
         // If we correctly guessed the smell identifier, we will find it in the previous commit smells
-        if (original != null && previousCommitSmells.contains(original)) {
+        if (original != null && previous.getSmells().contains(original)) {
             logger.debug("[" + projectId + "] => Guessed rename for smell: " + smell);
             logger.trace("[" + projectId + "]   => potential parent: " + original);
-            currentCommitOriginal.add(original);
-            currentCommitRenamed.add(smell);
+            commit.setRenamedSmell(original, smell);
             smell.parent = original;
         }
     }
@@ -178,7 +165,6 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
         } else {
             persistCommitChanges(current);
         }
-        updateCommitTrackingCounters();
     }
 
     private boolean isLostCommit() {
@@ -199,10 +185,10 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
      * @param commit The new commit.
      */
     private void persistCommitChanges(Commit commit) {
-        if (!commit.equals(Commit.EMPTY)) {
+        if (!underAnalysis.equals(Commit.EMPTY)) {
             logger.debug("[" + projectId + "] ==> Persisting smells for commit: " + commit);
-            insertSmellIntroductions(commit, previousCommitSmells, currentCommitSmells, currentCommitRenamed);
-            insertSmellRefactorings(commit, previousCommitSmells, currentCommitSmells, currentCommitOriginal);
+            insertSmellIntroductions(previous, commit);
+            insertSmellRefactorings(previous, commit);
         }
     }
 
@@ -213,15 +199,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
      */
     private void persistLostChanges(Commit commit) {
         logger.debug("[" + projectId + "] ==> Handling lost commit from " + lostCommitOrdinal + " to " + commit.ordinal);
-        insertLostSmellIntroductions(lostCommitOrdinal, commit.ordinal,
-                previousCommitSmells, currentCommitSmells, currentCommitRenamed);
-        insertLostSmellRefactorings(lostCommitOrdinal, commit.ordinal,
-                previousCommitSmells, currentCommitSmells, currentCommitOriginal);
-    }
-
-    private void updateCommitTrackingCounters() {
-        previousCommitSmells.clear();
-        previousCommitSmells.addAll(currentCommitSmells);
-        currentCommitSmells.clear();
+        insertLostSmellIntroductions(lostCommitOrdinal, commit.ordinal, previous, commit);
+        insertLostSmellRefactorings(lostCommitOrdinal, commit.ordinal, previous, commit);
     }
 }
