@@ -30,7 +30,7 @@ class MultiBranchAnalyzer extends BranchAnalyzer {
     }
 
 /*
-   // TODO: This doewsn't work on unit tests
+   // TODO: This doesn't work on unit tests
     @Override
     public void notifyEnd() throws QueryException {
         super.notifyEnd(fetchLastBranchCommitSha());

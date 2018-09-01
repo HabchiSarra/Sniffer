@@ -35,8 +35,8 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
         this.duplicationChecker = duplicationChecker;
         this.handleGap = handleGap;
 
-        previous = Commit.EMPTY;
-        underAnalysis = Commit.EMPTY;
+        previous = Commit.empty();
+        underAnalysis = Commit.empty();
         this.resetLostCommit();
     }
 
@@ -48,6 +48,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     @Override
     public void addPreviousSmells(List<Smell> smells) {
         previous.addSmells(smells);
+        underAnalysis.setMerge(true);
     }
 
     @Override
@@ -55,9 +56,11 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
         // We handle the commit change in our result dataset.
         // This dataset MUST be ordered by commit_number to have right results.
         if (!underAnalysis.equals(commit)) {
-            handleCommitChanges(underAnalysis);
+            if (!underAnalysis.equals(Commit.empty())) {
+                handleCommitChanges(underAnalysis);
+            }
             // Compare the two commits ordinal to find a gap.
-            if (handleGap && underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.EMPTY)) {
+            if (handleGap && underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.empty())) {
                 handleCommitGap();
             }
             updateCommitTracking(commit);
@@ -90,7 +93,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
 
     @Override
     public void notifyEnd(String lastCommitSha1) {
-        if (underAnalysis.equals(Commit.EMPTY)) {
+        if (underAnalysis.equals(Commit.empty())) {
             logger.info("[" + projectId + "] No smell found");
             return;
         }
@@ -183,7 +186,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
      * @param commit The new commit.
      */
     private void persistCommitChanges(Commit commit) {
-        if (!underAnalysis.equals(Commit.EMPTY)) {
+        if (! (underAnalysis.equals(Commit.empty()) || commit.isMerge())) {
             logger.debug("[" + projectId + "] ==> Persisting smells for commit: " + commit);
             insertSmellIntroductions(previous, commit);
             insertSmellRefactorings(previous, commit);

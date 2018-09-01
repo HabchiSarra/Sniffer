@@ -51,7 +51,7 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
     public void query() throws QueryException {
         Smell smell;
         Commit previousCommit;
-        Commit commit = Commit.EMPTY;
+        Commit commit = Commit.empty();
         Integer previousBranch;
         Integer currentBranch = -1;
 

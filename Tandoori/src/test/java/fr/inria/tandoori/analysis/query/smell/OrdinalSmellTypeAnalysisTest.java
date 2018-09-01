@@ -41,6 +41,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         mockEndCommit(firstCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(3)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);

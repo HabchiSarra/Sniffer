@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -490,13 +489,13 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testSuccessiveBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("0-B", 1);
-        Commit C = new Commit("0-C", 4);
-        Commit D = new Commit("1-D", 3);
-        Commit E = new Commit("1-E", 5);
-        Commit F = new Commit("0-F", 6);
-        Commit G = new Commit("2-G", 7);
-        Commit H = new Commit("0-H", 8);
-        Commit I = new Commit("0-I", 9);
+        Commit C = new Commit("0-C", 3);
+        Commit D = new Commit("1-D", 2);
+        Commit E = new Commit("1-E", 4);
+        Commit F = new Commit("0-F", 5);
+        Commit G = new Commit("2-G", 6);
+        Commit H = new Commit("0-H", 7);
+        Commit I = new Commit("0-I", 8);
         Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
 
         // This define the input order
@@ -531,7 +530,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         getAnalysis().query();
 
-        verify(persistence, times(22)).addStatements(any());
+        verify(persistence, times(21)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
@@ -564,7 +563,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         // Second merge
         verify(smellQueries).smellCategoryInsertionStatement(projectId, I.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, I.sha, thirdSmell, SmellCategory.PRESENCE);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, I.sha, secondSmell, SmellCategory.REFACTOR);
     }
 
     /**
@@ -590,13 +588,13 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testContinuingBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("0-B", 1);
-        Commit C = new Commit("0-C", 4);
-        Commit D = new Commit("1-D", 3);
-        Commit E = new Commit("1-E", 5);
-        Commit F = new Commit("0-F", 6);
-        Commit G = new Commit("1-G", 7);
-        Commit H = new Commit("0-H", 8);
-        Commit I = new Commit("0-I", 9);
+        Commit C = new Commit("0-C", 3);
+        Commit D = new Commit("1-D", 2);
+        Commit E = new Commit("1-E", 4);
+        Commit F = new Commit("0-F", 5);
+        Commit G = new Commit("1-G", 6);
+        Commit H = new Commit("0-H", 7);
+        Commit I = new Commit("0-I", 8);
         Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
 
         // This define the input order
@@ -628,7 +626,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         getAnalysis().query();
 
-        verify(persistence, times(21)).addStatements(any());
+        verify(persistence, times(20)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
@@ -654,7 +652,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         // Merge
         verify(smellQueries).smellCategoryInsertionStatement(projectId, I.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, I.sha, thirdSmell, SmellCategory.PRESENCE);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, I.sha, secondSmell, SmellCategory.REFACTOR);
     }
 
     /**
@@ -679,13 +676,13 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testOverlappingBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("0-B", 1);
-        Commit C = new Commit("0-C", 4);
-        Commit D = new Commit("1-D", 3);
-        Commit E = new Commit("2-E", 5);
-        Commit F = new Commit("1-F", 6);
-        Commit G = new Commit("1-G", 7);
-        Commit H = new Commit("0-H", 8);
-        Commit I = new Commit("0-I", 9);
+        Commit C = new Commit("0-C", 3);
+        Commit D = new Commit("1-D", 2);
+        Commit E = new Commit("2-E", 4);
+        Commit F = new Commit("1-F", 5);
+        Commit G = new Commit("1-G", 6);
+        Commit H = new Commit("0-H", 7);
+        Commit I = new Commit("0-I", 8);
         Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
 
         // This define the input order
@@ -719,7 +716,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         getAnalysis().query();
 
-        verify(persistence, times(21)).addStatements(any());
+        verify(persistence, times(20)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
@@ -771,13 +768,13 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testParallelBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("0-B", 1);
-        Commit C = new Commit("0-C", 4);
-        Commit D = new Commit("1-D", 3);
-        Commit E = new Commit("2-E", 5);
-        Commit F = new Commit("1-F", 6);
-        Commit G = new Commit("1-G", 7);
-        Commit H = new Commit("0-H", 8);
-        Commit I = new Commit("0-I", 9);
+        Commit C = new Commit("0-C", 3);
+        Commit D = new Commit("1-D", 2);
+        Commit E = new Commit("2-E", 4);
+        Commit F = new Commit("1-F", 5);
+        Commit G = new Commit("1-G", 6);
+        Commit H = new Commit("0-H", 7);
+        Commit I = new Commit("0-I", 8);
         Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
 
         // This define the input order
@@ -854,7 +851,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
      *  /| . D (1, 2,  )
      * | . | C (1,     )
      * . |/  E (1,     )
-     * | .   F (1, 2, 3) [merge]
+     * | .   F (1, 2,  ) [merge]
      * . |   G (1,     )
      *  \|
      *   .   H (1,     ) [merge]
@@ -866,13 +863,12 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testCrossedBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("0-B", 1);
-        Commit C = new Commit("0-C", 4);
-        Commit D = new Commit("2-D", 3);
-        Commit E = new Commit("1-E", 5);
-        Commit F = new Commit("0-F", 6);
-        Commit G = new Commit("1-G", 7);
-        Commit H = new Commit("0-H", 8);
-        Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
+        Commit C = new Commit("0-C", 3);
+        Commit D = new Commit("2-D", 2);
+        Commit E = new Commit("1-E", 4);
+        Commit F = new Commit("0-F", 5);
+        Commit G = new Commit("1-G", 6);
+        Commit H = new Commit("0-H", 7);
 
         // This define the input order
         mockCommitSmells(A, firstSmell);
@@ -880,7 +876,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         mockCommitSmells(D, firstSmell, secondSmell);
         mockCommitSmells(C, firstSmell);
         mockCommitSmells(E, firstSmell);
-        mockCommitSmells(F, firstSmell, secondSmell, thirdSmell);
+        mockCommitSmells(F, firstSmell, secondSmell);
         mockCommitSmells(G, firstSmell);
         mockCommitSmells(H, firstSmell);
 
@@ -904,7 +900,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         getAnalysis().query();
 
-        verify(persistence, times(19)).addStatements(any());
+        verify(persistence, times(14)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
@@ -919,11 +915,8 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, D.sha, secondSmell, SmellCategory.INTRODUCTION);
 
         // First Merge
-        verify(smellQueries).smellInsertionStatement(projectId, thirdSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, secondSmell, SmellCategory.PRESENCE);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, thirdSmell, SmellCategory.PRESENCE);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, thirdSmell, SmellCategory.INTRODUCTION);
 
         // Second Branch
         verify(smellQueries).smellCategoryInsertionStatement(projectId, E.sha, firstSmell, SmellCategory.PRESENCE);
@@ -931,8 +924,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         // Second Merge
         verify(smellQueries).smellCategoryInsertionStatement(projectId, H.sha, firstSmell, SmellCategory.PRESENCE);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, H.sha, secondSmell, SmellCategory.REFACTOR);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, H.sha, thirdSmell, SmellCategory.REFACTOR);
     }
 
     /**
@@ -958,13 +949,13 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testMergeBackAndForthBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("0-B", 1);
-        Commit C = new Commit("0-C", 4);
-        Commit D = new Commit("1-D", 3);
-        Commit E = new Commit("1-E", 5);
-        Commit F = new Commit("0-F", 6);
-        Commit G = new Commit("1-G", 7);
-        Commit H = new Commit("0-H", 8);
-        Commit I = new Commit("0-I", 9);
+        Commit C = new Commit("0-C", 3);
+        Commit D = new Commit("1-D", 2);
+        Commit E = new Commit("1-E", 4);
+        Commit F = new Commit("0-F", 5);
+        Commit G = new Commit("1-G", 6);
+        Commit H = new Commit("0-H", 7);
+        Commit I = new Commit("0-I", 8);
         Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
 
         // This define the input order
@@ -1047,13 +1038,13 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testMergeNotInDirectParentBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("0-B", 1);
-        Commit C = new Commit("0-C", 4);
-        Commit D = new Commit("1-D", 3);
-        Commit E = new Commit("2-E", 5);
-        Commit F = new Commit("1-F", 6);
-        Commit G = new Commit("0-G", 7);
-        Commit H = new Commit("1-H", 8);
-        Commit I = new Commit("0-I", 9);
+        Commit C = new Commit("0-C", 3);
+        Commit D = new Commit("1-D", 2);
+        Commit E = new Commit("2-E", 4);
+        Commit F = new Commit("1-F", 5);
+        Commit G = new Commit("0-G", 6);
+        Commit H = new Commit("1-H", 7);
+        Commit I = new Commit("0-I", 8);
         Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
 
         // This define the input order
@@ -1086,7 +1077,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         getAnalysis().query();
 
-        verify(persistence, times(21)).addStatements(any());
+        verify(persistence, times(20)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
@@ -1141,10 +1132,10 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testMergeIsLastBranchCommitBranchesSeparateSmells() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("1-B", 1);
-        Commit C = new Commit("3-C", 3);
-        Commit D = new Commit("2-D", 4);
-        Commit E = new Commit("1-E", 5);
-        Commit F = new Commit("0-F", 6);
+        Commit C = new Commit("3-C", 2);
+        Commit D = new Commit("2-D", 3);
+        Commit E = new Commit("1-E", 4);
+        Commit F = new Commit("0-F", 5);
         Smell thirdSmell = new Smell(smellType, "thirdInstance", "/any/file.java");
 
         // This define the input order
@@ -1176,7 +1167,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
 
         getAnalysis().query();
 
-        verify(persistence, times(19)).addStatements(any());
+        verify(persistence, times(18)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellInsertionStatement(projectId, secondSmell);
@@ -1227,10 +1218,10 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
     public void testMultipleMergeOnSameBranch() throws QueryException {
         Commit A = new Commit("0-A", 0);
         Commit B = new Commit("1-B", 1);
-        Commit C = new Commit("0-C", 3);
-        Commit D = new Commit("0-D", 4);
-        Commit E = new Commit("1-E", 5);
-        Commit F = new Commit("0-F", 6);
+        Commit C = new Commit("0-C", 2);
+        Commit D = new Commit("0-D", 3);
+        Commit E = new Commit("1-E", 4);
+        Commit F = new Commit("0-F", 5);
 
         // This define the input order
         mockCommitSmells(A, firstSmell);
@@ -1278,5 +1269,81 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         // Merge
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, secondSmell, SmellCategory.PRESENCE);
+    }
+
+    /**
+     * <pre><code>
+     * .    A (1, 2,  )
+     * |\
+     * | .  B (1, 2,  )
+     * . |  C (1,     )
+     * |\|
+     * | .  D (1,     ) [merge]
+     * | |
+     * . |  E (1,     )
+     * |\|
+     * | .  F (1,     ) [merge]
+     * | |
+     * |/
+     * .    G (1,     ) [merge]
+     * </pre></code>
+     *
+     * @throws QueryException
+     */
+    @Test
+    public void testMergeBackAndForthRefactoring() throws QueryException {
+        Commit A = new Commit("0-A", 0);
+        Commit B = new Commit("1-B", 1);
+        Commit C = new Commit("0-C", 2);
+        Commit D = new Commit("1-D", 3);
+        Commit E = new Commit("0-E", 4);
+        Commit F = new Commit("1-F", 5);
+        Commit G = new Commit("0-G", 6);
+
+        // This define the input order
+        mockCommitSmells(A, firstSmell, secondSmell);
+        mockCommitSmells(B, firstSmell, secondSmell);
+        mockCommitSmells(C, firstSmell);
+        mockCommitSmells(D, firstSmell);
+        mockCommitSmells(E, firstSmell);
+        mockCommitSmells(F, firstSmell);
+        mockCommitSmells(G, firstSmell);
+
+        mockCommitBranch(A, 0, 0);
+        mockCommitBranch(B, 1, 0);
+        mockCommitBranch(C, 0, 1);
+        mockCommitBranch(D, 1, 1);
+        mockCommitBranch(E, 0, 2);
+        mockCommitBranch(F, 1, 2);
+        mockCommitBranch(G, 0, 3);
+        mockLastBranchCommit(0, G);
+        mockLastBranchCommit(1, F);
+
+        mockEndCommit(G.sha);
+        mockMergeCommit(G, F);
+        mockMergeCommit(F, E);
+        mockMergeCommit(D, C);
+        mockBranchParentCommitSmells(1, firstSmell, secondSmell);
+
+        getAnalysis().query();
+
+        verify(persistence, times(14)).addStatements(any());
+        // Initial branch
+        verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
+        verify(smellQueries).smellInsertionStatement(projectId, secondSmell);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.INTRODUCTION);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, secondSmell, SmellCategory.INTRODUCTION);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, secondSmell, SmellCategory.PRESENCE);
+
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, secondSmell, SmellCategory.REFACTOR);
+
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, D.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, E.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, G.sha, firstSmell, SmellCategory.PRESENCE);
     }
 }

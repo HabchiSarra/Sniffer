@@ -15,8 +15,6 @@ import java.util.Objects;
  * Represents a commit.
  */
 public class Commit {
-
-    public static final Commit EMPTY = new Commit("", -1);
     public final String sha;
     public int ordinal;
     public final List<Commit> parents;
@@ -26,7 +24,16 @@ public class Commit {
 
     private final List<Smell> smells;
     private final Map<Smell, Smell> renamedSmells;
+    private boolean isMerge;
 
+    /**
+     * Create a new, empty commit with an empty sha and an invalid ordinal.
+     *
+     * @return A new {@link Commit}.
+     */
+    public static Commit empty() {
+        return new Commit("", -1);
+    }
 
     /**
      * Minimal constructor for a commit, ordering it using an ordinal.
@@ -69,6 +76,7 @@ public class Commit {
         this.parents = parents;
         this.smells = new ArrayList<>();
         this.renamedSmells = new HashMap<>();
+        this.isMerge = false;
     }
 
     public void addSmell(Smell smell) {
@@ -219,5 +227,23 @@ public class Commit {
     public void setParents(Collection<Commit> newParents) {
         parents.clear();
         parents.addAll(newParents);
+    }
+
+    /**
+     * Tells if the commit is a merge commit.
+     *
+     * @return true in cade of a merge commit, false otherwise.
+     */
+    public boolean isMerge() {
+        return isMerge;
+    }
+
+    /**
+     * Set if the commit is a merge commit.
+     *
+     * @param merge The value to set.
+     */
+    public void setMerge(boolean merge) {
+        isMerge = merge;
     }
 }
