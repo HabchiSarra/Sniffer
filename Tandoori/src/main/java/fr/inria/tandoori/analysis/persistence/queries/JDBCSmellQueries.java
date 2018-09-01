@@ -16,7 +16,9 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
         String parentQueryOrNull = null;
         // We know that the parent smell is the last inserted one.
         if (smell.parent != null) {
-            String parentSmellQuery = smellIdQuery(projectId, smell.parent.instance, smell.file, smell.type, true);
+            String parentSmellQuery = smellIdQuery(
+                    projectId, smell.parent.instance,
+                    smell.parent.file, smell.parent.type, true);
             parentQueryOrNull = "(" + parentSmellQuery + ")";
         }
 
