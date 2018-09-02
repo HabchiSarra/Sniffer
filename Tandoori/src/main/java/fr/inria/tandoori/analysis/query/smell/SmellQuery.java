@@ -63,7 +63,7 @@ public class SmellQuery implements Query {
     public void query() throws QueryException {
         logger.info("[" + projectId + "] Starting Smells insertion");
         QueryEngine queryEngine = new QueryEngine(paprikaDB);
-        SmellDuplicationChecker duplicationChecker = new SmellDuplicationChecker(projectId, persistence);
+        SmellDuplicationChecker duplicationChecker = new SmellDuplicationChecker(projectId, persistence, false);
 
         for (neo4j.Query query : queries(queryEngine)) {
             logger.info("[" + projectId + "] => Querying Smells of type: " + query.getSmellName());

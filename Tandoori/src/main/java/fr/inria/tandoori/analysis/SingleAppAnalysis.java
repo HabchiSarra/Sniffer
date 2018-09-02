@@ -85,8 +85,7 @@ public class SingleAppAnalysis {
      * @return The project identifier in the database.
      */
     private static int persistApp(String appName, String url, Persistence persistence, ProjectQueries projectQueries) {
-        String projectInsert = "INSERT INTO Project (name, url) VALUES ('" + appName + "', '" + url + "') ON CONFLICT DO NOTHING;";
-        persistence.addStatements(projectInsert);
+        persistence.addStatements(projectQueries.projectInsertStatement(appName, url));
         persistence.commit();
 
         String idQuery = projectQueries.idFromNameQuery(appName);

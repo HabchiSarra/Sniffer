@@ -24,10 +24,16 @@ class SmellDuplicationChecker {
      * Binding renamed smells to their original ones.
      */
     private final Map<Smell, Smell> renamedSmells;
+    private final boolean useCache;
 
     SmellDuplicationChecker(int projectId, Persistence persistence) {
+        this(projectId, persistence, true);
+    }
+
+    SmellDuplicationChecker(int projectId, Persistence persistence, boolean useCache) {
         fileRenamings = loadFileRename(projectId, persistence);
         renamedSmells = new HashMap<>();
+        this.useCache = useCache;
     }
 
     /**
@@ -66,7 +72,7 @@ class SmellDuplicationChecker {
         logger.trace("==> Trying to guess original smell for: " + instance);
 
         // If the smell is already a known renaming, return it instantly
-        Smell mergedSmell = renamedSmells.get(instance);
+        Smell mergedSmell = getCachedRenaming(instance);
         if (mergedSmell != null) {
             logger.trace("  ==> Found an already guessed smell");
             return mergedSmell;
@@ -84,6 +90,14 @@ class SmellDuplicationChecker {
         return null;
     }
 
+    private Smell getCachedRenaming(Smell smell) {
+        return useCache ? renamedSmells.get(smell) : null;
+    }
+
+    private void addCachedRenaming(Smell smell, Smell parent) {
+        renamedSmells.put(smell, parent);
+    }
+
     /**
      * In this test we have a smell with its file directing to a newly renamed file.
      * We will have to guess the previous smell instance by rewriting its instance id with the file before being renamed.
@@ -98,7 +112,7 @@ class SmellDuplicationChecker {
         Smell original = new Smell(instance.type, guessOldInstance, renaming.oldFile);
 
         // Cache the original smell into renamedSmells to find it for the next instances.
-        renamedSmells.put(instance, original);
+        addCachedRenaming(instance, original);
         return original;
     }
 

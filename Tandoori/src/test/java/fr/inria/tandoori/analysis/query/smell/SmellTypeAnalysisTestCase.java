@@ -23,7 +23,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 
-public abstract class SmellTypeAnalysis {
+public abstract class SmellTypeAnalysisTestCase {
     public static final String END_COMMIT_STATEMENT = "EndCommitStatement";
     public static final String GAP_COMMIT_STATEMENT = "GapCommitStatement";
 

@@ -15,7 +15,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysis {
+public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();

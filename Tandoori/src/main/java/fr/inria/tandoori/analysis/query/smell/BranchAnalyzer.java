@@ -77,12 +77,25 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
 
         // Check if we already inserted smell previously to avoid having too much insert statements.
         // This could be removed and still checked by our unicity constraint.
-        if (!previous.getSmells().contains(smell) && !underAnalysis.getMergedSmells().contains(smell)) {
+        if (isNew(smell)) {
             insertSmellInstance(smell);
             persistence.commit();
         }
 
         insertSmellInCategory(smell, underAnalysis, SmellCategory.PRESENCE);
+    }
+
+    /**
+     * Check if the smell has been seen before.
+     * <p>
+     * A {@link Smell} is new if it isn't one of the previous {@link Commit}'s {@link Smell}s
+     * of one of the underAnalysis {@link Commit}'s merged smells if any.
+     *
+     * @param smell The smell to check.
+     * @return true if it is a brand new smell, false if it is already in the repository.
+     */
+    private boolean isNew(Smell smell) {
+        return !previous.getSmells().contains(smell) && !underAnalysis.getMergedSmells().contains(smell);
     }
 
     @Override
@@ -142,7 +155,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     private void handleSmellRename(Smell smell, Commit commit) {
         Smell original = duplicationChecker.original(smell, commit);
 
-        // If we correctly guessed the smell identifier, we will find it in the previous commit smells
+        // TODO: Is this condition useful?
         if (original != null && previous.getSmells().contains(original)) {
             logger.debug("[" + projectId + "] => Guessed rename for smell: " + smell);
             logger.trace("[" + projectId + "]   => potential parent: " + original);
