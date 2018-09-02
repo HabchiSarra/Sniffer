@@ -1405,6 +1405,64 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysis {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, E.sha, firstSmell, SmellCategory.PRESENCE);
     }
 
+    /**
+     * <pre><code>
+     * .    A (1, 2,     )
+     * |\
+     * | .  B (1,    3,  )
+     * |/
+     * .    C (      3, 4) [merge]
+     * </pre></code>
+     *
+     * @throws QueryException
+     */
+    @Test
+    public void testMergeCommitRefactorAndIntroduces() throws QueryException {
+        Commit A = new Commit("0-A", 0);
+        Commit B = new Commit("1-B", 1);
+        Commit C = new Commit("0-C", 2);
+        Smell thirdSmell = new Smell(smellType, "thirdSmellInstance", "thirdSmellFile");
+        Smell fourthSmell = new Smell(smellType, "fourthSmellInstance", "fourthSmellFile");
 
+        // This define the input order
+        mockCommitSmells(A, firstSmell, secondSmell);
+        mockCommitSmells(B, firstSmell, thirdSmell);
+        mockCommitSmells(C, thirdSmell, fourthSmell);
+
+        mockCommitBranch(A, 0, 0);
+        mockCommitBranch(B, 1, 0);
+        mockCommitBranch(C, 0, 1);
+        mockLastBranchCommit(0, C);
+        mockLastBranchCommit(1, B);
+
+        mockEndCommit(C.sha);
+        mockMergeCommit(C, B);
+        mockBranchParentCommitSmells(1, firstSmell, secondSmell);
+
+        getAnalysis().query();
+
+        verify(persistence, times(16)).addStatements(any());
+        // Initial branch
+        verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
+        verify(smellQueries).smellInsertionStatement(projectId, secondSmell);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.INTRODUCTION);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, secondSmell, SmellCategory.INTRODUCTION);
+
+        // First Branch
+        verify(smellQueries).smellInsertionStatement(projectId, thirdSmell);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, secondSmell, SmellCategory.REFACTOR);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, thirdSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, thirdSmell, SmellCategory.INTRODUCTION);
+
+        // Merge
+        verify(smellQueries).smellInsertionStatement(projectId, fourthSmell);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, firstSmell, SmellCategory.REFACTOR);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, thirdSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, fourthSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, fourthSmell, SmellCategory.INTRODUCTION);
+    }
 
 }

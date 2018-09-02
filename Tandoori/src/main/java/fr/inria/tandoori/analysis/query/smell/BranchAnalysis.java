@@ -17,12 +17,12 @@ interface BranchAnalysis {
     void addExistingSmells(List<Smell> smells);
 
     /**
-     * Specifically add smells to the previous ones.
+     * Specifically add smells to the second branch of a merge commit.
      * This method is used for adding all smells before a merge commit occurs.
      *
      * @param smells The smells to add.
      */
-    void addPreviousSmells(List<Smell> smells);
+    void addMergedSmells(List<Smell> smells);
 
     /**
      * Notify the current analyzed commit instance.

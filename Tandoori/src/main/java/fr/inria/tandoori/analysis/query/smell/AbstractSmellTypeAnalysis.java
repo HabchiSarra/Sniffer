@@ -9,7 +9,6 @@ import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -65,7 +64,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param current  The current {@link Commit}.
      */
     void insertLostSmellIntroductions(int since, int until, Commit previous, Commit current) {
-        for (Smell smell : getIntroduced(previous, current)) {
+        for (Smell smell : current.getIntroduced(previous)) {
             insertLostSmellInCategory(smell, SmellCategory.INTRODUCTION, since, until);
         }
     }
@@ -79,7 +78,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param current  The current {@link Commit}.
      */
     void insertLostSmellRefactorings(int since, int until, Commit previous, Commit current) {
-        for (Smell smell : getRefactored(previous, current)) {
+        for (Smell smell : current.getRefactored(previous)) {
             insertLostSmellInCategory(smell, SmellCategory.REFACTOR, since, until);
         }
     }
@@ -91,7 +90,7 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param current  The current {@link Commit}.
      */
     void insertSmellIntroductions(Commit previous, Commit current) {
-        for (Smell smell : getIntroduced(previous, current)) {
+        for (Smell smell : current.getIntroduced(previous)) {
             insertSmellInCategory(smell, current, SmellCategory.INTRODUCTION);
         }
     }
@@ -103,37 +102,9 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
      * @param current  The current {@link Commit}.
      */
     void insertSmellRefactorings(Commit previous, Commit current) {
-        for (Smell smell : getRefactored(previous, current)) {
+        for (Smell smell : current.getRefactored(previous)) {
             insertSmellInCategory(smell, current, SmellCategory.REFACTOR);
         }
-    }
-
-    /**
-     * Retrieve the list of introduced commits from the list of smell presence of the previous and current commit.
-     *
-     * @param previous The previous {@link Commit}.
-     * @param current  The current {@link Commit}.
-     * @return The list of {@link Smell} introduced in the current commit.
-     */
-    private List<Smell> getIntroduced(Commit previous, Commit current) {
-        List<Smell> introduction = new ArrayList<>(current.getSmells());
-        introduction.removeAll(previous.getSmells());
-        introduction.removeAll(current.getRenamedSmells());
-        return introduction;
-    }
-
-    /**
-     * Retrieve the list of refactored commits from the list of smell presence of the previous and current commit.
-     *
-     * @param previous The previous {@link Commit}.
-     * @param current  The current {@link Commit}.
-     * @return The list of {@link Smell} refactored in the current commit.
-     */
-    private List<Smell> getRefactored(Commit previous, Commit current) {
-        List<Smell> refactoring = new ArrayList<>(previous.getSmells());
-        refactoring.removeAll(current.getSmells());
-        refactoring.removeAll(current.getRenamedSmellsOrigins());
-        return refactoring;
     }
 
     /**

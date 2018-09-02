@@ -46,9 +46,8 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     }
 
     @Override
-    public void addPreviousSmells(List<Smell> smells) {
-        previous.addSmells(smells);
-        underAnalysis.setMerge(true);
+    public void addMergedSmells(List<Smell> smells) {
+        underAnalysis.addMergedSmells(smells);
     }
 
     @Override
@@ -78,7 +77,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
 
         // Check if we already inserted smell previously to avoid having too much insert statements.
         // This could be removed and still checked by our unicity constraint.
-        if (!previous.getSmells().contains(smell)) {
+        if (!previous.getSmells().contains(smell) && !underAnalysis.getMergedSmells().contains(smell)) {
             insertSmellInstance(smell);
             persistence.commit();
         }
@@ -186,7 +185,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
      * @param commit The new commit.
      */
     private void persistCommitChanges(Commit commit) {
-        if (! (underAnalysis.equals(Commit.empty()) || commit.isMerge())) {
+        if (!underAnalysis.equals(Commit.empty())) {
             logger.debug("[" + projectId + "] ==> Persisting smells for commit: " + commit);
             insertSmellIntroductions(previous, commit);
             insertSmellRefactorings(previous, commit);

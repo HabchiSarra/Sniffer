@@ -23,8 +23,8 @@ public class Commit {
     public final String authorEmail;
 
     private final List<Smell> smells;
+    private final List<Smell> mergedSmells;
     private final Map<Smell, Smell> renamedSmells;
-    private boolean isMerge;
 
     /**
      * Create a new, empty commit with an empty sha and an invalid ordinal.
@@ -76,31 +76,7 @@ public class Commit {
         this.parents = parents;
         this.smells = new ArrayList<>();
         this.renamedSmells = new HashMap<>();
-        this.isMerge = false;
-    }
-
-    public void addSmell(Smell smell) {
-        addSmells(Collections.singleton(smell));
-    }
-
-    public void addSmells(Collection<Smell> smells) {
-        this.smells.addAll(smells);
-    }
-
-    public Collection<Smell> getSmells() {
-        return this.smells;
-    }
-
-    public void setRenamedSmell(Smell origin, Smell renamed) {
-        this.renamedSmells.put(origin, renamed);
-    }
-
-    public Collection<Smell> getRenamedSmellsOrigins() {
-        return this.renamedSmells.keySet();
-    }
-
-    public Collection<Smell> getRenamedSmells() {
-        return this.renamedSmells.values();
+        this.mergedSmells = new ArrayList<>();
     }
 
     /**
@@ -162,7 +138,6 @@ public class Commit {
         // 2. We can't call RevCommit#getAuthorIdent on the parent commits.
         return new Commit(revCommit.name(), -1, new DateTime(0), "", "", parents);
     }
-
 
     /**
      * Tells if the commit is not consecutive with the other commit.
@@ -232,18 +207,83 @@ public class Commit {
     /**
      * Tells if the commit is a merge commit.
      *
-     * @return true in cade of a merge commit, false otherwise.
+     * @return true in case of a merge commit, false otherwise.
      */
     public boolean isMerge() {
-        return isMerge;
+        return this.mergedSmells != null && !this.mergedSmells.isEmpty();
+    }
+
+    public void addSmell(Smell smell) {
+        addSmells(Collections.singleton(smell));
+    }
+
+    public void addSmells(Collection<Smell> smells) {
+        this.smells.addAll(smells);
+    }
+
+    public Collection<Smell> getSmells() {
+        return this.smells;
+    }
+
+    public void addMergedSmell(Smell smell) {
+        addSmells(Collections.singleton(smell));
+    }
+
+    public void addMergedSmells(Collection<Smell> smells) {
+        this.mergedSmells.addAll(smells);
+    }
+
+    public Collection<Smell> getMergedSmells() {
+        return mergedSmells;
+    }
+
+    public void setRenamedSmell(Smell origin, Smell renamed) {
+        this.renamedSmells.put(origin, renamed);
+    }
+
+    public Collection<Smell> getRenamedSmellsOrigins() {
+        return this.renamedSmells.keySet();
+    }
+
+    public Collection<Smell> getRenamedSmells() {
+        return this.renamedSmells.values();
     }
 
     /**
-     * Set if the commit is a merge commit.
+     * Retrieve the list of introduced commits from the list of smell presence of the previous and current commit.
+     * <p>
+     * In case of a merge commit, we remove all existing {@link Smell}s from both branches.
      *
-     * @param merge The value to set.
+     * @param previous The previous {@link Commit}.
+     * @return The list of {@link Smell} introduced in the current commit.
      */
-    public void setMerge(boolean merge) {
-        isMerge = merge;
+    public List<Smell> getIntroduced(Commit previous) {
+        List<Smell> introduction = new ArrayList<>(this.getSmells());
+        introduction.removeAll(previous.getSmells());
+        if (this.isMerge()) {
+            introduction.removeAll(this.getMergedSmells());
+        }
+        introduction.removeAll(this.getRenamedSmells());
+        return introduction;
+    }
+
+    /**
+     * Retrieve the list of refactored commits from the list of smell presence of the previous and current commit.
+     * <p>
+     * In case of a merge commit, we keep the intersection of the {@link Smell}s coming from both branches
+     * before removing all current commit's smells.
+     *
+     * @param previous The previous {@link Commit}.
+     * @return The list of {@link Smell} refactored in the current commit.
+     */
+    public List<Smell> getRefactored(Commit previous) {
+        List<Smell> refactoring = new ArrayList<>(previous.getSmells());
+        if (this.isMerge()) {
+            refactoring.retainAll(this.getMergedSmells());
+        }
+
+        refactoring.removeAll(this.getSmells());
+        refactoring.removeAll(this.getRenamedSmellsOrigins());
+        return refactoring;
     }
 }

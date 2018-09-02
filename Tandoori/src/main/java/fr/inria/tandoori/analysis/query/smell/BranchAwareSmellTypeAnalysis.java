@@ -142,7 +142,7 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
      * @param currentBranch  The branch to add commits onto.
      */
     private void addSmellsToMergeCommit(int mergedCommitId, int currentBranch) {
-        branchAnalyzers.get(currentBranch).addPreviousSmells(retrieveMergedCommitSmells(mergedCommitId));
+        branchAnalyzers.get(currentBranch).addMergedSmells(retrieveMergedCommitSmells(mergedCommitId));
     }
 
     /**
