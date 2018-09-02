@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS Smell (
   file     VARCHAR(256) NOT NULL,
   type     VARCHAR(5)   NOT NULL,
   renamed_from INTEGER,
-  UNIQUE (instance, file, type, project_id),
+  UNIQUE (instance, file, type, project_id, renamed_from),
   FOREIGN KEY (project_id) REFERENCES Project (id),
   FOREIGN KEY (renamed_from) REFERENCES Smell (id)
 );

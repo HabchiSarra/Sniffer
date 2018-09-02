@@ -97,6 +97,10 @@ public abstract class SmellTypeAnalysis {
         doReturn(Collections.emptyList()).when(persistence).query(GAP_COMMIT_STATEMENT);
     }
 
+    protected void mockSmellRenamed(Commit commit, Smell origin, Smell renamed) {
+        doReturn(origin).when(duplicationChecker).original(renamed, commit);
+    }
+
     protected void debugSmellInsertions() {
         ArgumentCaptor<Smell> instancesCaptor = ArgumentCaptor.forClass(Smell.class);
 
