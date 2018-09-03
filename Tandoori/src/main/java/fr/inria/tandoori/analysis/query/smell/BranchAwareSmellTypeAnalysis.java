@@ -95,15 +95,6 @@ class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements 
             }
         }
 
-        /* TODO: Remove this block if useless
-        // If the last master commit is a merge commit, give him his smells.
-        try {
-            synchronizeMergeSmells(commit, fetchCommitBranch(commit));
-        } catch (BranchNotFoundException e) {
-            logger.warn("[" + projectId + "] => Unable to find branch id for commit: " + commit, e.getMessage());
-        }
-        //*/
-
         // We should only perform operations for branch 0 since all other commits are looped around.
         for (int branchId : branchAnalyzers.keySet()) {
             finalizeBranch(branchId);

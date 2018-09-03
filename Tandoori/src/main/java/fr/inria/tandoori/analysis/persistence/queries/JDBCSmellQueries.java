@@ -16,10 +16,7 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
         String parentQueryOrNull = null;
         // We know that the parent smell is the last inserted one.
         if (smell.parent != null) {
-            String parentSmellQuery = smellIdQuery(
-                    projectId, smell.parent.instance,
-                    smell.parent.file, smell.parent.type, true);
-            parentQueryOrNull = "(" + parentSmellQuery + ")";
+            parentQueryOrNull = "(" + smellIdQuery(projectId, smell.parent) + ")";
         }
 
         return "INSERT INTO smell (project_id, instance, type, file, renamed_from) VALUES" +
@@ -29,33 +26,50 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
 
     @Override
     public String smellCategoryInsertionStatement(int projectId, String sha1, Smell smell, SmellCategory category) {
-        // We fetch only the last matching inserted smell
-        // This helps us handling the case of Gaps between commits
         return "INSERT INTO " + category.getName() + " (project_id, smell_id, commit_id) VALUES " +
-                "(" + projectId + ", (" + smellIdQuery(projectId, smell.instance, smell.file, smell.type, true) + "), (" +
+                "(" + projectId + ", (" + smellIdQuery(projectId, smell) + "), (" +
                 commitQueries.idFromShaQuery(projectId, sha1) + "));";
     }
 
     @Override
     public String lostSmellCategoryInsertionStatement(int projectId, Smell smell, SmellCategory category, int since, int until) {
-        // We fetch only the last matching inserted smell
-        // This helps us handling the case of Gaps between commits
         String lostCategory = "lost_" + category.getName();
         return "INSERT INTO " + lostCategory + " (project_id, smell_id, since, until) VALUES " +
-                "(" + projectId + ", (" + smellIdQuery(projectId, smell.instance, smell.file, smell.type, true) +
+                "(" + projectId + ", (" + smellIdQuery(projectId, smell) +
                 "), " + "" + since + " , " + until + ");";
     }
 
     @Override
-    public String smellIdQuery(int projectId, String instance, String file, String type, boolean onlyLast) {
-        String statement = "SELECT id FROM smell WHERE instance = '" + instance + "' " +
-                "AND type = '" + type + "' AND file = '" + file + "' AND project_id = " + projectId;
-        if (onlyLast) {
-            statement += " ORDER BY id desc LIMIT 1";
-        }
-        return statement;
+    public String smellIdQuery(int projectId, Smell smell) {
+        String parentQuery = smell.parent == null ? null : "(" + smellIdQuery(projectId, smell.parent) + ")";
+        return smellIdQuery(projectId, smell.instance, smell.file, smell.type, parentQuery);
     }
 
+    /**
+     * Generate a query to fetch a smell by its unicity.
+     *
+     * @param projectId   Project to look into.
+     * @param instance    The instance to look for.
+     * @param file        The file to look for.
+     * @param type        The type to look for.
+     * @param renamedFrom The id or query (between parenthesis) of the renamed smell.
+     *                    Look for null renamed_from if null.
+     * @return
+     */
+    private String smellIdQuery(int projectId, String instance, String file, String type, String renamedFrom) {
+        String statement = "SELECT id FROM smell " +
+                "WHERE instance = '" + instance + "' " +
+                "AND type = '" + type + "' " +
+                "AND file = '" + file + "' " +
+                "AND project_id = " + projectId;
+        if (renamedFrom != null) {
+            statement += " AND renamed_from = " + renamedFrom;
+        } else {
+            statement += " AND renamed_from IS NULL";
+        }
+        return statement;
+
+    }
 
     @Override
     public String commitSmellsQuery(int projectId, String commitId, String smellType) {

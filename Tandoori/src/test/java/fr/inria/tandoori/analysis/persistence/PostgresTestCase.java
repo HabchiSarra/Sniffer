@@ -10,8 +10,7 @@ import java.sql.DriverManager;
 
 import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V9_6;
 
-public abstract class PostgresTestCase {
-    protected Persistence persistence;
+public abstract class PostgresTestCase extends PersistenceTestCase {
     private Connection connection;
     private EmbeddedPostgres postgres;
 
@@ -22,13 +21,17 @@ public abstract class PostgresTestCase {
                 "tandoori-tests", "tandoori", "tandoori");
 
         connection = DriverManager.getConnection(url);
-        persistence = new PostgresqlPersistence(connection);
-        persistence.initialize();
+        super.setUp();
+    }
+
+    @Override
+    protected Persistence initializePersistence() {
+        return new PostgresqlPersistence(connection);
     }
 
     @After
     public void tearDown() throws Exception {
-        persistence.execute("DROP SCHEMA tandoori CASCADE;");
+        super.tearDown();
         connection.close();
         postgres.stop();
     }

@@ -36,18 +36,19 @@ public interface SmellQueries {
 
     /**
      * Query the identifier of a smell.
+     * <p>
+     * There must be INDEX on the smell table ensuring their unicity by the tuple:
+     * (instance, file, type, project_id, renamed_from).
      *
      * @param projectId Project to look into.
-     * @param instance  Smell instance name.
-     * @param file      Smell file name.
-     * @param type      Smell type.
-     * @param onlyLast  Ensure that only the last matching smell is returned.
+     * @param smell     {@link Smell} to find ID for.
      * @return The generated query statement.
      */
-    String smellIdQuery(int projectId, String instance, String file, String type, boolean onlyLast);
+    String smellIdQuery(int projectId, Smell smell);
 
     /**
      * Query the {@link Smell} instances for a specific commit identifier.
+     * TODO: We must handle the parent smell retrieval in this method.
      *
      * @param projectId The project identifier.
      * @param commitId  Commit identifier or query returning the commit identifier between parenthesis.
