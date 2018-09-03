@@ -33,6 +33,10 @@ public abstract class PersistenceTestCase {
         executeExpect(query, 1);
     }
 
+    protected void executeNothinhDone(String query) {
+        executeExpect(query, 0);
+    }
+
     protected long countElements(String table) {
         List<Map<String, Object>> result = persistence.query("SELECT count(*) as cnt FROM " + table + ";");
         return (long) (result.isEmpty() ? -1L : result.get(0).get("cnt"));

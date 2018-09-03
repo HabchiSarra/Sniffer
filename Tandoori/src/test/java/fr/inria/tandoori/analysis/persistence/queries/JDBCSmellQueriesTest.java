@@ -92,7 +92,7 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
 
         // We don't insert the same smell
         Smell sameSmell = new Smell(smell.type, smell.instance, smell.file);
-        executeExpect(queries.smellInsertionStatement(projectId, sameSmell), 0); // ON CONFLICT DO NOTHING
+        executeNothinhDone(queries.smellInsertionStatement(projectId, sameSmell));
         assertEquals(count, getSmellCount());
 
         // We insert a smell with parent even if the same
@@ -213,7 +213,7 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
         assertEquals(3, result.get(0).get("id"));
 
         // We can't insert two times the same smell
-        executeExpect(queries.smellInsertionStatement(projectId, smell), 0); // ON CONFLICT DO NOTHING
+        executeNothinhDone(queries.smellInsertionStatement(projectId, smell));
     }
 
     @Test
