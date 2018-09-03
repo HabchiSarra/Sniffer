@@ -20,27 +20,32 @@ import static org.junit.Assert.assertFalse;
 
 public class JDBCSmellQueriesTest extends PostgresTestCase {
     private SmellQueries queries;
+
     private int projectId;
-    private JDBCCommitQueries commitQueries;
     private Smell smell;
+    private ProjectQueries projectQueries;
     private JDBCDeveloperQueries developerQueries;
+    private JDBCCommitQueries commitQueries;
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        projectQueries = new JDBCProjectQueries();
         developerQueries = new JDBCDeveloperQueries();
         commitQueries = new JDBCCommitQueries(developerQueries);
         queries = new JDBCSmellQueries(commitQueries);
 
-        ProjectQueries projectQueries = new JDBCProjectQueries();
-        String projectName = "anyProjectName";
+        this.projectId = createProject("anyProjectName");
+
+        smell = new Smell("LIC", "instance", "file");
+    }
+
+    private int createProject(String projectName) {
         persistence.execute(projectQueries.projectInsertStatement(projectName, "url"));
         String idQuery = projectQueries.idFromNameQuery(projectName);
         List<Map<String, Object>> result = persistence.query(idQuery);
-        this.projectId = (int) result.get(0).get("id");
-
-        smell = new Smell("LIC", "instance", "file");
+        return (int) result.get(0).get("id");
     }
 
     private Commit prepareCommit() {

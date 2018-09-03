@@ -17,9 +17,10 @@ CREATE TABLE IF NOT EXISTS Developer (
 );
 
 CREATE TABLE IF NOT EXISTS project_developer (
+  id           SERIAL NOT NULL PRIMARY KEY,
   developer_id INTEGER NOT NULL,
   project_id   INTEGER NOT NULL,
-  PRIMARY KEY (developer_id, project_id),
+  UNIQUE (developer_id, project_id),
   FOREIGN KEY (project_id) REFERENCES Project (id),
   FOREIGN KEY (developer_id) REFERENCES Developer (id)
 );

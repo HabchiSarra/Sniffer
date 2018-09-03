@@ -76,6 +76,4 @@ public class JDBCProjectQueriesTest extends PostgresTestCase {
         assertFalse(result.isEmpty());
         assertEquals(2, result.get(0).get("id"));
     }
-
-
 }
