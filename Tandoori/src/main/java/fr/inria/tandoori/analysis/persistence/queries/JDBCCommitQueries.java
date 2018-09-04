@@ -13,9 +13,9 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
     }
 
     @Override
-    public String commitInsertionStatement(int projectId, Commit commit, GitDiff diff, int ordinal) {
+    public String commitInsertionStatement(int projectId, Commit commit, GitDiff diff) {
         logger.trace("[" + projectId + "] Inserting commit: " + commit.sha
-                + " - ordinal: " + ordinal + " - diff: " + diff + " - time: " + commit.date);
+                + " - ordinal: " + commit.ordinal + " - diff: " + diff + " - time: " + commit.date);
 
         // Escaping double dollars to avoid exiting dollar quoted string too soon.
         String commitMessage = escapeStringEntry(commit.message);
@@ -26,9 +26,9 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
         String developerQuery = developerQueries.idFromEmailQuery(commit.authorEmail);
         return "INSERT INTO commit_entry (project_id, developer_id, sha1, ordinal, date, " +
                 "additions, deletions, files_changed, message, merged_commit_id) VALUES ('" +
-                projectId + "', (" + developerQuery + "), '" + commit.sha + "', " + ordinal + ", '" + commit.date.toString() +
+                projectId + "', (" + developerQuery + "), '" + commit.sha + "', " + commit.ordinal + ", '" + commit.date.toString() +
                 "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() +
-                ", $$" + commitMessage + "$$, " + mergedCommit + ") ON CONFLICT DO NOTHING;";
+                ", $$ " + commitMessage + " $$, " + mergedCommit + ") ON CONFLICT DO NOTHING;";
     }
 
     @Override

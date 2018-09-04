@@ -11,10 +11,9 @@ public interface CommitQueries {
      * @param projectId The project identifier.
      * @param commit    The commit to insert.
      * @param diff      {@link GitDiff} for this commit.
-     * @param ordinal   Commit ordinal in Paprika dataset.
      * @return The generated insertion statement.
      */
-    String commitInsertionStatement(int projectId, Commit commit, GitDiff diff, int ordinal);
+    String commitInsertionStatement(int projectId, Commit commit, GitDiff diff);
 
     /**
      * Generate a statement inserting a {@link GitRename} into the persistence.

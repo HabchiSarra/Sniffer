@@ -42,7 +42,7 @@ public class Commit {
      * @param ordinal The commit ordinal.
      */
     public Commit(String sha, int ordinal) {
-        this(sha, ordinal, Collections.emptyList());
+        this(sha, ordinal, new ArrayList<>());
     }
 
     /**

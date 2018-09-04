@@ -28,7 +28,7 @@ public class JDBCDeveloperQueriesTest extends PostgresTestCase {
     }
 
     private int createProject(String projectName) {
-        persistence.execute(projectQueries.projectInsertStatement(projectName, "url"));
+        executeSuccess(projectQueries.projectInsertStatement(projectName, "url"));
         String idQuery = projectQueries.idFromNameQuery(projectName);
         List<Map<String, Object>> result = persistence.query(idQuery);
         return (int) result.get(0).get("id");

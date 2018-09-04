@@ -60,7 +60,7 @@ public class CommitsAnalysisTest {
 
         commitsList = new ArrayList<>();
         doReturn("CommitInsertion").when(commitQueries).commitInsertionStatement(
-                eq(projectId), any(Commit.class), any(GitDiff.class), anyInt());
+                eq(projectId), any(Commit.class), any(GitDiff.class));
         doReturn("DeveloperInsertion").when(developerQueries).developerInsertStatement(
                 anyString());
         doReturn("DeveloperProjectInsertion").when(developerQueries).projectDeveloperInsertStatement(
@@ -107,10 +107,10 @@ public class CommitsAnalysisTest {
 
         getCommitsAnalysis().query();
 
-        verify(commitQueries, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
-        verify(commitQueries).commitInsertionStatement(projectId, merged, dummyDetails.diff, merged.ordinal);
-        verify(commitQueries).commitInsertionStatement(projectId, parent, dummyDetails.diff, parent.ordinal);
-        verify(commitQueries).commitInsertionStatement(projectId, merge, dummyDetails.diff, merge.ordinal);
+        verify(commitQueries, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class));
+        verify(commitQueries).commitInsertionStatement(projectId, merged, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, parent, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, merge, dummyDetails.diff);
 
         // Author insertion is brainlessly done at each encounter
         verify(developerQueries, times(3)).developerInsertStatement(anyString());
@@ -135,11 +135,11 @@ public class CommitsAnalysisTest {
 
         getCommitsAnalysis().query();
 
-        verify(commitQueries, times(4)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
-        verify(commitQueries).commitInsertionStatement(projectId, A, dummyDetails.diff, A.ordinal);
-        verify(commitQueries).commitInsertionStatement(projectId, B, dummyDetails.diff, B.ordinal);
-        verify(commitQueries).commitInsertionStatement(projectId, C, dummyDetails.diff, C.ordinal);
-        verify(commitQueries).commitInsertionStatement(projectId, D, dummyDetails.diff, D.ordinal);
+        verify(commitQueries, times(4)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class));
+        verify(commitQueries).commitInsertionStatement(projectId, A, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, B, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, C, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, D, dummyDetails.diff);
 
         // Author insertion is brainlessly done at each encounter
         verify(developerQueries, times(4)).developerInsertStatement(anyString());
@@ -163,10 +163,10 @@ public class CommitsAnalysisTest {
 
         getCommitsAnalysis().query();
 
-        verify(commitQueries, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class), anyInt());
-        verify(commitQueries).commitInsertionStatement(projectId, A, dummyDetails.diff, A.ordinal);
-        verify(commitQueries).commitInsertionStatement(projectId, B, dummyDetails.diff, B.ordinal);
-        verify(commitQueries).commitInsertionStatement(projectId, D, dummyDetails.diff, D.ordinal);
+        verify(commitQueries, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class));
+        verify(commitQueries).commitInsertionStatement(projectId, A, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, B, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, D, dummyDetails.diff);
 
         // Author insertion is brainlessly done at each encounter
         verify(developerQueries, times(3)).developerInsertStatement(anyString());
@@ -194,11 +194,11 @@ public class CommitsAnalysisTest {
 
         getCommitsAnalysis().query();
 
-        verify(commitQueries).commitInsertionStatement(projectId, A, details.diff, A.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, A, details.diff);
         verify(commitQueries, times(0)).fileRenameInsertionStatement(projectId, A.sha, notJavaRename);
         verify(commitQueries).fileRenameInsertionStatement(projectId, A.sha, actualRename);
 
-        verify(commitQueries).commitInsertionStatement(projectId, B, otherDetails.diff, B.ordinal);
+        verify(commitQueries).commitInsertionStatement(projectId, B, otherDetails.diff);
         verify(commitQueries).fileRenameInsertionStatement(projectId, B.sha, renameB);
 
         // A and B share the same author.

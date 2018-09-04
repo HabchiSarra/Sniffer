@@ -63,6 +63,8 @@ class CommitsAnalysis implements Query {
                 gitCommit = repository.getCommitWithDetails(paprikaCommit.sha);
                 // Add parents to the gitCommit.
                 gitCommit.setParents(repository.getCommitWithParents(paprikaCommit.sha).parents);
+                // We chose to use Paprika order in commit insertion
+                gitCommit.ordinal = paprikaCommit.ordinal;
             } catch (IOException e) {
                 throw new QueryException(logger.getName(),
                         "Unable to retrieve commit " + paprikaCommit.sha + " in git repository " + repository);
@@ -73,7 +75,7 @@ class CommitsAnalysis implements Query {
 
             authorStatements.addAll(authorStatements(gitCommit.authorEmail));
             // GitCommit will not contain the right ordinal.
-            commitStatements.add(commitStatement(gitCommit, details, paprikaCommit.ordinal));
+            commitStatements.add(commitStatement(gitCommit, details));
             renameStatements.addAll(fileRenameStatements(gitCommit, details));
 
             if (++commitCount % BATCH_SIZE == 0) {
@@ -110,11 +112,10 @@ class CommitsAnalysis implements Query {
      *
      * @param commit  Commit from Git, containing main data (message, author, ...)
      * @param details Commit details containing file_rename and {@link fr.inria.tandoori.analysis.model.GitDiff} info.
-     * @param ordinal Commit position in Paprika dataset, since this info is not kept in the Git Commit..
      * @return The generated persistence statement.
      */
-    private String commitStatement(Commit commit, CommitDetails details, int ordinal) {
-        return commitQueries.commitInsertionStatement(projectId, commit, details.diff, ordinal);
+    private String commitStatement(Commit commit, CommitDetails details) {
+        return commitQueries.commitInsertionStatement(projectId, commit, details.diff);
     }
 
     /**

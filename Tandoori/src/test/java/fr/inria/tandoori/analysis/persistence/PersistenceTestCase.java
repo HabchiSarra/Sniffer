@@ -15,7 +15,6 @@ public abstract class PersistenceTestCase {
     public void setUp() throws Exception {
         persistence = initializePersistence();
         persistence.initialize();
-
     }
 
     @After

@@ -55,8 +55,8 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
     private Commit prepareCommit(String sha) {
         String devName = "author@email.com";
         Commit commit = new Commit(sha, 1, new DateTime(), "message", devName, Collections.emptyList());
-        persistence.execute(developerQueries.developerInsertStatement(devName));
-        persistence.execute(commitQueries.commitInsertionStatement(projectId, commit, GitDiff.EMPTY, 1));
+        persistence.execute(developerQueries.developerInsertStatement(devName)); // May return 1 or 0
+        executeSuccess(commitQueries.commitInsertionStatement(projectId, commit, GitDiff.EMPTY));
         return commit;
     }
 
