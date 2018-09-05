@@ -269,12 +269,4 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
         checkContainsSmells(result, Arrays.asList(smell, anotherSmell, smellOtherCommit));
     }
 
-    private void checkContainsSmells(List<Map<String, Object>> result, List<Smell> smells) {
-        Smell instance;
-        for (Map<String, Object> mapping : result) {
-            instance = Smell.fromTandooriInstance(mapping);
-            assertTrue(smells.contains(instance));
-        }
-    }
-
 }

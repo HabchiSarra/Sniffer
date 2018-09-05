@@ -35,7 +35,7 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
     public String idFromCommitQueryStatement(int projectId, Commit commit) {
         return "SELECT branch.id FROM branch " +
                 "RIGHT JOIN branch_commit ON branch.id = branch_commit.branch_id " +
-                "RIGHT JOIN commit_entry ON commit_entry.id = branch_commit.commit_id " +
+                "LEFT JOIN commit_entry ON commit_entry.id = branch_commit.commit_id " +
                 "WHERE commit_entry.sha1 = '" + commit.sha + "' AND commit_entry.project_id = '" + projectId + "'";
     }
 
@@ -57,8 +57,7 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
     }
 
     @Override
-    public String shaFromOrdinalQuery(int projectId, int currentBranch, int ordinal) {
-        String branchId = idFromOrdinalQueryStatement(projectId, currentBranch);
+    public String shaFromOrdinalQuery(int projectId, int branchId, int ordinal) {
         return "SELECT sha1 FROM commit_entry " +
                 "RIGHT JOIN branch_commit " +
                 "ON branch_commit.commit_id = commit_entry.id " +
@@ -68,24 +67,24 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
 
     @Override
     public String parentCommitIdQuery(int projectId, int branchId) {
-        return "SELECT parent_commit FROM branch where id = " + branchId + " AND project_id = " + projectId;
+        return "SELECT parent_commit AS id FROM branch where id = " + branchId + " AND project_id = " + projectId;
     }
 
     @Override
-    public String lastCommitShaQuery(int projectId, int currentBranch) {
-        return branchLastCommitQuery(projectId, currentBranch, "sha1");
+    public String lastCommitShaQuery(int projectId, int branchId) {
+        return branchLastCommitQuery(projectId, branchId, "sha1");
     }
 
     @Override
-    public String lastCommitIdQuery(int projectId, int currentBranch) {
-        return branchLastCommitQuery(projectId, currentBranch, "id");
+    public String lastCommitIdQuery(int projectId, int branchId) {
+        return branchLastCommitQuery(projectId, branchId, "id");
     }
 
     @Override
-    public String commitOrdinalQuery(int projectId, int currentBranch, Commit commit) {
+    public String commitOrdinalQuery(int projectId, int branchId, Commit commit) {
         return "SELECT branch_commit.ordinal FROM branch_commit " +
                 "LEFT JOIN commit_entry ON commit_entry.id = branch_commit.commit_id " +
-                "WHERE branch_commit.branch_id = " + currentBranch + " " +
+                "WHERE branch_commit.branch_id = " + branchId + " " +
                 "AND commit_entry.sha1 = '" + commit.sha + "'";
     }
 
@@ -110,11 +109,13 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
      * @return The generated query statement.
      */
     private String branchLastCommitQuery(int projectId, String branchId, String field) {
+        String last_branch_commit_id = "SELECT commit_id FROM branch_commit " +
+                "WHERE branch_id =  " + branchId + " " +
+                "ORDER BY ordinal DESC LIMIT 1";
+
         return "SELECT commit_entry." + field + " FROM commit_entry " +
-                "JOIN branch_commit " +
-                "ON branch_commit.branch_id =  " + branchId + " " +
-                "AND branch_commit.commit_id = commit_entry.id " +
-                "WHERE commit_entry.project_id = " + projectId + " " +
-                "ORDER BY commit_entry.ordinal DESC LIMIT 1";
+                "JOIN (" + last_branch_commit_id + ") AS bc " +
+                "ON bc.commit_id = commit_entry.id " +
+                "WHERE commit_entry.project_id = " + projectId;
     }
 }

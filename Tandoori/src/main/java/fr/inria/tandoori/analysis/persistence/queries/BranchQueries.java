@@ -68,19 +68,19 @@ public interface BranchQueries {
      * Retrieve the id of the branch last commit.
      *
      * @param projectId     The project identifier.
-     * @param currentBranch The branch on which we look for the last commit sha.
+     * @param branchId The branch on which we look for the last commit sha.
      * @return The generated query statement.
      */
-    String lastCommitIdQuery(int projectId, int currentBranch);
+    String lastCommitIdQuery(int projectId, int branchId);
 
     /**
      * Retrieve the sha of the branch last commit.
      *
      * @param projectId     The project identifier.
-     * @param currentBranch The branch on which we look for the last commit sha.
+     * @param branchId The branch on which we look for the last commit sha.
      * @return The generated query statement.
      */
-    String lastCommitShaQuery(int projectId, int currentBranch);
+    String lastCommitShaQuery(int projectId, int branchId);
 
     /**
      * Retrieve the smells present on the last commit of the branch merged in the given commit.
@@ -96,11 +96,11 @@ public interface BranchQueries {
      * Retrieve the commit ordinal in the given branch.
      *
      * @param projectId     The project identifier.
-     * @param currentBranch The branch on which we look for the last commit sha.
+     * @param branchId The branch on which we look for the last commit sha.
      * @param commit        The {@link Commit} to look for.
      * @return The generated query statement.
      */
-    String commitOrdinalQuery(int projectId, int currentBranch, Commit commit);
+    String commitOrdinalQuery(int projectId, int branchId, Commit commit);
 
     /**
      * Return the identifier of the second branch this commit is merging, if any.
@@ -114,10 +114,10 @@ public interface BranchQueries {
     /**
      * Return the sha1 from the commit in the given ordinal of the given branch ID.
      *
-     * @param projectId     The project identifier.
-     * @param currentBranch The branch on which we look for the commit sha.
-     * @param ordinal       {@link Commit} ordinal in the branch.
+     * @param projectId The project identifier.
+     * @param branchId  The branch on which we look for the commit sha.
+     * @param ordinal   {@link Commit} ordinal in the branch.
      * @return The generated query statement.
      */
-    String shaFromOrdinalQuery(int projectId, int currentBranch, int ordinal);
+    String shaFromOrdinalQuery(int projectId, int branchId, int ordinal);
 }
