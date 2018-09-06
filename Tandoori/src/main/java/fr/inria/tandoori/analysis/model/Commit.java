@@ -3,13 +3,7 @@ package fr.inria.tandoori.analysis.model;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.joda.time.DateTime;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Represents a commit.
@@ -225,6 +219,33 @@ public class Commit {
         return this.smells;
     }
 
+    /**
+     * Determines if the {@link Smell} is held by this {@link Commit}.
+     *
+     * @param smell The smell to look for.
+     * @return True if found, false otherwise.
+     */
+    public boolean hasSmell(Smell smell) {
+        return getSmells().contains(smell);
+    }
+
+    /**
+     * Determines if the {@link Smell} is held by this {@link Commit}.
+     * The specificity is that this method will check against smells stripped from their parent
+     * as a parent {@link Smell} is returned without his own parent {@link Smell}.
+     *
+     * @param parent The smell to look for.
+     * @return True if found, false otherwise.
+     */
+    public boolean hasParentSmell(Smell parent) {
+        for (Smell smell : getSmells()) {
+            if (parent.equals(Smell.copyWithoutParent(smell))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void addMergedSmell(Smell smell) {
         addSmells(Collections.singleton(smell));
     }
@@ -237,8 +258,8 @@ public class Commit {
         return mergedSmells;
     }
 
-    public void setRenamedSmell(Smell origin, Smell renamed) {
-        this.renamedSmells.put(origin, renamed);
+    public void setRenamedSmell(Smell parent, Smell renamed) {
+        this.renamedSmells.put(parent, renamed);
     }
 
     public Collection<Smell> getRenamedSmellsOrigins() {
@@ -281,9 +302,19 @@ public class Commit {
         if (this.isMerge()) {
             refactoring.retainAll(this.getMergedSmells());
         }
-
         refactoring.removeAll(this.getSmells());
-        refactoring.removeAll(this.getRenamedSmellsOrigins());
+
+        // We don't count the Smell as refactoring if its parent Smell
+        // is the origin of a renamed smell in the previous commit.
+        List<Smell> renamed = new ArrayList<>();
+        Smell underTest;
+        for (Smell smell : refactoring) {
+            underTest = Smell.copyWithoutParent(smell);
+            if (this.getRenamedSmellsOrigins().contains(underTest)) {
+                renamed.add(smell);
+            }
+        }
+        refactoring.removeAll(renamed);
         return refactoring;
     }
 }

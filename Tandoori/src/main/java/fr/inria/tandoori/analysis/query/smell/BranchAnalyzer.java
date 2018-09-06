@@ -95,7 +95,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
      * @return true if it is a brand new smell, false if it is already in the repository.
      */
     private boolean isNew(Smell smell) {
-        return !previous.getSmells().contains(smell) && !underAnalysis.getMergedSmells().contains(smell);
+        return !previous.hasSmell(smell) && !underAnalysis.getMergedSmells().contains(smell);
     }
 
     @Override
@@ -153,14 +153,15 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
      * @param commit The currently analyzed commit.
      */
     private void handleSmellRename(Smell smell, Commit commit) {
-        Smell original = duplicationChecker.original(smell, commit);
+        Smell parent = duplicationChecker.original(smell, commit);
 
-        // TODO: Is this condition useful?
-        if (original != null && previous.getSmells().contains(original)) {
+        if (parent != null) {
             logger.debug("[" + projectId + "] => Guessed rename for smell: " + smell);
-            logger.trace("[" + projectId + "]   => potential parent: " + original);
-            commit.setRenamedSmell(original, smell);
-            smell.parent = original;
+            logger.trace("[" + projectId + "]   => potential parent: " + parent);
+            smell.parent = parent;
+            if (previous.hasParentSmell(parent)) {
+                commit.setRenamedSmell(parent, smell);
+            }
         }
     }
 

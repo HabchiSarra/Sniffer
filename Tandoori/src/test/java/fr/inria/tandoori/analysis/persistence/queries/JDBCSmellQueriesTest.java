@@ -263,10 +263,19 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
         assertEquals(2, result.size());
         checkContainsSmells(result, Arrays.asList(smell, anotherSmell));
 
+        // We can return the smell parent's values
+        Smell withParent = new Smell(smell.type, "withParentInstance", "withParentFile");
+        withParent.parent = smell;
+        executeSuccess(queries.smellInsertionStatement(projectId, withParent));
+        executeSuccess(queries.smellCategoryInsertionStatement(projectId, commit.sha, withParent, SmellCategory.PRESENCE));
+        result = persistence.query(queries.commitSmellsQuery(projectId, String.valueOf(commitId), smell.type));
+        assertEquals(3, result.size());
+        checkContainsSmells(result, Arrays.asList(smell, anotherSmell, withParent));
+
         // We filter by commit
-        result = persistence.query(queries.commitSmellsQuery(projectId, "(" + commitQueries.idFromShaQuery(projectId, second_commit.sha), smell.type) + ")");
+        result = persistence.query(queries.commitSmellsQuery(projectId, "(" + commitQueries.idFromShaQuery(projectId, second_commit.sha) + ")", smell.type));
         assertEquals(2, result.size());
-        checkContainsSmells(result, Arrays.asList(smell, anotherSmell, smellOtherCommit));
+        checkContainsSmells(result, Arrays.asList(anotherSmell, smellOtherCommit));
     }
 
 }

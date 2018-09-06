@@ -74,11 +74,7 @@ public abstract class SmellTypeAnalysisTestCase {
     }
 
     protected void mockEndCommit(String sha1) {
-        ArrayList<Object> result = new ArrayList<>();
-        Map<String, Object> map = new HashMap<>();
-        map.put("sha1", sha1);
-        result.add(map);
-        doReturn(result).when(persistence).query(END_COMMIT_STATEMENT);
+        mockCommitPosition(sha1, END_COMMIT_STATEMENT);
     }
 
     protected void mockNoEndCommit() {
@@ -86,19 +82,26 @@ public abstract class SmellTypeAnalysisTestCase {
     }
 
     protected void mockGapCommit(String sha1) {
+        mockCommitPosition(sha1, GAP_COMMIT_STATEMENT);
+    }
+
+    private void mockCommitPosition(String sha1, String statement) {
         ArrayList<Object> result = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
         map.put("sha1", sha1);
         result.add(map);
-        doReturn(result).when(persistence).query(GAP_COMMIT_STATEMENT);
+        doReturn(result).when(persistence).query(statement);
     }
 
     protected void mockNoGapCommit() {
         doReturn(Collections.emptyList()).when(persistence).query(GAP_COMMIT_STATEMENT);
     }
 
-    protected void mockSmellRenamed(Commit commit, Smell origin, Smell renamed) {
-        doReturn(origin).when(duplicationChecker).original(renamed, commit);
+    protected Smell mockSmellRenamed(Commit renamingCommit, Smell renamed, Smell parent) {
+        doReturn(parent).when(duplicationChecker).original(renamed, renamingCommit);
+        Smell expectedRenamedSmell = new Smell(renamed.type, renamed.instance, renamed.file);
+        expectedRenamedSmell.parent = parent;
+        return expectedRenamedSmell;
     }
 
     protected void debugSmellInsertions() {

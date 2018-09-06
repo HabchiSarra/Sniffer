@@ -48,7 +48,6 @@ public interface SmellQueries {
 
     /**
      * Query the {@link Smell} instances for a specific commit identifier.
-     * TODO: We must handle the parent smell retrieval in this method.
      *
      * @param projectId The project identifier.
      * @param commitId  Commit identifier or query returning the commit identifier between parenthesis.

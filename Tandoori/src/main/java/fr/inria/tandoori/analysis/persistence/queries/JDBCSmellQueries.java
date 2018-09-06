@@ -73,12 +73,20 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
 
     @Override
     public String commitSmellsQuery(int projectId, String commitId, String smellType) {
-        String query = "SELECT type, instance, file FROM smell " +
+        String smellsQuery = "SELECT type, instance, file, renamed_from FROM smell " +
                 "RIGHT JOIN smell_presence ON smell_presence.smell_id = smell.id " +
                 "WHERE smell_presence.commit_id = " + commitId;
         if (smellType != null) {
-            query += " AND smell.type = '" + smellType + "'";
+            smellsQuery += " AND smell.type = '" + smellType + "'";
         }
+
+        String query = "WITH sm AS (" + smellsQuery + ") " +
+                "SELECT sm.type, sm.instance, sm.file, " +
+                "parent.type AS parent_type, parent.instance AS parent_instance, parent.file AS parent_file " +
+                "FROM sm " +
+                "LEFT JOIN (SELECT id, type, instance, file FROM smell) parent " +
+                "ON parent.id = sm.renamed_from";
+
         return query;
     }
 }

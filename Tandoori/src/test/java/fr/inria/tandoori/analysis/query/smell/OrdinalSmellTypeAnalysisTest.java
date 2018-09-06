@@ -21,7 +21,6 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         super.setUp();
     }
 
-
     private OrdinalSmellTypeAnalysis getAnalysis() {
         return new OrdinalSmellTypeAnalysis(projectId, persistence, smellList.iterator(), smellType, duplicationChecker,
                 commitQueries, smellQueries);
@@ -33,8 +32,16 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
 
         mockNoEndCommit();
         getAnalysis().query();
+        debugSmellInsertions();
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handlePresenceAndIntroductionOnSingleCommitAlsoLastCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -49,6 +56,15 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * |
+     * * B ()
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handlePresenceAndIntroductionOnSingleCommitNotLastCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -56,6 +72,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
 
         mockEndCommit(lastCommitSha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(4)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -64,6 +81,15 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, lastCommitSha, firstSmell, SmellCategory.REFACTOR);
     }
 
+    /**
+     * <pre><code>
+     * * A (1   )
+     * |
+     * * B (   2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleIntroductionAndRefactoring() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -71,6 +97,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(7)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -83,6 +110,15 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.REFACTOR);
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * |
+     * * B (1, 2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleIntroductionOnly() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -91,6 +127,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(7)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -103,6 +140,15 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
     }
 
+    /**
+     * <pre><code>
+     * * A (1, 2)
+     * |
+     * * B (1)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleRefactorOnly() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -111,6 +157,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(8)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -124,6 +171,15 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.REFACTOR);
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * |
+     * * B (1)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleNoChange() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -131,6 +187,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
 
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(4)).addStatements(any());
         // We have only one smell insertion here since we check for existence in the previous commit.
@@ -140,6 +197,17 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.PRESENCE);
     }
 
+    /**
+     * <pre><code>
+     * * A (1, 2)
+     * |
+     * x Missing commit B
+     * |
+     * * C (  2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleCommitGap() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -150,6 +218,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         mockGapCommit(gapCommitSha);
         mockEndCommit(thirdCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(11)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -169,6 +238,23 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
     }
 
+    /**
+     * <pre><code>
+     * * A (1  )
+     * |
+     * * B (  2)
+     * |
+     * x Missing commit B
+     * |
+     * ...
+     * |
+     * x Missing commit N
+     * |
+     * * M (  2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleMultipleMissingCommits() throws QueryException {
         Commit anotherCommit = new Commit("thirdSha", 24);
@@ -180,6 +266,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         mockGapCommit(gapCommitSha);
         mockEndCommit(anotherCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(11)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -199,6 +286,17 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, anotherCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
     }
 
+    /**
+     * <pre><code>
+     * * A (1, 2)
+     * |
+     * * Missing B
+     * |
+     * * C (   2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleMissingGapCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -208,6 +306,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         mockNoGapCommit(); // We pray for this not to happen, but we have to be prepared for the worst.
         mockEndCommit(thirdCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(8)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -222,6 +321,15 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).lostSmellCategoryInsertionStatement(projectId, firstSmell, SmellCategory.REFACTOR, secondCommit.ordinal, thirdCommit.ordinal);
     }
 
+    /**
+     * <pre><code>
+     * * A (1   )
+     * |
+     * * B (   2) [1 -> 2]
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleRenamedSmell() throws QueryException {
         ArgumentCaptor<Smell> smellCaptor = ArgumentCaptor.forClass(Smell.class);
@@ -229,9 +337,10 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         addSmell(secondCommit, secondSmell);
 
         // This means that the firstSmell instance has been renamed to second smell in the secondCommit
-        doReturn(firstSmell).when(duplicationChecker).original(secondSmell, secondCommit);
+        Smell expectedSecondSmell = mockSmellRenamed(secondCommit, secondSmell, firstSmell);
         mockEndCommit(secondCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(5)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -241,14 +350,25 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         // We introduce the new smell instance definition with renamed_from filled in.
         // Since we use a captor we have to check all invocations of smellInsertionStatement...
         verify(smellQueries, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, expectedSecondSmell, SmellCategory.PRESENCE);
 
         // Check that the renamed commit has a set parent
         Smell renamed = smellCaptor.getAllValues().get(1);
-        assertEquals(secondSmell, renamed);
+        assertEquals(expectedSecondSmell, renamed);
         assertEquals(firstSmell, renamed.parent);
     }
 
+    /**
+     * <pre><code>
+     * * A (1   )
+     * |
+     * * B (   2) [1 -> 2]
+     * |
+     * * C (   2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void handleRenamedSmellMultipleCommits() throws QueryException {
         ArgumentCaptor<Smell> smellCaptor = ArgumentCaptor.forClass(Smell.class);
@@ -257,9 +377,11 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         addSmell(thirdCommit, secondSmell);
 
         // This means that the firstSmell instance has been renamed to second smell in the secondCommit
-        doReturn(firstSmell).when(duplicationChecker).original(secondSmell, secondCommit);
+        Smell expectedSecondSmell = mockSmellRenamed(secondCommit, secondSmell, firstSmell);
+        mockSmellRenamed(thirdCommit, secondSmell, firstSmell); // The smell should still be recognized as renamed
         mockEndCommit(thirdCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(6)).addStatements(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -269,14 +391,14 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         // We introduce the new smell instance definition with renamed_from filled in.
         // Since we use a captor we have to check all invocations of smellInsertionStatement...
         verify(smellQueries, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, expectedSecondSmell, SmellCategory.PRESENCE);
         // Check that the renamed commit has a set parent
         Smell renamed = smellCaptor.getAllValues().get(1);
-        assertEquals(secondSmell, renamed);
+        assertEquals(expectedSecondSmell, renamed);
         assertEquals(firstSmell, renamed.parent);
 
         // We won't introduce the same rename multiple times, as before.
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, expectedSecondSmell, SmellCategory.PRESENCE);
 
     }
 
