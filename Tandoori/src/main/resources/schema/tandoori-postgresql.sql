@@ -106,12 +106,12 @@ CREATE TABLE IF NOT EXISTS Smell (
   FOREIGN KEY (renamed_from) REFERENCES Smell (id)
 );
 -- Creating unicity index for smells with renamed_from entry filled
-CREATE UNIQUE INDEX smell__instance_file_type_project_id_renamed_from
+CREATE UNIQUE INDEX IF NOT EXISTS smell__instance_file_type_project_id_renamed_from
 ON Smell (instance, file, type, project_id, renamed_from)
 WHERE renamed_from IS NOT NULL;
 
 -- Creating another unicity index for smells with null renamed_from entry
-CREATE UNIQUE INDEX smell__instance_file_type_project_id
+CREATE UNIQUE INDEX IF NOT EXISTS smell__instance_file_type_project_id
 ON Smell (instance, file, type, project_id)
 WHERE renamed_from IS NULL;
 
