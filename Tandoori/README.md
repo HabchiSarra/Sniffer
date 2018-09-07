@@ -31,3 +31,38 @@ During the insertion process, Tandoori will create a schema named 'tandoori'.
 2. ...And restore it whenever you want using `psql postgres://localhost:5432/tandoori -U tandoori < my_dump.sql`
 3. You can also remove all data by deleting the tandoori schema: `tandoori=> DROP SCHEMA tandoori CASCADE;`
 
+# Usage
+
+If you built a complete jar using `./gradlew shadowJar`, you will be able to perform both
+single app analysis and multi apps parallel analysis.
+
+```
+    # Analyzing a single application from a local repository
+    java -jar TandooriApproach.jar singleAnalysis -n packlist -r ./repositories/packlist -db paprika_db/packlist/databases/graph.db -u nbossard/packlist
+
+    # If your given repository path is not found on the file system,
+    # Tandoori will look for it on github (i.e. the following command will try to clone git@github.com:nbossard/packlist)
+    java -jar TandooriApproach.jar singleAnalysis -n packlist -r nbossard/packlist -db paprika_db/packlist/databases/graph.dbé -u nbossard/packlist
+```
+
+# Known issues
+
+## Performance
+
+While trying to analyze multiple applications, we currently suffer a severe memory leak (300 apps uses up to 600Go of RAM).
+
+## JGit and local Git usage
+
+Since *JGit* API is not complete or too weird to be used easily, we chose to
+perform out git operations using both *JGit* and system calls to your local *Git* program.
+
+*JGit* is used in the case of:
+
+- Cloning remote repository
+- Calling for the git log in order to process the commits
+- Fetching detailed info about commits (message, author, parents, date, ...)
+
+System calls to *Git* are used in the cases of:
+
+- Parse file renamings in a given commit
+- Parse diff stats in a given commit
