@@ -69,20 +69,41 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
 
     @Override
     public void notifySmell(Smell smell) {
-        // We keep track of the smells present in our commit.
-        underAnalysis.addSmell(smell);
+        smell = fetchIdentifiedSmell(smell);
 
-        // Update smell with parent instance, if any
-        handleSmellRename(smell, underAnalysis);
+        if (smell.id == -1) {
+            // If smell did not exists in previous commit, we try to
+            // update the smell with parent instance, if any
+            handleSmellRename(smell, underAnalysis);
+        }
 
         // Check if we already inserted smell previously to avoid having too much insert statements.
         // This could be removed and still checked by our unicity constraint.
         if (isNew(smell)) {
-            insertSmellInstance(smell);
-            persistence.commit();
+            smell.id = insertSmellInstance(smell);
         }
+        assert smell.id != -1;
 
         insertSmellInCategory(smell, underAnalysis, SmellCategory.PRESENCE);
+
+        // We keep track of the smells present in our commit.
+        underAnalysis.addSmell(smell);
+    }
+
+    /**
+     * Retrieve the same smell previously present on his parents
+     * with identifier and parents
+     *
+     * @param temporary The smell to retrieve.
+     * @return The original, identified smell.
+     */
+    private Smell fetchIdentifiedSmell(Smell temporary) {
+        Smell strippedTemporary = Smell.copyWithoutParent(temporary);
+        Smell original = previous.getPreviousInstance(strippedTemporary);
+        if (original.id == -1) {
+            original = underAnalysis.getMergedInstance(strippedTemporary);
+        }
+        return original.id > -1 ? original : temporary;
     }
 
     /**
@@ -95,7 +116,7 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
      * @return true if it is a brand new smell, false if it is already in the repository.
      */
     private boolean isNew(Smell smell) {
-        return !previous.hasSmell(smell) && !underAnalysis.getMergedSmells().contains(smell);
+        return smell.id == -1;
     }
 
     @Override
@@ -155,12 +176,17 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     private void handleSmellRename(Smell smell, Commit commit) {
         Smell parent = duplicationChecker.original(smell, commit);
 
+        // We found a file renamed, hence a potential renamed smell's parent
         if (parent != null) {
-            logger.debug("[" + projectId + "] => Guessed rename for smell: " + smell);
-            logger.trace("[" + projectId + "]   => potential parent: " + parent);
-            smell.parent = parent;
-            if (previous.hasParentSmell(parent)) {
-                commit.setRenamedSmell(parent, smell);
+            logger.info("[" + projectId + "] => Guessed rename for smell: " + smell);
+            // We try to find the original smell from this parent.
+            Smell originalParent = fetchIdentifiedSmell(parent);
+            if (originalParent.id > -1) {
+                logger.info("[" + projectId + "]   => Found parent smell: " + originalParent);
+                smell.parent = originalParent;
+                commit.setRenamedSmell(smell.parent, smell);
+            } else {
+                logger.warn("[" + projectId + "]   => Could not find original smell for parent: " + parent);
             }
         }
     }

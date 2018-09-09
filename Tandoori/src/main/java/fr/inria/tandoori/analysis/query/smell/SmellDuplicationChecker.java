@@ -20,20 +20,9 @@ class SmellDuplicationChecker {
 
     private static final Logger logger = LoggerFactory.getLogger(SmellDuplicationChecker.class.getName());
     private final List<FileRenameEntry> fileRenamings;
-    /**
-     * Binding renamed smells to their original ones.
-     */
-    private final Map<Smell, Smell> renamedSmells;
-    private final boolean useCache;
 
     SmellDuplicationChecker(int projectId, Persistence persistence) {
-        this(projectId, persistence, true);
-    }
-
-    SmellDuplicationChecker(int projectId, Persistence persistence, boolean useCache) {
         fileRenamings = loadFileRename(projectId, persistence);
-        renamedSmells = new HashMap<>();
-        this.useCache = useCache;
     }
 
     /**
@@ -71,13 +60,6 @@ class SmellDuplicationChecker {
     public Smell original(Smell instance, Commit commit) {
         logger.trace("==> Trying to guess original smell for: " + instance);
 
-        // If the smell is already a known renaming, return it instantly
-        Smell mergedSmell = getCachedRenaming(instance);
-        if (mergedSmell != null) {
-            logger.trace("  ==> Found an already guessed smell");
-            return mergedSmell;
-        }
-
         // If we find a renaming of the smell file in this specific commit, try to guess the original smell.
         int index = fileRenamings.indexOf(FileRenameEntry.fromSmell(instance, commit));
         if (index > -1) {
@@ -88,14 +70,6 @@ class SmellDuplicationChecker {
         logger.trace("  ==> No original smell found");
 
         return null;
-    }
-
-    private Smell getCachedRenaming(Smell smell) {
-        return useCache ? renamedSmells.get(smell) : null;
-    }
-
-    private void addCachedRenaming(Smell smell, Smell parent) {
-        renamedSmells.put(smell, parent);
     }
 
     /**
@@ -109,11 +83,7 @@ class SmellDuplicationChecker {
      */
     private Smell guessOriginalSmell(Smell instance, Commit commit, FileRenameEntry renaming) {
         String guessOldInstance = guessInstanceName(instance.instance, renaming.oldFile);
-        Smell original = new Smell(instance.type, guessOldInstance, renaming.oldFile);
-
-        // Cache the original smell into renamedSmells to find it for the next instances.
-        addCachedRenaming(instance, original);
-        return original;
+        return new Smell(instance.type, guessOldInstance, renaming.oldFile);
     }
 
     /**
@@ -149,10 +119,10 @@ class SmellDuplicationChecker {
         String currentPart;
         do {
             currentPart = pathPart[pathPartIndex--];
-            if (!currentPart.equals("java")) {
+            if (!currentPart.equals("java") && !currentPart.equals("groovy")) {
                 packageParts.add(currentPart);
             }
-        } while (!currentPart.equals("java") && pathPartIndex >= 0);
+        } while (!currentPart.equals("java") && !currentPart.equals("groovy") && pathPartIndex >= 0);
         Collections.reverse(packageParts);
         return String.join(".", packageParts);
     }

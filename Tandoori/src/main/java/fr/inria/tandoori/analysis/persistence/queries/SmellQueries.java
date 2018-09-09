@@ -55,4 +55,12 @@ public interface SmellQueries {
      * @return The generated query statement.
      */
     String commitSmellsQuery(int projectId, String commitId, String smellType);
+
+    /**
+     * Return the last project's inserted {@link Smell} id.
+     *
+     * @param projectId The project identifier.
+     * @return The generated query statement.
+     */
+    String lastSmellIdQuery(int projectId);
 }

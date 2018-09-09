@@ -13,21 +13,17 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
 
     @Override
     public String smellInsertionStatement(int projectId, Smell smell) {
-        String parentQueryOrNull = null;
-        // We know that the parent smell is the last inserted one.
-        if (smell.parent != null) {
-            parentQueryOrNull = "(" + smellIdQuery(projectId, smell.parent) + ")";
-        }
+        String parentIdOrNull = smell.parent == null ? null : String.valueOf(smell.parent.id);
 
         return "INSERT INTO smell (project_id, instance, type, file, renamed_from) VALUES" +
                 "(" + projectId + ", '" + smell.instance + "', '" + smell.type + "', '"
-                + smell.file + "', " + parentQueryOrNull + ") ON CONFLICT DO NOTHING;";
+                + smell.file + "', " + parentIdOrNull + ") ON CONFLICT DO NOTHING;";
     }
 
     @Override
     public String smellCategoryInsertionStatement(int projectId, String sha1, Smell smell, SmellCategory category) {
         return "INSERT INTO " + category.getName() + " (project_id, smell_id, commit_id) VALUES " +
-                "(" + projectId + ", (" + smellIdQuery(projectId, smell) + "), (" +
+                "(" + projectId + ", " + smell.id + ", (" +
                 commitQueries.idFromShaQuery(projectId, sha1) + "));";
     }
 
@@ -41,7 +37,14 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
 
     @Override
     public String smellIdQuery(int projectId, Smell smell) {
-        String parentQuery = smell.parent == null ? null : "(" + smellIdQuery(projectId, smell.parent) + ")";
+        String parentQuery = null;
+        if (smell.parent != null) {
+            if (smell.parent.id > -1) {
+                parentQuery = String.valueOf(smell.parent.id);
+            } else {
+                parentQuery = "(" + smellIdQuery(projectId, smell.parent) + ")";
+            }
+        }
         return smellIdQuery(projectId, smell.instance, smell.file, smell.type, parentQuery);
     }
 
@@ -73,7 +76,7 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
 
     @Override
     public String commitSmellsQuery(int projectId, String commitId, String smellType) {
-        String smellsQuery = "SELECT type, instance, file, renamed_from FROM smell " +
+        String smellsQuery = "SELECT smell.id, type, instance, file, renamed_from FROM smell " +
                 "RIGHT JOIN smell_presence ON smell_presence.smell_id = smell.id " +
                 "WHERE smell_presence.commit_id = " + commitId;
         if (smellType != null) {
@@ -81,12 +84,17 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
         }
 
         String query = "WITH sm AS (" + smellsQuery + ") " +
-                "SELECT sm.type, sm.instance, sm.file, " +
+                "SELECT sm.id, sm.type, sm.instance, sm.file, " +
                 "parent.type AS parent_type, parent.instance AS parent_instance, parent.file AS parent_file " +
                 "FROM sm " +
                 "LEFT JOIN (SELECT id, type, instance, file FROM smell) parent " +
                 "ON parent.id = sm.renamed_from";
 
         return query;
+    }
+
+
+    public String lastSmellIdQuery(int projectId) {
+        return "SELECT id FROM smell ORDER BY id DESC LIMIT 1";
     }
 }

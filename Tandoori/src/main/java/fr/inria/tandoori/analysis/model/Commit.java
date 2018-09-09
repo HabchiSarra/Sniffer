@@ -239,12 +239,30 @@ public class Commit {
      */
     public boolean hasParentSmell(Smell parent) {
         for (Smell smell : getSmells()) {
-            if (parent.equals(Smell.copyWithoutParent(smell))) {
+            if (Smell.copyWithoutParent(parent).equals(Smell.copyWithoutParent(smell))) {
                 return true;
             }
         }
         return false;
     }
+
+    /**
+     * Determines if the {@link Smell} is held by this {@link Commit}.
+     * The specificity is that this method will check against smells stripped from their parent
+     * as a parent {@link Smell} is returned without his own parent {@link Smell}.
+     *
+     * @param parent The smell to look for.
+     * @return True if found, false otherwise.
+     */
+    public boolean hasParentMergedSmell(Smell parent) {
+        for (Smell smell : getMergedSmells()) {
+            if (parent.equals(smell)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     public void addMergedSmell(Smell smell) {
         addSmells(Collections.singleton(smell));
@@ -316,5 +334,38 @@ public class Commit {
         }
         refactoring.removeAll(renamed);
         return refactoring;
+    }
+
+    /**
+     * Try to find the instance of the smell from this commit
+     * to fetch its parent and id.
+     *
+     * @param tested The instance to retrieve.
+     * @return The previous {@link Smell} if found,the tested {@link Smell} if not found.
+     */
+    public Smell getPreviousInstance(Smell tested) {
+        for (Smell smell : getSmells()) {
+            if (Smell.copyWithoutParent(smell).equals(tested)) {
+                return smell;
+            }
+
+        }
+        return tested;
+    }
+
+    /**
+     * Try to find the instance of the smell from this commit's merged smell
+     * to fetch its parent and id.
+     *
+     * @param tested The instance to retrieve.
+     * @return The previous {@link Smell} if found,the tested {@link Smell} if not found.
+     */
+    public Smell getMergedInstance(Smell tested) {
+        for (Smell smell : getMergedSmells()) {
+            if (Smell.copyWithoutParent(smell).equals(tested)) {
+                return smell;
+            }
+        }
+        return tested;
     }
 }

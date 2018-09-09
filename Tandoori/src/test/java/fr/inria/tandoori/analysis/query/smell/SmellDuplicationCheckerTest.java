@@ -27,6 +27,8 @@ public class SmellDuplicationCheckerTest {
     private static SmellDuplicationChecker.FileRenameEntry fileRename;
     private static SmellDuplicationChecker.FileRenameEntry sameCommit;
     private static SmellDuplicationChecker.FileRenameEntry sameOldFile;
+    private static SmellDuplicationChecker.FileRenameEntry j2gRename;
+    private static SmellDuplicationChecker.FileRenameEntry g2jRename;
     private List<Map<String, Object>> filesRenames;
 
     @BeforeClass
@@ -35,6 +37,9 @@ public class SmellDuplicationCheckerTest {
         sameCommit = new SmellDuplicationChecker.FileRenameEntry(SHA_A, "java/d/e/f.java", "java/g/h/i.java");
         // No java directory should go until root path
         sameOldFile = new SmellDuplicationChecker.FileRenameEntry(SHA_B, "a/b/c.java", "d/e/f.java");
+        // Groovy and Java directories
+        j2gRename = new SmellDuplicationChecker.FileRenameEntry(SHA_B, "app/src/main/java/a/b/c.java", "app/src/main/groovy/a/b/d.java");
+        g2jRename = new SmellDuplicationChecker.FileRenameEntry(SHA_B, "app/src/main/groovy/a/b/c.java", "app/src/main/java/a/b/d.java");
     }
 
     private void addRenameEntry(SmellDuplicationChecker.FileRenameEntry... entries) {
@@ -51,7 +56,7 @@ public class SmellDuplicationCheckerTest {
     @Before
     public void setUp() {
         filesRenames = new ArrayList<>();
-        addRenameEntry(fileRename, sameCommit, sameOldFile);
+        addRenameEntry(fileRename, sameCommit, sameOldFile, j2gRename, g2jRename);
     }
 
     private SmellDuplicationChecker getDuplicationChecker() {
@@ -163,23 +168,6 @@ public class SmellDuplicationCheckerTest {
     }
 
     @Test
-    public void sameRenamingInAnotherCommitWillBeFound() {
-        Smell instance = new Smell("MIM", "d.e.f", sameCommit.newFile);
-        Smell newInstanceFurtherCommit = new Smell(instance.type, instance.instance, instance.file);
-        Commit commit = new Commit(sameCommit.sha1, 1);
-
-        SmellDuplicationChecker checker = getDuplicationChecker();
-        // The original guess will create a cache that is used between commits
-        Smell original = checker.original(instance, commit);
-
-        commit = new Commit("newSha", 2);
-        Smell secondOriginal = checker.original(newInstanceFurtherCommit, commit);
-
-        assertNotNull(secondOriginal);
-        assertEquals(original, secondOriginal);
-    }
-
-    @Test
     public void sameRenamingInAnotherIsTypeDependant() {
         Smell instance = new Smell("MIM", "d.e.f", sameCommit.newFile);
         Smell newInstanceFurtherCommit = new Smell("HMU", instance.instance, instance.file);
@@ -195,7 +183,6 @@ public class SmellDuplicationCheckerTest {
         assertNotNull(original);
         assertNull(secondOriginal);
     }
-
 
     @Test
     public void sameRenamingBackAndForth() {
@@ -219,5 +206,35 @@ public class SmellDuplicationCheckerTest {
         assertEquals(expectedOriginal, original);
         assertEquals(expectedFirstRename, firstRename);
         assertEquals(original, renameEqualToFirst);
+    }
+
+    @Test
+    public void java2groovyUpperFolder() {
+        // The instance name format is critical there.
+        Smell instance = new Smell("MIM", "method#a.b.d$myInnerClass$AnotherInnerClass",
+                j2gRename.newFile);
+        Commit commit = new Commit(j2gRename.sha1, 1);
+
+        SmellDuplicationChecker checker = getDuplicationChecker();
+        Smell original = checker.original(instance, commit);
+
+        assertNotNull(original);
+        assertEquals("method#a.b.c$myInnerClass$AnotherInnerClass", original.instance);
+        assertEquals(j2gRename.oldFile, original.file);
+    }
+
+    @Test
+    public void groovy2JavaUpperFolder() {
+        // The instance name format is critical there.
+        Smell instance = new Smell("MIM", "method#a.b.d$myInnerClass$AnotherInnerClass",
+               g2jRename.newFile);
+        Commit commit = new Commit(g2jRename.sha1, 1);
+
+        SmellDuplicationChecker checker = getDuplicationChecker();
+        Smell original = checker.original(instance, commit);
+
+        assertNotNull(original);
+        assertEquals("method#a.b.c$myInnerClass$AnotherInnerClass", original.instance);
+        assertEquals(g2jRename.oldFile, original.file);
     }
 }

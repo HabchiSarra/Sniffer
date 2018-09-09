@@ -1,9 +1,12 @@
 package fr.inria.tandoori.analysis.model;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public class Smell {
+    // The smell identifier in Tandoori persistence.
+    public int id = -1;
     public final String type;
     public final String instance;
     public final String file;
@@ -51,10 +54,12 @@ public class Smell {
      * @return The new {@link Smell}.
      */
     public static Smell fromTandooriInstance(Map<String, Object> smell) {
+        int id = (int) smell.get("id");
         String type = ((String) smell.get("type"));
         String identifier = (String) smell.get("instance");
         String file = (String) smell.get("file");
         Smell created = new Smell(type, identifier, file);
+        created.id = id;
         created.parent = extractParent(smell);
         return created;
     }
@@ -111,10 +116,11 @@ public class Smell {
     @Override
     public String toString() {
         return "Smell{" +
-                "type='" + type + '\'' +
+                "id=" + id +
+                ", type='" + type + '\'' +
                 ", instance='" + instance + '\'' +
                 ", file='" + file + '\'' +
-                ", parent='" + parent + '\'' +
+                ", parent=" + parent +
                 '}';
     }
 }

@@ -25,8 +25,15 @@ abstract class AbstractSmellTypeAnalysis extends PersistenceAnalyzer {
         this.smellQueries = smellQueries;
     }
 
-    void insertSmellInstance(Smell smell) {
-        persistence.addStatements(smellQueries.smellInsertionStatement(projectId, smell));
+    int insertSmellInstance(Smell smell) {
+        int insertResult = persistence.execute(smellQueries.smellInsertionStatement(projectId, smell));
+        List<Map<String, Object>> result;
+        if (insertResult == 1) {
+            result = persistence.query(smellQueries.lastSmellIdQuery(projectId));
+        } else {
+            result = persistence.query(smellQueries.smellIdQuery(projectId, smell));
+        }
+        return (int) result.get(0).get("id");
     }
 
     /**
