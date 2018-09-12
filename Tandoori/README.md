@@ -66,3 +66,8 @@ System calls to *Git* are used in the cases of:
 
 - Parse file renamings in a given commit
 - Parse diff stats in a given commit
+
+## Some trouble with Spoon
+
+Some of the tools we use are not perfect, thus we have some false positive on smell introduction,
+e.g. `compareTo#com.nbossard.packlist.model.Item` (smell n°29) (https://pastebin.com/9khcXdp9).
