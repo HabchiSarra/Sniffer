@@ -38,7 +38,7 @@ public class JDBCBranchQueriesTest extends PostgresTestCase {
         smellQueries = new JDBCSmellQueries(commitQueries);
         queries = new JDBCBranchQueries(commitQueries, smellQueries);
 
-        this.projectId = createProject("whatever");
+        this.projectId = createProject("whatever", projectQueries);
         this.mainDev = "author@email.com";
         createDev(mainDev);
 
@@ -49,13 +49,6 @@ public class JDBCBranchQueriesTest extends PostgresTestCase {
         result = persistence.query(commitQueries.idFromShaQuery(projectId, mergedIntoCommit.sha));
         mergedIntoCommitId = (int) result.get(0).get("id");
 
-    }
-
-    private int createProject(String projectName) {
-        executeSuccess(projectQueries.projectInsertStatement(projectName, "url"));
-        String idQuery = projectQueries.idFromNameQuery(projectName);
-        List<Map<String, Object>> result = persistence.query(idQuery);
-        return (int) result.get(0).get("id");
     }
 
     private void createDev(String devName) {
@@ -87,7 +80,7 @@ public class JDBCBranchQueriesTest extends PostgresTestCase {
 
     private void addSmells(Commit commit, Smell... smells) {
         for (Smell smell : smells) {
-            persistence.execute(smellQueries.smellInsertionStatement(projectId, smell));
+            smell.id = createSmell(projectId, smell, smellQueries);
             executeSuccess(smellQueries.smellCategoryInsertionStatement(projectId, commit.sha, smell, SmellCategory.PRESENCE));
         }
     }
@@ -126,7 +119,7 @@ public class JDBCBranchQueriesTest extends PostgresTestCase {
         assertEquals(++count, getBranchCount());
 
         // We can insert the same branch ordinal in another project
-        int secondProjectID = createProject("anotherProject");
+        int secondProjectID = createProject("anotherProject", projectQueries);
         executeSuccess(queries.branchInsertionStatement(secondProjectID, 0, originCommit, mergedIntoCommit));
         assertEquals(++count, getBranchCount());
 
@@ -169,7 +162,7 @@ public class JDBCBranchQueriesTest extends PostgresTestCase {
         assertEquals(++count, getBranchCommitCount());
 
         // We can insert the same branch ordinal in another project
-        int secondProjectID = createProject("anotherProject");
+        int secondProjectID = createProject("anotherProject", projectQueries);
         executeSuccess(commitQueries.commitInsertionStatement(secondProjectID, originCommit, GitDiff.EMPTY));
         executeSuccess(commitQueries.commitInsertionStatement(secondProjectID, mergedIntoCommit, GitDiff.EMPTY));
         executeSuccess(commitQueries.commitInsertionStatement(secondProjectID, branchCommit, GitDiff.EMPTY));

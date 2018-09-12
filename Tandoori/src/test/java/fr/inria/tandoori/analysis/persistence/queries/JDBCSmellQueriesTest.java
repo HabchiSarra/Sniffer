@@ -1,16 +1,13 @@
 package fr.inria.tandoori.analysis.persistence.queries;
 
 import fr.inria.tandoori.analysis.model.Commit;
-import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.PostgresTestCase;
 import fr.inria.tandoori.analysis.persistence.SmellCategory;
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,16 +33,9 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
         commitQueries = new JDBCCommitQueries(developerQueries);
         queries = new JDBCSmellQueries(commitQueries);
 
-        this.projectId = createProject("anyProjectName");
+        this.projectId = createProject("anyProjectName", projectQueries);
 
         smell = new Smell("LIC", "instance", "file");
-    }
-
-    private int createProject(String projectName) {
-        persistence.execute(projectQueries.projectInsertStatement(projectName, "url"));
-        String idQuery = projectQueries.idFromNameQuery(projectName);
-        List<Map<String, Object>> result = persistence.query(idQuery);
-        return (int) result.get(0).get("id");
     }
 
     private Commit prepareCommit() {
@@ -53,11 +43,7 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
     }
 
     private Commit prepareCommit(String sha) {
-        String devName = "author@email.com";
-        Commit commit = new Commit(sha, 1, new DateTime(), "message", devName, Collections.emptyList());
-        persistence.execute(developerQueries.developerInsertStatement(devName)); // May return 1 or 0
-        executeSuccess(commitQueries.commitInsertionStatement(projectId, commit, GitDiff.EMPTY));
-        return commit;
+        return prepareCommit(projectId, sha, developerQueries, commitQueries);
     }
 
     private long getSmellCount() {
@@ -78,6 +64,9 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
 
         // We can insert any smell.
         executeSuccess(queries.smellInsertionStatement(projectId, smell));
+        String idQuery = queries.lastSmellIdQuery(projectId);
+        List<Map<String, Object>> result = persistence.query(idQuery);
+        smell.id = (int) result.get(0).get("id");
         assertEquals(++count, getSmellCount());
 
         // We can insert another smell type
@@ -109,7 +98,7 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
 
     @Test
     public void testInsertSmellCategory() {
-        persistence.execute(queries.smellInsertionStatement(projectId, smell));
+        smell.id = createSmell(projectId, smell, queries);
         Commit commit = prepareCommit();
 
         // Insert will fail if commit does not exists
@@ -204,7 +193,8 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
         result = persistence.query(queries.smellIdQuery(projectId, smell));
         assertTrue(result.isEmpty());
 
-        executeSuccess(queries.smellInsertionStatement(projectId, anotherSmellType));
+        anotherSmellType.id = createSmell(projectId, anotherSmellType, queries);
+
         executeSuccess(queries.smellInsertionStatement(projectId, smell));
 
         // Our parent smell is now inserted
@@ -236,10 +226,10 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
         Smell anotherSmellType = new Smell("MIM", smell.instance, "yetanotherfile");
         Smell anotherSmell = new Smell(smell.type, "anotherinstance", "anotherfile");
         Smell smellOtherCommit = new Smell(smell.type, "my.smell.instance", "anotherfile");
-        executeSuccess(queries.smellInsertionStatement(projectId, smell));
-        executeSuccess(queries.smellInsertionStatement(projectId, anotherSmell));
-        executeSuccess(queries.smellInsertionStatement(projectId, anotherSmellType));
-        executeSuccess(queries.smellInsertionStatement(projectId, smellOtherCommit));
+        smell.id = createSmell(projectId, smell, queries);
+        anotherSmell.id = createSmell(projectId, anotherSmell, queries);
+        anotherSmellType.id = createSmell(projectId, anotherSmellType, queries);
+        smellOtherCommit.id = createSmell(projectId, smellOtherCommit, queries);
         // Presences in first commit
         executeSuccess(queries.smellCategoryInsertionStatement(projectId, commit.sha, smell, SmellCategory.PRESENCE));
         executeSuccess(queries.smellCategoryInsertionStatement(projectId, commit.sha, anotherSmell, SmellCategory.PRESENCE));
@@ -266,7 +256,7 @@ public class JDBCSmellQueriesTest extends PostgresTestCase {
         // We can return the smell parent's values
         Smell withParent = new Smell(smell.type, "withParentInstance", "withParentFile");
         withParent.parent = smell;
-        executeSuccess(queries.smellInsertionStatement(projectId, withParent));
+        withParent.id = createSmell(projectId, withParent, queries);
         executeSuccess(queries.smellCategoryInsertionStatement(projectId, commit.sha, withParent, SmellCategory.PRESENCE));
         result = persistence.query(queries.commitSmellsQuery(projectId, String.valueOf(commitId), smell.type));
         assertEquals(3, result.size());

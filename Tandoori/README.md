@@ -71,3 +71,11 @@ System calls to *Git* are used in the cases of:
 
 Some of the tools we use are not perfect, thus we have some false positive on smell introduction,
 e.g. `compareTo#com.nbossard.packlist.model.Item` (smell n°29) (https://pastebin.com/9khcXdp9).
+
+In this case spoon is identifying a non existing method in the class `Item`.
+
+## Some trouble with Paprika
+
+The smell definition of Paprika may create some smells being refactored and introduced
+repetitively. e.g. `openNewTripFragment#com.nbossard.packlist.gui.MainActivityForTest`
+or `openNewTripFragment#com.nbossard.packlist.gui.MainActivityForTest`. (smell n°21 and 44 respectively)
