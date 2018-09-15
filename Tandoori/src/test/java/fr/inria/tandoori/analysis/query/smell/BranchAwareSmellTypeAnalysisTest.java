@@ -106,6 +106,10 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
                 duplicationChecker, commitQueries, smellQueries, branchQueries);
     }
 
+    protected void mockGapCommit(String sha1, int branch, int ordinal) {
+        mockCommitPosition(sha1, commitShaFromOrdinalStatement(projectId, branch, ordinal));
+    }
+
     private void mockCommitBranch(Commit commit, int branch, int commitOrdinal) {
         List<Map<String, Object>> branchResult = new ArrayList<>();
         branchResult.add(Collections.singletonMap("id", branch));
@@ -132,6 +136,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         for (Smell smell : smells) {
             addSmell(commit, smell);
             content = new HashMap<>();
+            content.put("id", fetchId(smell));
             content.put("instance", smell.instance);
             content.put("type", smell.type);
             content.put("file", smell.file);
@@ -150,6 +155,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         Map<String, Object> content;
         for (Smell smell : smells) {
             content = new HashMap<>();
+            content.put("id", fetchId(smell));
             content.put("instance", smell.instance);
             content.put("type", smell.type);
             content.put("file", smell.file);
@@ -163,13 +169,22 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         return smellResult;
     }
 
+    private int fetchId(Smell smell) {
+        List<Map<String, Object>> result = persistence.query(smellQueries.smellIdQuery(projectId, smell));
+        return (int) result.get(0).get("id");
+    }
+
     private void mockBranchParentCommitSmells(int branchId, Smell... smells) {
         this.mockBranchParentCommitSmells(branchId, Arrays.asList(smells));
     }
 
     private void mockLastBranchCommit(int branchId, Commit commit) {
+        mockLastBranchCommit(branchId, commit.sha);
+    }
+
+    private void mockLastBranchCommit(int branchId, String sha) {
         List<Map<String, Object>> commitResult = new ArrayList<>();
-        commitResult.add(Collections.singletonMap("sha1", commit.sha));
+        commitResult.add(Collections.singletonMap("sha1", sha));
         doReturn(commitResult).when(persistence).query(branchLastCommitShaStatement(projectId, branchId));
     }
 
@@ -182,12 +197,19 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         getAnalysis().query();
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void testHandlePresenceAndIntroductionOnSingleCommitAlsoLastCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
         mockCommitBranch(firstCommit, 0, 0);
 
-        mockEndCommit(firstCommit.sha);
+        mockLastBranchCommit(0, firstCommit);
         getAnalysis().query();
 
         verify(persistence, times(1)).execute(any());
@@ -198,13 +220,24 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * |
+     * * B ()
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void testHandlePresenceAndIntroductionOnSingleCommitNotLastCommit() throws QueryException {
         addSmell(firstCommit, firstSmell);
         String lastCommitSha = "another";
-        mockCommitBranch(firstCommit, 0, 0);
 
-        mockEndCommit(lastCommitSha);
+        mockCommitBranch(firstCommit, 0, 0);
+        mockGapCommit(lastCommitSha, 0, 1);
+
+        mockLastBranchCommit(0, lastCommitSha);
         getAnalysis().query();
         debugSmellInsertions();
 
@@ -217,6 +250,15 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, lastCommitSha, firstSmell, SmellCategory.REFACTOR);
     }
 
+    /**
+     * <pre><code>
+     * * A (1   )
+     * |
+     * * B (   2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void testHandleIntroductionAndRefactoring() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -224,7 +266,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockCommitBranch(firstCommit, 0, 0);
         mockCommitBranch(secondCommit, 0, 1);
 
-        mockEndCommit(secondCommit.sha);
+        mockLastBranchCommit(0, secondCommit);
         getAnalysis().query();
 
         verify(persistence, times(2)).execute(any());
@@ -240,6 +282,15 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.REFACTOR);
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * |
+     * * B (1, 2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void testHandleIntroductionOnly() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -248,7 +299,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockCommitBranch(firstCommit, 0, 0);
         mockCommitBranch(secondCommit, 0, 1);
 
-        mockEndCommit(secondCommit.sha);
+        mockLastBranchCommit(0, secondCommit);
         getAnalysis().query();
 
         verify(persistence, times(2)).execute(any());
@@ -264,6 +315,15 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
     }
 
+    /**
+     * <pre><code>
+     * * A (1, 2)
+     * |
+     * * B (1)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void testHandleRefactorOnly() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -272,7 +332,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockCommitBranch(firstCommit, 0, 0);
         mockCommitBranch(secondCommit, 0, 1);
 
-        mockEndCommit(secondCommit.sha);
+        mockLastBranchCommit(0, secondCommit);
         getAnalysis().query();
 
         verify(persistence, times(2)).execute(any());
@@ -289,6 +349,15 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, secondSmell, SmellCategory.REFACTOR);
     }
 
+    /**
+     * <pre><code>
+     * * A (1)
+     * |
+     * * B (1)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void testHandleNoChange() throws QueryException {
         addSmell(firstCommit, firstSmell);
@@ -296,7 +365,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockCommitBranch(firstCommit, 0, 0);
         mockCommitBranch(secondCommit, 0, 1);
 
-        mockEndCommit(secondCommit.sha);
+        mockLastBranchCommit(0, secondCommit);
         getAnalysis().query();
 
         verify(persistence, times(1)).execute(any());
@@ -309,32 +378,46 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, firstSmell, SmellCategory.PRESENCE);
     }
 
+    /**
+     * <pre><code>
+     * * A (1, 2)
+     * |
+     * x Missing commit B
+     * |
+     * * C (  2)
+     * </code></pre>
+     *
+     * @throws QueryException
+     */
     @Test
     public void testHandleCommitGap() throws QueryException {
-        addSmell(firstCommit, firstSmell);
-        addSmell(firstCommit, secondSmell);
-        addSmell(thirdCommit, secondSmell);
-        mockCommitBranch(firstCommit, 0, 0);
-        mockCommitBranch(thirdCommit, 0, 1);
+        Commit someCommit = new Commit("A", 57);
+        Commit anotherCommit = new Commit("B", 60);
 
-        String gapCommitSha = "someSha";
-        mockGapCommit(gapCommitSha);
-        mockEndCommit(thirdCommit.sha);
+        mockCommitSmells(someCommit, firstSmell, secondSmell);
+        mockCommitSmells(anotherCommit, secondSmell);
+        mockCommitBranch(someCommit, 0, 0);
+        mockCommitBranch(anotherCommit, 0, 2);
+
+        mockLastBranchCommit(0, anotherCommit.sha);
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(2)).execute(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellInsertionStatement(projectId, secondSmell);
 
         verify(persistence, times(6)).addStatements(any());
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.PRESENCE);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, someCommit.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, someCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, someCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, someCommit.sha, secondSmell, SmellCategory.INTRODUCTION);
 
         // 3rd commit is counted as consecutive to the first.
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, firstSmell, SmellCategory.REFACTOR);
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, secondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, anotherCommit.sha, secondSmell, SmellCategory.PRESENCE);
+
+        // Since we couldn't find the missing commit, we put the smells in LostRefactor and no presence.
+        verify(smellQueries).lostSmellCategoryInsertionStatement(projectId, firstSmell, SmellCategory.REFACTOR, someCommit.ordinal, anotherCommit.ordinal);
     }
 
     /**
@@ -357,10 +440,10 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         // This means that the firstSmell instance has been renamed to second smell in the secondCommit
         Smell expectedSecondSmell = mockSmellRenamed(secondCommit, secondSmell, firstSmell);
         mockSmellId(expectedSecondSmell);
-        mockEndCommit(secondCommit.sha);
+        mockLastBranchCommit(0, secondCommit.sha);
         getAnalysis().query();
 
-        verify(persistence, times(3)).execute(any());
+        verify(persistence, times(2)).execute(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         // We introduce the new smell instance definition with renamed_from filled in.
         // Since we use a captor we have to check all invocations of smellInsertionStatement...
@@ -402,35 +485,42 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         Smell expectedSecondSmell = mockSmellRenamed(secondCommit, secondSmell, firstSmell);
         mockSmellId(expectedSecondSmell);
         mockSmellRenamed(thirdCommit, secondSmell, firstSmell);
-        mockEndCommit(thirdCommit.sha);
-        getAnalysis().query();
+        mockLastBranchCommit(0, thirdCommit.sha);
 
-        verify(persistence, times(3)).execute(any());
+        getAnalysis().query();
+        debugSmellInsertions();
+
+        verify(persistence, times(2)).execute(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         // We introduce the new smell instance definition with renamed_from filled in.
         // Since we use a captor we have to check all invocations of smellInsertionStatement...
         verify(smellQueries, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
-        verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, expectedSecondSmell, SmellCategory.PRESENCE);
         // Check that the renamed commit has a set parent
         Smell renamed = smellCaptor.getAllValues().get(1);
         assertEquals(expectedSecondSmell, renamed);
         assertEquals(firstSmell, renamed.parent);
 
-        verify(persistence, times(3)).addStatements(any());
+        verify(persistence, times(4)).addStatements(any());
         verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, firstCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
 
-        // We won't introduce the same rename multiple times, as before.
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, secondCommit.sha, expectedSecondSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, expectedSecondSmell, SmellCategory.PRESENCE);
     }
 
+    /**
+     * * X (???)
+     * |
+     * * C (1)
+     * @throws QueryException
+     */
     @Test
     public void handleFirstCommitIsNotTheFirstOrdinal() throws QueryException {
         addSmell(thirdCommit, firstSmell);
-        mockCommitBranch(thirdCommit, 0, 0);
+        mockCommitBranch(thirdCommit, 0, 1);
 
-        mockGapCommit(firstCommit.sha);
-        mockEndCommit(thirdCommit.sha);
+        mockGapCommit(firstCommit.sha, 0, 0);
+        mockLastBranchCommit(0, thirdCommit.sha);
         getAnalysis().query();
         debugSmellInsertions();
 
@@ -484,7 +574,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockCommitBranch(C1, 1, 2);
         mockLastBranchCommit(1, C1);
 
-        mockEndCommit(C0.sha);
         mockMergeCommit(C0, C1);
         mockBranchParentCommitSmells(1, thirdSmell);
 
@@ -574,19 +663,20 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(1, E);
         mockLastBranchCommit(2, G);
 
-        mockEndCommit(I.sha);
         mockMergeCommit(F, E);
         mockMergeCommit(I, G);
         mockBranchParentCommitSmells(1, firstSmell);
         mockBranchParentCommitSmells(2, firstSmell, secondSmell);
 
         getAnalysis().query();
+        debugSmellInsertions();
 
-        verify(persistence, times(2)).execute(any());
+        verify(persistence, times(3)).execute(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries).smellInsertionStatement(projectId, secondSmell);
+        verify(smellQueries).smellInsertionStatement(projectId, thirdSmell);
 
-        verify(persistence, times(19)).addStatements(any());
+        verify(persistence, times(18)).addStatements(any());
         // Initial branch
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.INTRODUCTION);
@@ -608,7 +698,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, G.sha, secondSmell, SmellCategory.REFACTOR);
 
         // Second branch's master
-        verify(smellQueries).smellInsertionStatement(projectId, thirdSmell);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, H.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, H.sha, secondSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, H.sha, thirdSmell, SmellCategory.PRESENCE);
@@ -673,7 +762,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(0, I);
         mockLastBranchCommit(1, G);
 
-        mockEndCommit(I.sha);
         mockMergeCommit(I, G);
         mockBranchParentCommitSmells(1, firstSmell);
 
@@ -762,7 +850,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(1, G);
         mockLastBranchCommit(2, E);
 
-        mockEndCommit(I.sha);
         mockMergeCommit(I, G);
         mockMergeCommit(G, E);
         mockBranchParentCommitSmells(1, firstSmell);
@@ -855,7 +942,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(1, G);
         mockLastBranchCommit(2, E);
 
-        mockEndCommit(I.sha);
         mockMergeCommit(I, G);
         mockMergeCommit(H, E);
         mockBranchParentCommitSmells(1, firstSmell);
@@ -948,7 +1034,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(1, G);
         mockLastBranchCommit(2, D);
 
-        mockEndCommit(H.sha);
         mockMergeCommit(H, G);
         mockMergeCommit(F, D);
         mockBranchParentCommitSmells(1, firstSmell);
@@ -1037,7 +1122,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(0, I);
         mockLastBranchCommit(1, G);
 
-        mockEndCommit(I.sha);
         mockMergeCommit(I, G);
         mockMergeCommit(E, C);
         mockBranchParentCommitSmells(1, Collections.emptyList());
@@ -1129,13 +1213,13 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(1, H);
         mockLastBranchCommit(2, E);
 
-        mockEndCommit(I.sha);
         mockMergeCommit(I, H);
         mockMergeCommit(G, E);
         mockBranchParentCommitSmells(1, firstSmell);
         mockBranchParentCommitSmells(2, firstSmell, secondSmell);
 
         getAnalysis().query();
+        debugSmellInsertions();
 
         verify(persistence, times(3)).execute(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
@@ -1218,7 +1302,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(2, D);
         mockLastBranchCommit(3, C);
 
-        mockEndCommit(F.sha);
         mockMergeCommit(F, E);
         mockMergeCommit(E, D);
         mockMergeCommit(D, C);
@@ -1303,7 +1386,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(0, F);
         mockLastBranchCommit(1, E);
 
-        mockEndCommit(F.sha);
         mockMergeCommit(F, E);
         mockMergeCommit(D, B);
         mockBranchParentCommitSmells(1, firstSmell);
@@ -1384,11 +1466,10 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(0, G);
         mockLastBranchCommit(1, F);
 
-        mockEndCommit(G.sha);
         mockMergeCommit(G, F);
         mockMergeCommit(F, E);
         mockMergeCommit(D, C);
-        mockBranchParentCommitSmells(1, secondSmell, firstSmell);
+        mockBranchParentCommitSmells(1, Arrays.asList(secondSmell, firstSmell));
 
         getAnalysis().query();
         debugSmellInsertions();
@@ -1419,11 +1500,11 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
      * <pre><code>
      * .  A (1,     )
      * |
-     * .  B (   2,  )
+     * .  B (   2,  ) [1 -> 2]
      * |
      * .  C (   2,  )
      * |
-     * .  D (1,     )
+     * .  D (1,     ) [2 -> 1]
      * |
      * .  E (1,     )
      * |
@@ -1462,8 +1543,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockCommitBranch(G, 0, 6);
         mockLastBranchCommit(0, G);
 
-        mockEndCommit(E.sha);
-
         Smell expectedSecondSmell = mockSmellRenamed(B, secondSmell, firstSmell);
         mockSmellRenamed(C, secondSmell, firstSmell);
         Smell expectedRenamedFirstSmell = mockSmellRenamed(D, firstSmell, secondSmell);
@@ -1471,6 +1550,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockSmellRenamed(F, firstSmell, secondSmell);
         mockSmellRenamed(G, firstSmell, secondSmell);
         mockSmellId(expectedSecondSmell);
+        expectedRenamedFirstSmell.parent = expectedSecondSmell;
         mockSmellId(expectedRenamedFirstSmell);
 
         getAnalysis().query();
@@ -1524,7 +1604,6 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         mockLastBranchCommit(0, C);
         mockLastBranchCommit(1, B);
 
-        mockEndCommit(C.sha);
         mockMergeCommit(C, B);
         mockBranchParentCommitSmells(1, firstSmell, secondSmell);
 

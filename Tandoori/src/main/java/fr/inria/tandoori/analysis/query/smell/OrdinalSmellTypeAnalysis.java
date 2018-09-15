@@ -7,6 +7,7 @@ import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
+import fr.inria.tandoori.analysis.query.smell.duplication.SmellDuplicationChecker;
 
 import java.util.Iterator;
 import java.util.Map;

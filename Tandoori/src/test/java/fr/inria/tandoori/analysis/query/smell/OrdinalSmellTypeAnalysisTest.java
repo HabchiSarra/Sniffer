@@ -71,6 +71,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         addSmell(firstCommit, firstSmell);
         String lastCommitSha = "another";
 
+        mockGapCommit(lastCommitSha);
         mockEndCommit(lastCommitSha);
         getAnalysis().query();
         debugSmellInsertions();
@@ -364,7 +365,7 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         getAnalysis().query();
         debugSmellInsertions();
 
-        verify(persistence, times(3)).execute(any());
+        verify(persistence, times(2)).execute(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
         // Check that the renamed commit has a set parent
@@ -405,10 +406,11 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         mockSmellId(expectedSecondSmell);
         mockSmellRenamed(thirdCommit, secondSmell, firstSmell); // The smell should still be recognized as renamed
         mockEndCommit(thirdCommit.sha);
+
         getAnalysis().query();
         debugSmellInsertions();
 
-        verify(persistence, times(3)).execute(any());
+        verify(persistence, times(2)).execute(any());
         verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
         verify(smellQueries, times(2)).smellInsertionStatement(eq(projectId), smellCaptor.capture());
         // Check that the renamed commit has a set parent
@@ -444,4 +446,77 @@ public class OrdinalSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase {
         verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, firstSmell, SmellCategory.PRESENCE);
         verify(smellQueries).smellCategoryInsertionStatement(projectId, thirdCommit.sha, firstSmell, SmellCategory.INTRODUCTION);
     }
+
+    /**
+     * <pre><code>
+     * .  A (1,     )
+     * |
+     * .  B (   2,  ) [1 -> 2]
+     * |
+     * .  C (   2,  )
+     * |
+     * .  D (1,     ) [2 -> 1]
+     * |
+     * .  E (1,     )
+     * |
+     * .  F (1,     )
+     * |
+     * .  G (1,     )
+     * </pre></code>
+     *
+     * @throws QueryException
+     */
+    @Test
+    public void testRenamedSmellsBackToOriginal() throws QueryException {
+        Commit A = new Commit("0-A", 0);
+        Commit B = new Commit("0-B", 1);
+        Commit C = new Commit("0-C", 2);
+        Commit D = new Commit("0-D", 3);
+        Commit E = new Commit("0-E", 4);
+        Commit F = new Commit("0-F", 5);
+        Commit G = new Commit("0-G", 6);
+
+        // This define the input order
+        addSmell(A, firstSmell);
+        addSmell(B, secondSmell);
+        addSmell(C, secondSmell);
+        addSmell(D, firstSmell);
+        addSmell(E, firstSmell);
+        addSmell(F, firstSmell);
+        addSmell(G, firstSmell);
+
+        mockEndCommit(G.sha);
+
+        Smell expectedSecondSmell = mockSmellRenamed(B, secondSmell, firstSmell);
+        mockSmellRenamed(C, secondSmell, firstSmell);
+        Smell expectedRenamedFirstSmell = mockSmellRenamed(D, firstSmell, secondSmell);
+        mockSmellRenamed(E, firstSmell, secondSmell);
+        mockSmellRenamed(F, firstSmell, secondSmell);
+        mockSmellRenamed(G, firstSmell, secondSmell);
+
+        mockSmellId(expectedSecondSmell);
+        expectedRenamedFirstSmell.parent = expectedSecondSmell;
+        mockSmellId(expectedRenamedFirstSmell);
+
+        getAnalysis().query();
+        debugSmellInsertions();
+
+        verify(persistence, times(3)).execute(any());
+        verify(smellQueries).smellInsertionStatement(projectId, firstSmell);
+        verify(smellQueries).smellInsertionStatement(projectId, expectedSecondSmell);
+        verify(smellQueries).smellInsertionStatement(projectId, expectedRenamedFirstSmell);
+
+        verify(persistence, times(8)).addStatements(any());
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, A.sha, firstSmell, SmellCategory.INTRODUCTION);
+
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, B.sha, expectedSecondSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, C.sha, expectedSecondSmell, SmellCategory.PRESENCE);
+
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, D.sha, expectedRenamedFirstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, E.sha, expectedRenamedFirstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, F.sha, expectedRenamedFirstSmell, SmellCategory.PRESENCE);
+        verify(smellQueries).smellCategoryInsertionStatement(projectId, G.sha, expectedRenamedFirstSmell, SmellCategory.PRESENCE);
+    }
+
 }

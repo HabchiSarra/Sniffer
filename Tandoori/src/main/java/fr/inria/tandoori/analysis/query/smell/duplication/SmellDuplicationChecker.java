@@ -1,4 +1,4 @@
-package fr.inria.tandoori.analysis.query.smell;
+package fr.inria.tandoori.analysis.query.smell.duplication;
 
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
@@ -8,12 +8,16 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-class SmellDuplicationChecker {
+/**
+ * Tries to generate parent {@link Smell} instances from project's files
+ * renamings.
+ * TODO: Add interface.
+ */
+public class SmellDuplicationChecker {
     static final String SHA1_COLUMN = "sha1";
     static final String OLD_FILE_COLUMN = "old_file";
     static final String NEW_FILE_COLUMN = "new_file";
@@ -21,7 +25,7 @@ class SmellDuplicationChecker {
     private static final Logger logger = LoggerFactory.getLogger(SmellDuplicationChecker.class.getName());
     private final List<FileRenameEntry> fileRenamings;
 
-    SmellDuplicationChecker(int projectId, Persistence persistence) {
+    public SmellDuplicationChecker(int projectId, Persistence persistence) {
         fileRenamings = loadFileRename(projectId, persistence);
     }
 

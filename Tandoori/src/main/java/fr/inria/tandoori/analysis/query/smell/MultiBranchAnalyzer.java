@@ -6,6 +6,9 @@ import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
 import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.QueryException;
+import fr.inria.tandoori.analysis.query.smell.duplication.SmellDuplicationChecker;
+import fr.inria.tandoori.analysis.query.smell.gap.CommitNotFoundException;
+import fr.inria.tandoori.analysis.query.smell.gap.MultiBranchGapHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,27 +27,16 @@ class MultiBranchAnalyzer extends BranchAnalyzer {
 
     MultiBranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
                         CommitQueries commitQueries, SmellQueries smellQueries, BranchQueries branchQueries, int branchId) {
-        super(projectId, persistence, duplicationChecker, commitQueries, smellQueries);
+        super(projectId, persistence, duplicationChecker, commitQueries, smellQueries, new MultiBranchGapHandler(projectId, branchId, persistence, branchQueries));
         this.branchQueries = branchQueries;
         this.branchId = branchId;
     }
 
-/*
-   // TODO: This doesn't work on unit tests
+
     @Override
     public void notifyEnd() throws QueryException {
         super.notifyEnd(fetchLastBranchCommitSha());
     }
-*/
-    @Override
-    Commit createNoSmellCommit(int ordinal) throws CommitNotFoundException {
-        List<Map<String, Object>> result = persistence.query(branchQueries.shaFromOrdinalQuery(projectId, branchId, ordinal));
-        if (result.isEmpty()) {
-            throw new CommitNotFoundException(projectId, ordinal);
-        }
-        return new Commit(String.valueOf(result.get(0).get("sha1")), ordinal);
-    }
-
     /**
      * Retrieve the sha1 of the last branch's commit analyzed by Paprika.
      *

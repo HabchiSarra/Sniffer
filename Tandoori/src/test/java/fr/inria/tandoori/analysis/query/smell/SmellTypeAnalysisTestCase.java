@@ -7,6 +7,7 @@ import fr.inria.tandoori.analysis.persistence.SmellCategory;
 import fr.inria.tandoori.analysis.persistence.queries.BranchQueries;
 import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
+import fr.inria.tandoori.analysis.query.smell.duplication.SmellDuplicationChecker;
 import org.junit.Before;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -92,8 +93,14 @@ public abstract class SmellTypeAnalysisTestCase {
     }
 
     private String smellIdQueryStatement(int projectId, Smell smell) {
-        return "smell_id_query-" + projectId + "-"
-                + smell.instance + "-" + smell.file + "-" + smell.parent;
+        StringBuilder query = new StringBuilder("smell_id_query-" + projectId + "-"
+                + smell.instance + "-" + smell.file);
+        Smell parent = smell.parent;
+        while (parent != null){
+            query.append("-").append(parent.instance).append("-").append(parent.file);
+            parent = parent.parent;
+        }
+        return query.toString();
     }
 
     protected void addSmell(Commit commit, Smell smell) {
@@ -117,7 +124,7 @@ public abstract class SmellTypeAnalysisTestCase {
         mockCommitPosition(sha1, GAP_COMMIT_STATEMENT);
     }
 
-    private void mockCommitPosition(String sha1, String statement) {
+    protected void mockCommitPosition(String sha1, String statement) {
         ArrayList<Object> result = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
         map.put("sha1", sha1);

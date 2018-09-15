@@ -11,6 +11,7 @@ import java.util.*;
 public class Commit {
     public final String sha;
     public int ordinal;
+    private int branchOrdinal;
     public final List<Commit> parents;
     public final String message;
     public final DateTime date;
@@ -54,7 +55,8 @@ public class Commit {
      * Full constructor for a {@link Commit}.
      *
      * @param sha         The commit sha1.
-     * @param ordinal     The commit ordinal.
+     * @param ordinal     The commit ordinal, by default, this is also the
+     *                    branchOrdinal value.
      * @param date        The commit date.
      * @param message     The commit message.
      * @param authorEmail The commit author.
@@ -64,6 +66,7 @@ public class Commit {
                   String authorEmail, List<Commit> parents) {
         this.sha = sha;
         this.ordinal = ordinal;
+        this.branchOrdinal = ordinal;
         this.date = date;
         this.message = message;
         this.authorEmail = authorEmail;
@@ -71,6 +74,19 @@ public class Commit {
         this.smells = new ArrayList<>();
         this.renamedSmells = new HashMap<>();
         this.mergedSmells = new ArrayList<>();
+    }
+
+    /**
+     * Increment both the commit's ordinal and branchOrdinal by 1 in a new
+     * commit.
+     *
+     * @param commit The reference commit.
+     * @return The new commit with incremented ordinal values.
+     */
+    public static Commit incrementOrdinal(Commit commit) {
+        Commit inc = new Commit(commit.sha, commit.getOrdinal() + 1);
+        inc.setBranchOrdinal(commit.getBranchOrdinal() + 1);
+        return inc;
     }
 
     /**
@@ -133,16 +149,6 @@ public class Commit {
         return new Commit(revCommit.name(), -1, new DateTime(0), "", "", parents);
     }
 
-    /**
-     * Tells if the commit is not consecutive with the other commit.
-     *
-     * @param other The commit to test against this.
-     * @return True if the two commits ordinal are separated by more than 1, False otherwise.
-     */
-    public boolean hasGap(Commit other) {
-        return Math.abs(other.ordinal - this.ordinal) > 1;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -177,12 +183,41 @@ public class Commit {
         return parents == null ? null : parents.get(nth);
     }
 
+    /**
+     * The ordinal project-wide for this commit.
+     *
+     * @return The commit ordinal in project.
+     */
     public int getOrdinal() {
         return ordinal;
     }
 
+    /**
+     * Set a new value for this commit ordinal.
+     *
+     * @param ordinal The new ordinal to set.
+     */
     public void setOrdinal(int ordinal) {
         this.ordinal = ordinal;
+    }
+
+    /**
+     * Set a new value for this commit position in branch.
+     *
+     * @param ordinal The new ordinal to set.
+     */
+    public void setBranchOrdinal(int ordinal) {
+        this.branchOrdinal = ordinal;
+    }
+
+    /**
+     * The ordinal Branch-wise for this commit.
+     * This value is set by default to the same value as ordinal.
+     *
+     * @return The commit ordinal in branch.
+     */
+    public int getBranchOrdinal() {
+        return this.branchOrdinal;
     }
 
     @Override
@@ -217,50 +252,6 @@ public class Commit {
 
     public Collection<Smell> getSmells() {
         return this.smells;
-    }
-
-    /**
-     * Determines if the {@link Smell} is held by this {@link Commit}.
-     *
-     * @param smell The smell to look for.
-     * @return True if found, false otherwise.
-     */
-    public boolean hasSmell(Smell smell) {
-        return getSmells().contains(smell);
-    }
-
-    /**
-     * Determines if the {@link Smell} is held by this {@link Commit}.
-     * The specificity is that this method will check against smells stripped from their parent
-     * as a parent {@link Smell} is returned without his own parent {@link Smell}.
-     *
-     * @param parent The smell to look for.
-     * @return True if found, false otherwise.
-     */
-    public boolean hasParentSmell(Smell parent) {
-        for (Smell smell : getSmells()) {
-            if (Smell.copyWithoutParent(parent).equals(Smell.copyWithoutParent(smell))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Determines if the {@link Smell} is held by this {@link Commit}.
-     * The specificity is that this method will check against smells stripped from their parent
-     * as a parent {@link Smell} is returned without his own parent {@link Smell}.
-     *
-     * @param parent The smell to look for.
-     * @return True if found, false otherwise.
-     */
-    public boolean hasParentMergedSmell(Smell parent) {
-        for (Smell smell : getMergedSmells()) {
-            if (parent.equals(smell)) {
-                return true;
-            }
-        }
-        return false;
     }
 
 

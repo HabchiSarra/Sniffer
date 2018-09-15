@@ -8,6 +8,10 @@ import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
 import fr.inria.tandoori.analysis.query.QueryException;
+import fr.inria.tandoori.analysis.query.smell.duplication.SmellDuplicationChecker;
+import fr.inria.tandoori.analysis.query.smell.gap.CommitGapHandler;
+import fr.inria.tandoori.analysis.query.smell.gap.CommitNotFoundException;
+import fr.inria.tandoori.analysis.query.smell.gap.SingleBranchGapHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +25,7 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
     private static final Logger logger = LoggerFactory.getLogger(BranchAnalyzer.class.getName());
 
     // Analyzer Configuration
-    private final boolean handleGap;
+    private final CommitGapHandler gapHandler;
 
     // Analyzer data source
     private final SmellQueries smellQueries;
@@ -34,16 +38,16 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
 
     BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
                    CommitQueries commitQueries, SmellQueries smellQueries) {
-        this(projectId, persistence, duplicationChecker, commitQueries, smellQueries, true);
+        this(projectId, persistence, duplicationChecker, commitQueries, smellQueries, new SingleBranchGapHandler(projectId, persistence, commitQueries));
     }
 
     BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
                    CommitQueries commitQueries, SmellQueries smellQueries,
-                   boolean handleGap) {
+                   CommitGapHandler gapHandler) {
         super(logger, projectId, persistence, commitQueries);
         this.duplicationChecker = duplicationChecker;
         this.smellQueries = smellQueries;
-        this.handleGap = handleGap;
+        this.gapHandler = gapHandler;
 
         previous = Commit.empty();
         underAnalysis = Commit.empty();
@@ -69,7 +73,7 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
                 handleCommitChanges(underAnalysis);
             }
             // Compare the two commits ordinal to find a gap.
-            if (handleGap && underAnalysis.hasGap(commit) && !underAnalysis.equals(Commit.empty())) {
+            if (gapHandler.hasGap(underAnalysis, commit) && !underAnalysis.equals(Commit.empty())) {
                 handleCommitGap();
             }
             updateCommitTracking(commit);
@@ -149,8 +153,12 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
         if (!underAnalysis.sha.equals(lastCommitSha1)) {
             logger.info("[" + projectId + "] Last analyzed commit is not last present commit: "
                     + underAnalysis.sha + " / " + lastCommitSha1);
-            // The ordinal is unused here, so we can safely put current + 1
-            updateCommitTracking(new Commit(lastCommitSha1, underAnalysis.ordinal + 1));
+            // The ordinal is unused here, so we can safely increment value
+            try {
+                updateCommitTracking(gapHandler.fetchNoSmellCommit(underAnalysis));
+            } catch (CommitNotFoundException e) {
+                logger.warn("[" + projectId + "] Unable to fetch last branch commit: " + e.getMessage());
+            }
             handleCommitChanges(underAnalysis);
         } else {
             logger.info("[" + projectId + "] Last analysed commit is last project commit: " + underAnalysis.sha);
@@ -163,15 +171,14 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
      */
     private void handleCommitGap() {
         logger.info("[" + projectId + "] ==> Handling gap after commit: " + underAnalysis);
-        int nextOrdinal = underAnalysis.ordinal + 1;
         try {
-            Commit emptyCommit = createNoSmellCommit(nextOrdinal);
+            Commit emptyCommit = gapHandler.fetchNoSmellCommit(underAnalysis);
             // If we found the gap commit, we insert it as any other before continuing
             updateCommitTracking(emptyCommit);
             persistCommitChanges(emptyCommit);
         } catch (CommitNotFoundException e) {
             logger.warn("An error occurred while treating gap, inserting in lost smells: " + e.getMessage());
-            setLostCommit(nextOrdinal);
+            setLostCommit(e.getOrdinal());
         }
     }
 
@@ -248,9 +255,9 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
      * @param commit The new commit.
      */
     private void persistLostChanges(Commit commit) {
-        logger.debug("[" + projectId + "] ==> Handling lost commit from " + lostCommitOrdinal + " to " + commit.ordinal);
-        insertLostSmellIntroductions(lostCommitOrdinal, commit.ordinal, previous, commit);
-        insertLostSmellRefactorings(lostCommitOrdinal, commit.ordinal, previous, commit);
+        logger.debug("[" + projectId + "] ==> Handling lost commit from " + lostCommitOrdinal + " to " + commit.getOrdinal());
+        insertLostSmellIntroductions(lostCommitOrdinal, commit.getOrdinal(), previous, commit);
+        insertLostSmellRefactorings(lostCommitOrdinal, commit.getOrdinal(), previous, commit);
     }
 
     private void updateCommitTracking(Commit commit) {

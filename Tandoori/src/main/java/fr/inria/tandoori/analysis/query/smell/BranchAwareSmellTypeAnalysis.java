@@ -8,6 +8,7 @@ import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
+import fr.inria.tandoori.analysis.query.smell.duplication.SmellDuplicationChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +83,9 @@ class BranchAwareSmellTypeAnalysis implements Query {
                 initializeBranch(currentBranch);
             }
 
-            // We then submit the new smell to analysis
-            commit.setOrdinal(fetchCommitOrdinal(currentBranch, commit));
+            // We set the commit ordinal, branch-wise to enable our BranchAnalyzer
+            // to correctly handle gaps.
+            commit.setBranchOrdinal(fetchCommitOrdinal(currentBranch, commit));
             branchAnalyzers.get(currentBranch).notifyCommit(commit);
 
             // On commit change, we ensure to merge SmellPresence from the merged commit if necessary.
