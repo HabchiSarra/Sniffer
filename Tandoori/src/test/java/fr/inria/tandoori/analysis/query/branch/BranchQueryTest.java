@@ -95,6 +95,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(4)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -132,6 +133,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(8)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -182,6 +184,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F, G, H, I);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(12)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -237,6 +240,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F, G, H, I);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(11)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -291,6 +295,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F, G, H, I);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(12)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -345,6 +350,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F, G, H, I);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(12)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -396,6 +402,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F, G, H);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(11)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -449,6 +456,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F, G, H, I);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(11)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -502,6 +510,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F, G, H, I);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(12)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -553,6 +562,7 @@ public class BranchQueryTest {
         initializeMocks(A, B, C, D, E, F);
 
         getQuery().query();
+        debugBranchCommitInsertions();
 
         verify(persistence, times(10)).addStatements(any());
         verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
@@ -569,6 +579,8 @@ public class BranchQueryTest {
         verify(branchQueries).branchInsertionStatement(projectId, 3, B, D);
         verify(branchQueries).branchCommitInsertionQuery(projectId, 3, C.sha, 0);
     }
+
+    // TODO: TEST GAP COMMIT FOR: Merge, Parent, Last branch commit, initial commit, las project commit, random commit
 
     private void debugBranchCommitInsertions() {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);

@@ -74,10 +74,22 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
 
         List<Commit> commits = branch.getCommits();
         Collections.reverse(commits);
-        for (int i = 0; i < commits.size(); i++) {
-            statement = branchQueries.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commits.get(i).sha, i);
+        reverse_ordinal(commits);
+        for (Commit commit : commits) {
+            statement = branchQueries.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commit.sha, commit.ordinal);
             persistence.addStatements(statement);
 
+        }
+    }
+
+    private void reverse_ordinal(List<Commit> commits) {
+        List<Integer> ordinals = new ArrayList<>();
+        for (Commit commit : commits) {
+            ordinals.add(commit.ordinal);
+        }
+
+        for (int i = 0; i < commits.size(); i++) {
+            commits.get(i).ordinal = ordinals.get(ordinals.size() - 1 - i);
         }
     }
 
@@ -101,12 +113,14 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
         }
 
         Commit commit = start;
+        int ordinal = 0;
         while (!isFirstCommit(commit) && !isInBranch(mother, commit.getParent(0))) {
             logger.trace("[" + projectId + "] => Handling commit: " + commit.sha);
             logger.trace("[" + projectId + "] ==> commit parents (" + commit.getParentCount() + "): " + commit.parents);
 
             // If paprika does not know this commit, we do not handle it at all.
             if (paprikaHasCommit(commit.sha)) {
+                commit.ordinal = ordinal;
                 if (commit.getParentCount() >= 2) {
                     merges.add(commit);
                 }
@@ -115,8 +129,12 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
 
             // Retrieve the parent commit, and do the same.
             commit = retrieveParentCommit(commit, 0);
+            // But we increase the ordinal whichever the commit to notify the commit gap
+            // in case that Paprika does not know the commit.
+            ordinal++;
         }
         if (commit != null) {
+            commit.ordinal = ordinal;
             if (paprikaHasCommit(commit.sha)) {
                 current.addCommit(commit);
                 if (commit.getParentCount() >= 1) {
