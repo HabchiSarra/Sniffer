@@ -7,7 +7,6 @@ import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
 import fr.inria.tandoori.analysis.query.Query;
 import fr.inria.tandoori.analysis.query.QueryException;
-import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -19,18 +18,32 @@ import java.util.Map;
  *
  * @see <a href="https://git.evilantrules.xyz/antoine/test-git-log">https://git.evilantrules.xyz/antoine/test-git-log</a>
  */
-class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Query {
-    private final Iterator<Map<String, Object>> smells;
+class OrdinalSmellTypeAnalysis implements Query {
+
+    // Analysis configuration
+    private final int projectId;
     private String smellType;
+
+    // Analysis data source
+    private final Persistence persistence;
+    private final CommitQueries commitQueries;
+    private final SmellQueries smellQueries;
     private final SmellDuplicationChecker duplicationChecker;
 
-    public OrdinalSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
-                                    String smellType, SmellDuplicationChecker duplicationChecker,
-                                    CommitQueries commitQueries, SmellQueries smellQueries) {
-        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence, commitQueries, smellQueries);
+    // Processed data
+    private final Iterator<Map<String, Object>> smells;
+
+
+    OrdinalSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
+                             String smellType, SmellDuplicationChecker duplicationChecker,
+                             CommitQueries commitQueries, SmellQueries smellQueries) {
+        this.projectId = projectId;
+        this.persistence = persistence;
         this.smells = smells;
         this.smellType = smellType;
         this.duplicationChecker = duplicationChecker;
+        this.commitQueries = commitQueries;
+        this.smellQueries = smellQueries;
     }
 
 
@@ -40,7 +53,10 @@ class OrdinalSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Quer
         Commit commit;
 
         Map<String, Object> instance;
-        BranchAnalyzer branchAnalyzer = new BranchAnalyzer(projectId, persistence, duplicationChecker, commitQueries, smellQueries);
+        BranchAnalyzer branchAnalyzer = new BranchAnalyzer(
+                projectId, persistence,
+                duplicationChecker, commitQueries, smellQueries
+        );
         while (smells.hasNext()) {
             instance = smells.next();
             smell = Smell.fromPaprikaInstance(instance, smellType);

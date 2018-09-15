@@ -11,11 +11,7 @@ import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Analyze a {@link Smell} type considering the commits ordinal as well as their original branch.
@@ -23,24 +19,35 @@ import java.util.Map;
  * <p>
  * This should reduce the number of false positive on smell analysis by sorting commits by branch.
  */
-class BranchAwareSmellTypeAnalysis extends AbstractSmellTypeAnalysis implements Query {
+class BranchAwareSmellTypeAnalysis implements Query {
     private static final Logger logger = LoggerFactory.getLogger(BranchAwareSmellTypeAnalysis.class.getName());
 
-    private final Iterator<Map<String, Object>> smells;
+    // Analysis configuration
+    private final int projectId;
     private final String smellType;
+
+    // Analysis data source
+    private final Persistence persistence;
+    private final CommitQueries commitQueries;
+    private final SmellQueries smellQueries;
+    private final BranchQueries branchQueries;
     private final SmellDuplicationChecker duplicationChecker;
 
+    // Processed data
+    private final Iterator<Map<String, Object>> smells;
     private final Map<Integer, BranchAnalyzer> branchAnalyzers;
     private final Map<Integer, String> branchLastCommitSha;
-    private final BranchQueries branchQueries;
 
-    public BranchAwareSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
-                                        String smellType, SmellDuplicationChecker duplicationChecker,
-                                        CommitQueries commitQueries, SmellQueries smellQueries, BranchQueries branchQueries) {
-        super(LoggerFactory.getLogger(OrdinalSmellTypeAnalysis.class.getName()), projectId, persistence, commitQueries, smellQueries);
+    BranchAwareSmellTypeAnalysis(int projectId, Persistence persistence, Iterator<Map<String, Object>> smells,
+                                 String smellType, SmellDuplicationChecker duplicationChecker,
+                                 CommitQueries commitQueries, SmellQueries smellQueries, BranchQueries branchQueries) {
+        this.projectId = projectId;
+        this.persistence = persistence;
         this.smells = smells;
         this.smellType = smellType;
         this.duplicationChecker = duplicationChecker;
+        this.commitQueries = commitQueries;
+        this.smellQueries = smellQueries;
         this.branchQueries = branchQueries;
 
         branchAnalyzers = new HashMap<>();

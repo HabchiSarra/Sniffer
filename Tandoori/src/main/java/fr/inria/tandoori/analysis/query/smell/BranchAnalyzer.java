@@ -6,17 +6,26 @@ import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.SmellCategory;
 import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.SmellQueries;
+import fr.inria.tandoori.analysis.query.PersistenceAnalyzer;
 import fr.inria.tandoori.analysis.query.QueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
-class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis {
+/**
+ * Analyze the smell introduction/presence/refactoring for a given branch.
+ */
+class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
     private static final Logger logger = LoggerFactory.getLogger(BranchAnalyzer.class.getName());
 
-    private final SmellDuplicationChecker duplicationChecker;
+    // Analyzer Configuration
     private final boolean handleGap;
+
+    // Analyzer data source
+    private final SmellQueries smellQueries;
+    private final SmellDuplicationChecker duplicationChecker;
 
     // Those attributes are the class state.
     private Commit previous;
@@ -31,8 +40,9 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
                    CommitQueries commitQueries, SmellQueries smellQueries,
                    boolean handleGap) {
-        super(logger, projectId, persistence, commitQueries, smellQueries);
+        super(logger, projectId, persistence, commitQueries);
         this.duplicationChecker = duplicationChecker;
+        this.smellQueries = smellQueries;
         this.handleGap = handleGap;
 
         previous = Commit.empty();
@@ -246,5 +256,108 @@ class BranchAnalyzer extends AbstractSmellTypeAnalysis implements BranchAnalysis
     private void updateCommitTracking(Commit commit) {
         previous = underAnalysis;
         underAnalysis = commit;
+    }
+
+    private int insertSmellInstance(Smell smell) {
+        int insertResult = persistence.execute(smellQueries.smellInsertionStatement(projectId, smell));
+        List<Map<String, Object>> result;
+        if (insertResult == 1) {
+            result = persistence.query(smellQueries.lastSmellIdQuery(projectId));
+        } else {
+            result = persistence.query(smellQueries.smellIdQuery(projectId, smell));
+        }
+        return (int) result.get(0).get("id");
+    }
+
+    /**
+     * Create a commit in case of a gap in the Paprika result set.
+     * This means that all smells of the current type has been refactored.
+     *
+     * @param ordinal The missing commit ordinal.
+     * @throws CommitNotFoundException if no commit exists for the given ordinal and project.
+     */
+    Commit createNoSmellCommit(int ordinal) throws CommitNotFoundException {
+        List<Map<String, Object>> result = persistence.query(commitQueries.shaFromOrdinalQuery(projectId, ordinal));
+        if (result.isEmpty()) {
+            throw new CommitNotFoundException(projectId, ordinal);
+        }
+        return new Commit(String.valueOf(result.get(0).get("sha1")), ordinal);
+    }
+
+    /**
+     * Helper method adding Smell- -Presence, -Introduction, or -Refactor statement.
+     *
+     * @param smell    The smell to insert.
+     * @param commit   The commit to insert into.
+     * @param category The table category, either SmellPresence, SmellIntroduction, or SmellRefactor
+     */
+    private void insertSmellInCategory(Smell smell, Commit commit, SmellCategory category) {
+        persistence.addStatements(smellQueries.smellCategoryInsertionStatement(projectId, commit.sha, smell, category));
+    }
+
+    /**
+     * Insert into persistence all smells introductions that has been lost in a commit gap.
+     *
+     * @param since    The lower ordinal of the interval in which the smell it lost.
+     * @param until    The upper ordinal of the interval in which the smell it lost.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
+     */
+    private void insertLostSmellIntroductions(int since, int until, Commit previous, Commit current) {
+        for (Smell smell : current.getIntroduced(previous)) {
+            insertLostSmellInCategory(smell, SmellCategory.INTRODUCTION, since, until);
+        }
+    }
+
+    /**
+     * Insert into persistence all smells refactorings that has been lost in a commit gap.
+     *
+     * @param since    The lower ordinal of the interval in which the smell it lost.
+     * @param until    The upper ordinal of the interval in which the smell it lost.
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
+     */
+    private void insertLostSmellRefactorings(int since, int until, Commit previous, Commit current) {
+        for (Smell smell : current.getRefactored(previous)) {
+            insertLostSmellInCategory(smell, SmellCategory.REFACTOR, since, until);
+        }
+    }
+
+    /**
+     * Insert into persistence all smells introductions that happened between two commits.
+     *
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
+     */
+    private void insertSmellIntroductions(Commit previous, Commit current) {
+        for (Smell smell : current.getIntroduced(previous)) {
+            insertSmellInCategory(smell, current, SmellCategory.INTRODUCTION);
+        }
+    }
+
+    /**
+     * Insert into persistence all smells refactorings that happened between two commits.
+     *
+     * @param previous The previous {@link Commit}.
+     * @param current  The current {@link Commit}.
+     */
+    private void insertSmellRefactorings(Commit previous, Commit current) {
+        for (Smell smell : current.getRefactored(previous)) {
+            insertSmellInCategory(smell, current, SmellCategory.REFACTOR);
+        }
+    }
+
+    /**
+     * Helper method adding Smell-, -Introduction, or -Refactor statement for lost commits.
+     *
+     * @param smell    The smell to insert.
+     * @param since    The lower ordinal of the interval in which the smell it lost.
+     * @param until    The upper ordinal of the interval in which the smell it lost.
+     * @param category The table category, either SmellPresence, SmellIntroduction, or SmellRefactor
+     */
+    private void insertLostSmellInCategory(Smell smell, SmellCategory category, int since, int until) {
+        persistence.addStatements(
+                smellQueries.lostSmellCategoryInsertionStatement(projectId, smell, category, since, until)
+        );
     }
 }
