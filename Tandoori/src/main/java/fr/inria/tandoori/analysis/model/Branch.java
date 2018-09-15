@@ -9,6 +9,7 @@ import java.util.List;
  */
 public class Branch {
     private final List<Commit> commits;
+    private final List<Commit> merges;
     private Commit parentCommit;
     private Commit mergedInto;
     private final int ordinal;
@@ -52,6 +53,7 @@ public class Branch {
 
     public Branch(int ordinal, Commit mergedInto) {
         this.commits = new ArrayList<>();
+        this.merges = new ArrayList<>();
         this.ordinal = ordinal;
         this.mergedInto = mergedInto;
         this.parentCommit = null;
@@ -62,7 +64,8 @@ public class Branch {
      *
      * @param commit The commit to add.
      */
-    public void addCommit(Commit commit) {
+    public void addCommit(Commit commit, int ordinal) {
+        commit.setBranchOrdinal(ordinal);
         this.commits.add(commit);
     }
 
@@ -79,12 +82,20 @@ public class Branch {
         return commits;
     }
 
+    public List<Commit> getMerges() {
+        return merges;
+    }
+
+    public void addMerge(Commit commit) {
+        merges.add(commit);
+    }
+
     /**
      * Specify if the branch is the repository's principal branch.
      *
      * @return True if the branch is the master branch (principal), false otherwise.
      */
-    public boolean isMqaster() {
+    public boolean isMaster() {
         return parentCommit == null;
     }
 

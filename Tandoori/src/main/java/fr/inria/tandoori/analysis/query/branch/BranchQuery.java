@@ -76,7 +76,7 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
         Collections.reverse(commits);
         reverse_ordinal(commits);
         for (Commit commit : commits) {
-            statement = branchQueries.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commit.sha, commit.ordinal);
+            statement = branchQueries.branchCommitInsertionQuery(projectId, branch.getOrdinal(), commit.sha, commit.getBranchOrdinal());
             persistence.addStatements(statement);
 
         }
@@ -85,11 +85,11 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
     private void reverse_ordinal(List<Commit> commits) {
         List<Integer> ordinals = new ArrayList<>();
         for (Commit commit : commits) {
-            ordinals.add(commit.ordinal);
+            ordinals.add(commit.getBranchOrdinal());
         }
 
         for (int i = 0; i < commits.size(); i++) {
-            commits.get(i).ordinal = ordinals.get(ordinals.size() - 1 - i);
+            commits.get(i).setBranchOrdinal(ordinals.get(ordinals.size() - i - 1));
         }
     }
 
@@ -102,9 +102,6 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
      * @return The list of {@link Branch} in this project.
      */
     private List<Branch> buildBranchTree(Branch mother, Commit start) {
-        Branch current = Branch.fromMother(mother, branchCounter++);
-        List<Commit> merges = new ArrayList<>();
-
         // In the case that a merge commit will send us to already analyzed commits.
         // It can happen in the case of BranchQueryTest#testContinuingBranches
         if (isInBranch(mother, start)) {
@@ -112,49 +109,18 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
             return Collections.emptyList();
         }
 
-        Commit commit = start;
-        int ordinal = 0;
-        while (!isFirstCommit(commit) && !isInBranch(mother, commit.getParent(0))) {
-            logger.trace("[" + projectId + "] => Handling commit: " + commit.sha);
-            logger.trace("[" + projectId + "] ==> commit parents (" + commit.getParentCount() + "): " + commit.parents);
-
-            // If paprika does not know this commit, we do not handle it at all.
-            if (paprikaHasCommit(commit.sha)) {
-                commit.ordinal = ordinal;
-                if (commit.getParentCount() >= 2) {
-                    merges.add(commit);
-                }
-                current.addCommit(commit);
-            }
-
-            // Retrieve the parent commit, and do the same.
-            commit = retrieveParentCommit(commit, 0);
-            // But we increase the ordinal whichever the commit to notify the commit gap
-            // in case that Paprika does not know the commit.
-            ordinal++;
-        }
-        if (commit != null) {
-            commit.ordinal = ordinal;
-            if (paprikaHasCommit(commit.sha)) {
-                current.addCommit(commit);
-                if (commit.getParentCount() >= 1) {
-                    current.setParentCommit(retrieveParentCommit(commit, 0));
-                }
-            }
-
-            if (commit.getParentCount() >= 2) {
-                merges.add(commit);
-            }
-        }
+        Branch current = buildBranch(mother, start);
 
         List<Branch> newBranches;
         List<Branch> branches = new ArrayList<>();
         Branch traversedCommits = Branch.newMother(mother, current);
-        for (Commit merge : merges) {
+
+        // We build a branch tree for all merge commits of the current branch.
+        for (Commit merge : current.getMerges()) {
             Commit parentCommit = retrieveParentCommit(merge, 1);
             if (parentCommit != null) {
                 logger.debug("[" + projectId + "] => Handling merge commit: " + merge.sha);
-                // We set the merge commit to the branch to be able to retrieve it in the child commit.
+                // We set the merge commit to the branch to be able to retrieve it in the child branch.
                 traversedCommits.setMergedInto(merge);
                 newBranches = buildBranchTree(traversedCommits, parentCommit);
 
@@ -167,6 +133,49 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
 
         branches.add(current);
         return branches;
+    }
+
+    /**
+     * Build a branch with ordered commits.
+     *
+     * @param mother The branch from which the current one is forked.
+     * @param start  The starting commit of our current branch.
+     * @return The newly built branch.
+     */
+    private Branch buildBranch(Branch mother, Commit start) {
+        Branch current = Branch.fromMother(mother, branchCounter++);
+
+        Commit commit = start;
+        int commitOrdinal = 0;
+        while (nextStillInBranch(commit, mother)) {
+            logger.trace("[" + projectId + "] => Handling commit: " + commit.sha);
+            logger.trace("[" + projectId + "] ==> commit parents (" + commit.getParentCount() + "): " + commit.parents);
+
+            current.addCommit(commit, commitOrdinal);
+            if (commit.getParentCount() >= 2) {
+                current.addMerge(commit);
+            }
+
+            // Retrieve the parent commit, and do the same.
+            commit = retrieveParentCommit(commit, 0);
+            // But we increase the ordinal whichever the commit to notify the commit gap
+            // in case that Paprika does not know the commit.
+            commitOrdinal++;
+        }
+
+        // Last execution setting parent commit
+        if (commit != null) {
+            if (commit.getParentCount() >= 2) {
+                current.addMerge(commit);
+            }
+            current.addCommit(commit, commitOrdinal);
+            // If the current commit has a parent, we set this parent
+            // as the whole branch parent commit.
+            if (commit.getParentCount() >= 1) {
+                current.setParentCommit(retrieveParentCommit(commit, 0));
+            }
+        }
+        return current;
     }
 
     /**
@@ -188,6 +197,20 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
     }
 
     /**
+     * Determine if the next commit (the given commit's parent)
+     * is still in the analyzed branch.
+     *
+     * @param commit The commit to check.
+     * @param mother The mother of the analyzed branch.
+     * @return False if the commit parent is null or in the mother branch,
+     * True otherwise.
+     */
+    private boolean nextStillInBranch(Commit commit, Branch mother) {
+        return !(isProjectFirstCommit(commit)
+                || isInBranch(mother, commit.getParent(0)));
+    }
+
+    /**
      * Determine if the given commit is the origin of the currently parsed branch.
      *
      * @param commit The current commit to assert. If the commit is null or has no parent,
@@ -195,7 +218,7 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
      *               i.e. the original commit of the principal branch.
      * @return True if the commit is null or has no parent, false otherwise.
      */
-    private boolean isFirstCommit(Commit commit) {
+    private boolean isProjectFirstCommit(Commit commit) {
         return commit == null || commit.getParentCount() == 0;
     }
 

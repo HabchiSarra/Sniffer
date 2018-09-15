@@ -229,8 +229,8 @@ public class BranchQueryTest {
         Commit A = new Commit("a", 1);
         Commit B = new Commit("b", 2, Collections.singletonList(A));
         Commit C = new Commit("c", 3, Collections.singletonList(B));
-        Commit D = new Commit("d", 5, Collections.singletonList(A));
-        Commit E = new Commit("e", 4, Collections.singletonList(D));
+        Commit D = new Commit("d", 4, Collections.singletonList(A));
+        Commit E = new Commit("e", 5, Collections.singletonList(D));
         Commit F = new Commit("f", 6, Arrays.asList(C, E));
         Commit G = new Commit("g", 7, Collections.singletonList(E));
         Commit H = new Commit("h", 8, Collections.singletonList(F));
@@ -255,8 +255,119 @@ public class BranchQueryTest {
         verify(branchQueries).branchCommitInsertionQuery(projectId, 1, D.sha, 0);
         verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
         verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
+    }
 
+    /**
+     * Testing this kind of branching form (cyclic merges):
+     * <pre><code>
+     * .   A
+     * |\
+     * . | B
+     * |\|
+     * | . C (merge)
+     * |/|
+     * . | D
+     * |\|
+     * | . E (merge)
+     * |/|
+     * . | F (merge)
+     * |\|
+     * | . G (merge)
+     * . | H
+     * |/
+     * .   I (merge)
+     * </pre></code>
+     *
+     * @throws QueryException
+     * @throws IOException
+     */
+    @Test
+    public void testCyclicMergesBranches() throws QueryException, IOException {
+        Commit A = new Commit("a", 1);
+        Commit B = new Commit("b", 2, Collections.singletonList(A));
+        Commit C = new Commit("c", 3, Arrays.asList(A, B));
+        Commit D = new Commit("d", 4, Arrays.asList(B, C));
+        Commit E = new Commit("e", 5, Arrays.asList(C, D));
+        Commit F = new Commit("f", 6, Arrays.asList(D, E));
+        Commit G = new Commit("g", 7, Arrays.asList(E, F));
+        Commit H = new Commit("h", 8, Collections.singletonList(F));
+        Commit I = new Commit("i", 9, Arrays.asList(H, G));
 
+        initializeHead(I);
+        initializeMocks(A, B, C, D, E, F, G, H, I);
+
+        getQuery().query();
+        debugBranchCommitInsertions();
+
+        verify(persistence, times(11)).addStatements(any());
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, D.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
+
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, C.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
+    }
+
+    /**
+     * Testing this kind of branching form (successive merges):
+     * <pre><code>
+     * .   A
+     * |\
+     * . | B
+     * |\|
+     * | . C (merge)
+     * . | D
+     * |\|
+     * | . E (merge)
+     * | |
+     * . | F
+     * |\|
+     * | . G (merge)
+     * . | H
+     * |/
+     * .   I (merge)
+     * </pre></code>
+     *
+     * @throws QueryException
+     * @throws IOException
+     */
+    @Test
+    public void testSuccessiveMergesBranches() throws QueryException, IOException {
+        Commit A = new Commit("a", 1);
+        Commit B = new Commit("b", 2, Collections.singletonList(A));
+        Commit C = new Commit("c", 3, Arrays.asList(A, B));
+        Commit D = new Commit("d", 4, Collections.singletonList(B));
+        Commit E = new Commit("e", 5, Arrays.asList(C, D));
+        Commit F = new Commit("f", 6, Collections.singletonList(D));
+        Commit G = new Commit("g", 7, Arrays.asList(E, F));
+        Commit H = new Commit("h", 8, Collections.singletonList(F));
+        Commit I = new Commit("i", 9, Arrays.asList(H, G));
+
+        initializeHead(I);
+        initializeMocks(A, B, C, D, E, F, G, H, I);
+
+        getQuery().query();
+        debugBranchCommitInsertions();
+
+        verify(persistence, times(11)).addStatements(any());
+        verify(branchQueries).branchInsertionStatement(projectId, 0, null, null);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, A.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, B.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, D.sha, 2);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, F.sha, 3);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, H.sha, 4);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 0, I.sha, 5);
+
+        verify(branchQueries).branchInsertionStatement(projectId, 1, A, I);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, C.sha, 0);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, E.sha, 1);
+        verify(branchQueries).branchCommitInsertionQuery(projectId, 1, G.sha, 2);
     }
 
     /**
@@ -583,6 +694,14 @@ public class BranchQueryTest {
     // TODO: TEST GAP COMMIT FOR: Merge, Parent, Last branch commit, initial commit, las project commit, random commit
 
     private void debugBranchCommitInsertions() {
+        System.out.println("--------");
+        printBranch();
+        System.out.println("--------");
+        printBranchCommit();
+        System.out.println("--------");
+    }
+
+    private void printBranchCommit() {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> intCaptor = ArgumentCaptor.forClass(Integer.class);
         ArgumentCaptor<Integer> ordinalCaptor = ArgumentCaptor.forClass(Integer.class);
@@ -595,6 +714,23 @@ public class BranchQueryTest {
 
         for (int i = 0; i < ints.size(); i++) {
             System.out.println("Call to branchCommitInsertionQuery: " + ints.get(i) + " - " + strs.get(i) + " - " + ordinals.get(i));
+        }
+    }
+
+    private void printBranch() {
+        ArgumentCaptor<Commit> parentCaptor = ArgumentCaptor.forClass(Commit.class);
+        ArgumentCaptor<Commit> mergeCaptor = ArgumentCaptor.forClass(Commit.class);
+        ArgumentCaptor<Integer> ordinalCaptor = ArgumentCaptor.forClass(Integer.class);
+
+        verify(branchQueries, atLeastOnce()).branchInsertionStatement(eq(projectId),
+                ordinalCaptor.capture(),
+                parentCaptor.capture(), mergeCaptor.capture());
+        List<Commit> parents = parentCaptor.getAllValues();
+        List<Commit> merges = mergeCaptor.getAllValues();
+        List<Integer> ordinals = ordinalCaptor.getAllValues();
+
+        for (int i = 0; i < parents.size(); i++) {
+            System.out.println("Call to branchInsertionQuery: " + parents.get(i) + " - " + merges.get(i) + " - " + ordinals.get(i));
         }
     }
 }
