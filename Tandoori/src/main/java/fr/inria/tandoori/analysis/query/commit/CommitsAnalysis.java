@@ -34,11 +34,20 @@ class CommitsAnalysis implements Query {
     private final Persistence persistence;
     private final DeveloperQueries developerQueries;
     private final CommitQueries commitQueries;
+    private final boolean paprikaOnly;
 
     CommitsAnalysis(int projectId, Persistence persistence, Repository repository,
                     Iterator<Map<String, Object>> commits,
                     CommitDetailsChecker detailsChecker,
                     DeveloperQueries developerQueries, CommitQueries commitQueries) {
+        this(projectId, persistence, repository, commits, detailsChecker, developerQueries, commitQueries, true);
+    }
+
+    CommitsAnalysis(int projectId, Persistence persistence, Repository repository,
+                    Iterator<Map<String, Object>> commits,
+                    CommitDetailsChecker detailsChecker,
+                    DeveloperQueries developerQueries, CommitQueries commitQueries,
+                    boolean paprikaOnly) {
         this.projectId = projectId;
         this.persistence = persistence;
         this.repository = repository;
@@ -46,6 +55,7 @@ class CommitsAnalysis implements Query {
         this.detailsChecker = detailsChecker;
         this.developerQueries = developerQueries;
         this.commitQueries = commitQueries;
+        this.paprikaOnly = paprikaOnly;
     }
 
     private static Map<String, Commit> mapPaprikaCommits(Iterator<Map<String, Object>> commits) {
@@ -67,7 +77,7 @@ class CommitsAnalysis implements Query {
         int commitCount = 0;
         CommitDetails details;
         Commit currentCommit;
-        for (String commit : fetchGitLog()) {
+        for (String commit : choseCommitsSource()) {
             currentCommit = fillCommit(commit);
 
             logger.debug("[" + projectId + "] => Analyzing commit: " + currentCommit.sha);
@@ -87,6 +97,25 @@ class CommitsAnalysis implements Query {
             }
         }
         persistBatch(commitStatements, authorStatements, renameStatements);
+    }
+
+    /**
+     * Chose the commits source depending on if we want to query only Paprika
+     * commits or not.
+     *
+     * @return The list of sha to add to the project.
+     * @throws QueryException If anything goes wrong.
+     */
+    private Iterable<String> choseCommitsSource() throws QueryException {
+        if (paprikaOnly) {
+            List<String> shas = new ArrayList<>();
+            for (Commit commit : paprikaCommits.values()) {
+                shas.add(commit.sha);
+            }
+            return shas;
+        } else {
+            return fetchGitLog();
+        }
     }
 
     /**
