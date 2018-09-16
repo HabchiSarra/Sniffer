@@ -1,0 +1,59 @@
+@startuml
+[Commit] <<Analysis process>> as commit
+note left
+    Parse the git repository log
+     trying to match the commits
+     from paprika to retrieve their ordinal.
+end note
+[Branch] <<Analysis process>> as branch
+note left
+    Fetch the last commit analyzed by Paprika
+    in Tandoori database.
+    Then parse all git log entries from the
+    repository to generate the branches
+    representation in Tandoori.
+end note
+[Smell] <<Analysis process>> as smell
+note left
+    Process all smells returned by paprika
+    using the branches stored in Tandoori.
+
+    This process will have to read smells
+    associated to some commits while
+    importing new ones to keep track
+    of operations between branches.
+end note
+
+database Paprika as paprika
+note left
+    This Neo4j database contains all
+    analyzed commits and the smells
+    for each commit.
+end note
+
+database "Git Repository" as git
+note right
+    Project's repository enabling us
+    to parse commits for details:
+    diff, message, author, ...
+end note
+
+database Tandoori as tandoori
+note right
+    Tandoori is our Postgresql database
+    containing all processed data
+end note
+
+paprika --> commit: Analyzed commits in order
+commit -> tandoori: [W] commits
+commit <- git: Git log, commit details,\n commits missing in Paprika
+
+commit ..> branch: Process flow
+branch <-> tandoori: [R] Last Commit\n [W] branches
+branch <- git: Iterate through\n parents
+
+branch ..> smell: Process flow
+smell <-> tandoori: [R] commit, branch:\n smells, merges, parent\n[W] smells
+paprika -> smell: Smells and commits\n in order
+
+@enduml
