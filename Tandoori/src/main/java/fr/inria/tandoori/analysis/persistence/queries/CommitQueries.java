@@ -44,12 +44,41 @@ public interface CommitQueries {
     String shaFromOrdinalQuery(int projectId, int ordinal);
 
     /**
+     * Query the identifier of a commit.
+     *
+     * @param projectId   Project to look into.
+     * @param sha         Commit sha.
+     * @param paprikaOnly Only return a commit analyzed by paprika.
+     * @return The generated query statement.
+     */
+    String idFromShaQuery(int projectId, String sha, boolean paprikaOnly);
+
+    /**
+     * Query the sha1 of a commit.
+     *
+     * @param projectId   Project to look into.
+     * @param ordinal     Commit ordinal in the project.
+     * @param paprikaOnly Only return a commit analyzed by paprika.
+     * @return The generated query statement.
+     */
+    String shaFromOrdinalQuery(int projectId, int ordinal, boolean paprikaOnly);
+
+    /**
      * Returns the sha1 of the last project's commit.
      *
      * @param projectId Project to look into.
      * @return The generated query statement.
      */
     String lastProjectCommitShaQuery(int projectId);
+
+    /**
+     * Returns the sha1 of the last project's commit.
+     *
+     * @param projectId Project to look into.
+     * @param paprikaOnly Only return a commit analyzed by paprika.
+     * @return The generated query statement.
+     */
+    String lastProjectCommitShaQuery(int projectId, boolean paprikaOnly);
 
     /**
      * Returns the id of the commit merged into this one, if exists.

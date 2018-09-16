@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -63,7 +64,9 @@ public abstract class SmellTypeAnalysisTestCase {
         duplicationChecker = Mockito.mock(SmellDuplicationChecker.class);
 
         doReturn(END_COMMIT_STATEMENT).when(commitQueries).lastProjectCommitShaQuery(projectId);
+        doReturn(END_COMMIT_STATEMENT).when(commitQueries).lastProjectCommitShaQuery(eq(projectId), anyBoolean());
         doReturn(GAP_COMMIT_STATEMENT).when(commitQueries).shaFromOrdinalQuery(eq(projectId), anyInt());
+        doReturn(GAP_COMMIT_STATEMENT).when(commitQueries).shaFromOrdinalQuery(eq(projectId), anyInt(), anyBoolean());
         when(smellQueries.smellIdQuery(anyInt(), any(Smell.class))).then((Answer<String>)
                 invocation -> smellIdQueryStatement(invocation.getArgument(0),
                         invocation.getArgument(1)));

@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Abstract a repository concept to choose between cloning or using local path.
@@ -89,7 +91,7 @@ public class Repository {
      * This {@link Commit} will be filled with its parents, but not its details (message, author, date).
      *
      * @param sha identifier of the commit to retrieve, might be a sha as well as 'HEAD'.
-     * @return The retrieved {@link RevCommit}.
+     * @return The retrieved {@link Commit}.
      * @throws IOException If anything goes wrong while parsing Git repository.
      */
     public Commit getCommitWithParents(String sha) throws IOException {
@@ -102,7 +104,7 @@ public class Repository {
      * This {@link Commit} will be filled with its details (message, author, date) but not with its parents.
      *
      * @param sha identifier of the commit to retrieve, might be a sha as well as 'HEAD'.
-     * @return The retrieved {@link RevCommit}.
+     * @return The retrieved {@link Commit}.
      * @throws IOException If anything goes wrong while parsing Git repository.
      */
     public Commit getCommitWithDetails(String sha) throws IOException {
@@ -115,13 +117,31 @@ public class Repository {
      * We use the method {@link Commit#commitWithParents(RevCommit)} since this method is only used to parse the
      * commit tree.
      *
-     * @return {@link RevCommit} of the repository HEAD.
+     * @return {@link Commit} of the repository HEAD.
      * @throws IOException If anything goes wrong while parsing Git repository.
      */
     public Commit getHead() throws IOException {
         org.eclipse.jgit.lib.Repository gitRepo = getGitRepository().getRepository();
         Ref head = gitRepo.findRef("HEAD");
         return Commit.commitWithParents(getRevCommit(head.getObjectId()));
+    }
+
+    /**
+     * Returns the underlying repository's log.
+     *
+     * @return An iterable of commit SHA1s representing the git log.
+     * @throws IOException If an exception occurred while retrieving git log.
+     */
+    public Iterable<String> getLog() throws IOException {
+        List<String> shas = new ArrayList<>();
+        try {
+            for (RevCommit commit : getGitRepository().log().call()) {
+                shas.add(commit.name());
+            }
+            return shas;
+        } catch (GitAPIException e) {
+            throw new IOException(e.getMessage(), e);
+        }
     }
 
     /**

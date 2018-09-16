@@ -9,6 +9,7 @@ import fr.inria.tandoori.analysis.persistence.Persistence;
 import fr.inria.tandoori.analysis.persistence.queries.CommitQueries;
 import fr.inria.tandoori.analysis.persistence.queries.DeveloperQueries;
 import fr.inria.tandoori.analysis.query.QueryException;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +28,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 public class CommitsAnalysisTest {
@@ -39,7 +42,7 @@ public class CommitsAnalysisTest {
     private DeveloperQueries developerQueries;
     private Repository repository;
     private CommitDetailsChecker detailsChecker;
-    private List<Map<String, Object>> commitsList;
+    private List<Map<String, Object>> paprikaCommitsList;
 
     private final Commit A = new Commit("a", 0, new DateTime(1),
             "message1", "author@email.com", Collections.emptyList());
@@ -58,7 +61,7 @@ public class CommitsAnalysisTest {
         developerQueries = Mockito.mock(DeveloperQueries.class);
         detailsChecker = Mockito.mock(CommitDetailsChecker.class);
 
-        commitsList = new ArrayList<>();
+        paprikaCommitsList = new ArrayList<>();
         doReturn("CommitInsertion").when(commitQueries).commitInsertionStatement(
                 eq(projectId), any(Commit.class), any(GitDiff.class));
         doReturn("DeveloperInsertion").when(developerQueries).developerInsertStatement(
@@ -70,25 +73,46 @@ public class CommitsAnalysisTest {
     }
 
     private CommitsAnalysis getCommitsAnalysis() {
-        return new CommitsAnalysis(projectId, persistence, repository, commitsList.iterator(), detailsChecker, developerQueries, commitQueries);
+        return new CommitsAnalysis(projectId, persistence, repository, paprikaCommitsList.iterator(), detailsChecker, developerQueries, commitQueries);
     }
 
-    private void addCommit(Commit commit, CommitDetails details) throws IOException {
+    private void addCommitInPaprika(Commit commit) {
         Map<String, Object> smellMap = new HashMap<>();
         smellMap.put("key", commit.sha);
         smellMap.put("commit_number", commit.ordinal);
-        commitsList.add(smellMap);
+        paprikaCommitsList.add(smellMap);
+    }
 
+    private void addCommitInRepository(Commit commit) throws IOException {
+        addCommitInRepository(commit, dummyDetails);
+    }
+
+    private void addCommitInRepository(Commit commit, CommitDetails details) throws IOException {
         // Prepare repository to return this commit.
         doReturn(commit).when(repository).getCommitWithDetails(eq(commit.sha));
         doReturn(commit).when(repository).getCommitWithParents(commit.sha);
         doReturn(details).when(detailsChecker).fetch(commit.sha);
     }
 
-    private void addCommit(Commit commit) throws IOException {
-        addCommit(commit, dummyDetails);
+    private void prepareGitLog(Commit... commits) throws IOException {
+        List<String> log = new ArrayList<>();
+        for (Commit commit : commits) {
+            log.add(commit.sha);
+        }
+        when(repository.getLog()).thenReturn(log);
     }
 
+    /**
+     * <pre><code>
+     *     | * A [merged]
+     *     * | B [parent]
+     *     |/
+     *     *   C [merge]
+     * </code></pre>
+     *
+     * @throws IOException
+     * @throws QueryException
+     */
     @Test
     public void testMergeCommitInserted() throws IOException, QueryException {
         Commit merged = new Commit("a", 51,
@@ -101,9 +125,13 @@ public class CommitsAnalysisTest {
         Commit merge = new Commit("c", 54,
                 DateTime.now(), "message", "author@email.com", parents);
 
-        addCommit(merged);
-        addCommit(parent);
-        addCommit(merge);
+        addCommitInPaprika(merged);
+        addCommitInRepository(merged);
+        addCommitInPaprika(parent);
+        addCommitInRepository(parent);
+        addCommitInPaprika(merge);
+        addCommitInRepository(merge);
+        prepareGitLog(merged, parent, merge);
 
         getCommitsAnalysis().query();
 
@@ -126,12 +154,31 @@ public class CommitsAnalysisTest {
         verify(commitQueries, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
     }
 
+    /**
+     * <pre><code>
+     *     * A
+     *     |
+     *     * B
+     *     |
+     *     * C
+     *     |
+     *     * D
+     * </code></pre>
+     *
+     * @throws IOException
+     * @throws QueryException
+     */
     @Test
     public void testInsertCommit() throws Exception {
-        addCommit(A);
-        addCommit(B);
-        addCommit(C);
-        addCommit(D);
+        addCommitInPaprika(A);
+        addCommitInRepository(A);
+        addCommitInPaprika(B);
+        addCommitInRepository(B);
+        addCommitInPaprika(C);
+        addCommitInRepository(C);
+        addCommitInPaprika(D);
+        addCommitInRepository(D);
+        prepareGitLog(A, B, C, D);
 
         getCommitsAnalysis().query();
 
@@ -153,33 +200,61 @@ public class CommitsAnalysisTest {
         verify(commitQueries, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
     }
 
+    /**
+     * <pre><code>
+     *     * A
+     *     |
+     *     * B
+     *     |
+     *     x C [Not in Paprika]
+     *     |
+     *     * D
+     * </code></pre>
+     *
+     * @throws IOException
+     * @throws QueryException
+     */
     @Test
     public void testCommitNotInPaprika() throws Exception {
-        addCommit(A);
-        addCommit(B);
-        // Even if the repository knows the missing commit, it will not be added.
-        doReturn(C).when(repository).getCommitWithDetails(eq(C.sha));
-        addCommit(D);
+        addCommitInPaprika(A);
+        addCommitInRepository(A);
+        addCommitInPaprika(B);
+        addCommitInRepository(B);
+        // Simulate a failed commit in Paprika
+        addCommitInRepository(C);
+        addCommitInPaprika(D);
+        addCommitInRepository(D);
+        prepareGitLog(A, B, C, D);
 
         getCommitsAnalysis().query();
 
-        verify(commitQueries, times(3)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class));
+        verify(commitQueries, times(4)).commitInsertionStatement(anyInt(), any(Commit.class), any(GitDiff.class));
         verify(commitQueries).commitInsertionStatement(projectId, A, dummyDetails.diff);
         verify(commitQueries).commitInsertionStatement(projectId, B, dummyDetails.diff);
+        verify(commitQueries).commitInsertionStatement(projectId, C, dummyDetails.diff);
         verify(commitQueries).commitInsertionStatement(projectId, D, dummyDetails.diff);
 
         // Author insertion is brainlessly done at each encounter
-        verify(developerQueries, times(3)).developerInsertStatement(anyString());
+        verify(developerQueries, times(4)).developerInsertStatement(anyString());
         verify(developerQueries, times(2)).developerInsertStatement(A.authorEmail);
-        verify(developerQueries, times(1)).developerInsertStatement(C.authorEmail);
-        verify(developerQueries, times(3)).projectDeveloperInsertStatement(eq(projectId), anyString());
+        verify(developerQueries, times(2)).developerInsertStatement(C.authorEmail);
+        verify(developerQueries, times(4)).projectDeveloperInsertStatement(eq(projectId), anyString());
         verify(developerQueries, times(2)).projectDeveloperInsertStatement(projectId, A.authorEmail);
-        verify(developerQueries, times(1)).projectDeveloperInsertStatement(projectId, C.authorEmail);
+        verify(developerQueries, times(2)).projectDeveloperInsertStatement(projectId, C.authorEmail);
 
         // No GitRename handled
         verify(commitQueries, times(0)).fileRenameInsertionStatement(eq(projectId), anyString(), any(GitRename.class));
     }
 
+    /**
+     * <pre><code>
+     *     * A
+     *     |
+     *     * B
+     * </code></pre>
+     *
+     * @throws Exception
+     */
     @Test
     public void testCommitWitDetails() throws Exception {
         GitRename notJavaRename = new GitRename("old", "new", 97);
@@ -187,10 +262,14 @@ public class CommitsAnalysisTest {
         GitRename renameB = new GitRename("oldB.java", "newB.java", 50);
         CommitDetails details = new CommitDetails(
                 new GitDiff(1, 2, 4), Arrays.asList(notJavaRename, actualRename));
-        addCommit(A, details);
         CommitDetails otherDetails = new CommitDetails(
                 new GitDiff(0, 135, 20), Collections.singletonList(renameB));
-        addCommit(B, otherDetails);
+
+        addCommitInPaprika(A);
+        addCommitInRepository(A, details);
+        addCommitInPaprika(B);
+        addCommitInRepository(B, otherDetails);
+        prepareGitLog(A, B);
 
         getCommitsAnalysis().query();
 

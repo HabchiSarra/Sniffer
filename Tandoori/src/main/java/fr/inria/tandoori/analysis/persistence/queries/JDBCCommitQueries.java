@@ -3,6 +3,7 @@ package fr.inria.tandoori.analysis.persistence.queries;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.GitRename;
+import fr.inria.tandoori.analysis.query.Query;
 
 public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQueries {
 
@@ -25,25 +26,54 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
 
         String developerQuery = developerQueries.idFromEmailQuery(commit.authorEmail);
         return "INSERT INTO commit_entry (project_id, developer_id, sha1, ordinal, date, " +
-                "additions, deletions, files_changed, message, merged_commit_id) VALUES ('" +
+                "additions, deletions, files_changed, message, merged_commit_id, in_paprika) VALUES ('" +
                 projectId + "', (" + developerQuery + "), '" + commit.sha + "', " + commit.ordinal + ", '" + commit.date.toString() +
                 "', " + diff.getAddition() + ", " + diff.getDeletion() + ", " + diff.getChangedFiles() +
-                ", $$ " + commitMessage + " $$, " + mergedCommit + ") ON CONFLICT DO NOTHING;";
+                ", $$ " + commitMessage + " $$, " + mergedCommit + ", " + commit.isInPaprika() + ") ON CONFLICT DO NOTHING;";
     }
 
     @Override
     public String idFromShaQuery(int projectId, String sha) {
-        return "SELECT id FROM commit_entry WHERE sha1 = '" + sha + "' AND project_id = " + projectId;
+        return idFromShaQuery(projectId, sha, false);
     }
 
     @Override
     public String shaFromOrdinalQuery(int projectId, int ordinal) {
-        return "SELECT sha1 FROM commit_entry WHERE ordinal = '" + ordinal + "' AND project_id = " + projectId;
+        return shaFromOrdinalQuery(projectId, ordinal, false);
+    }
+
+    @Override
+    public String idFromShaQuery(int projectId, String sha, boolean paprikaOnly) {
+        String query = "SELECT id FROM commit_entry WHERE sha1 = '" + sha + "' AND project_id = " + projectId;
+        if (paprikaOnly) {
+            query += " AND in_paprika IS TRUE";
+        }
+        return query;
+    }
+
+    @Override
+    public String shaFromOrdinalQuery(int projectId, int ordinal, boolean paprikaOnly) {
+        String query = "SELECT sha1 FROM commit_entry WHERE ordinal = '" + ordinal + "' AND project_id = " + projectId;
+        if (paprikaOnly) {
+            query += " AND in_paprika IS TRUE";
+        }
+        return query;
     }
 
     @Override
     public String lastProjectCommitShaQuery(int projectId) {
-        return "SELECT sha1 FROM commit_entry WHERE project_id = '" + projectId + "' ORDER BY ordinal DESC LIMIT 1";
+        return lastProjectCommitShaQuery(projectId, false);
+    }
+
+    @Override
+    public String lastProjectCommitShaQuery(int projectId, boolean paprikaOnly) {
+        String query = "SELECT sha1 FROM commit_entry WHERE project_id = '" + projectId + "'";
+        if (paprikaOnly) {
+            query += " AND in_paprika IS TRUE";
+        }
+        query += " ORDER BY ordinal DESC LIMIT 1";
+
+        return query;
     }
 
     @Override

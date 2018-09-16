@@ -26,7 +26,7 @@ public class SingleBranchGapHandler implements CommitGapHandler {
     @Override
     public Commit fetchNoSmellCommit(Commit previous) throws CommitNotFoundException {
         int ordinal = previous.getOrdinal() + 1;
-        String statement = commitQueries.shaFromOrdinalQuery(projectId, ordinal);
+        String statement = commitQueries.shaFromOrdinalQuery(projectId, ordinal, true);
         List<Map<String, Object>> result = persistence.query(statement);
         if (result.isEmpty()) {
             throw new CommitNotFoundException(projectId, ordinal);

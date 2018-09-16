@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -53,6 +54,7 @@ public class BranchQueryTest {
         HashMap<Object, Object> map = new HashMap<>();
         map.put("sha1", commit.sha);
         doReturn(SELECT_HEAD).when(commitQueries).lastProjectCommitShaQuery(projectId);
+        doReturn(SELECT_HEAD).when(commitQueries).lastProjectCommitShaQuery(eq(projectId), anyBoolean());
         doReturn(Collections.singletonList(map)).when(persistence).query(SELECT_HEAD);
     }
 
@@ -66,6 +68,7 @@ public class BranchQueryTest {
         for (Commit commit : commits) {
             doReturn(commit).when(repository).getCommitWithParents(commit.sha);
             doReturn(commit.sha).when(commitQueries).idFromShaQuery(projectId, commit.sha);
+            doReturn(commit.sha).when(commitQueries).idFromShaQuery(eq(projectId), eq(commit.sha), anyBoolean());
             HashMap<Object, Object> map = new HashMap<>();
             map.put("id", 1);
             doReturn(Collections.singletonList(map)).when(persistence).query(commit.sha);

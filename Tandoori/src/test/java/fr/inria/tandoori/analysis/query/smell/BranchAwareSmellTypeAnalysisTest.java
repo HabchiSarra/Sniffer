@@ -18,6 +18,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -54,6 +55,9 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
                 invocation -> branchLastCommitShaStatement(invocation.getArgument(0),
                         invocation.getArgument(1)));
         when(branchQueries.shaFromOrdinalQuery(anyInt(), anyInt(), anyInt())).then((Answer<String>)
+                invocation -> commitShaFromOrdinalStatement(invocation.getArgument(0),
+                        invocation.getArgument(1), invocation.getArgument(2)));
+        when(branchQueries.shaFromOrdinalQuery(anyInt(), anyInt(), anyInt(), anyBoolean())).then((Answer<String>)
                 invocation -> commitShaFromOrdinalStatement(invocation.getArgument(0),
                         invocation.getArgument(1), invocation.getArgument(2)));
         when(commitQueries.mergedCommitIdQuery(anyInt(), any(Commit.class))).then((Answer<String>)

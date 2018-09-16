@@ -17,6 +17,8 @@ public class Commit {
     public final DateTime date;
     public final String authorEmail;
 
+    private boolean inPaprika;
+
     private final List<Smell> smells;
     private final List<Smell> mergedSmells;
     private final Map<Smell, Smell> renamedSmells;
@@ -315,15 +317,7 @@ public class Commit {
 
         // We don't count the Smell as refactoring if its parent Smell
         // is the origin of a renamed smell in the previous commit.
-        List<Smell> renamed = new ArrayList<>();
-        Smell underTest;
-        for (Smell smell : refactoring) {
-            underTest = Smell.copyWithoutParent(smell);
-            if (this.getRenamedSmellsOrigins().contains(underTest)) {
-                renamed.add(smell);
-            }
-        }
-        refactoring.removeAll(renamed);
+        refactoring.removeAll(getRenamedSmellsOrigins());
         return refactoring;
     }
 
@@ -358,5 +352,13 @@ public class Commit {
             }
         }
         return tested;
+    }
+
+    public boolean isInPaprika() {
+        return inPaprika;
+    }
+
+    public void setInPaprika(boolean inPaprika) {
+        this.inPaprika = inPaprika;
     }
 }

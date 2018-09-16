@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ class CommitsAnalysis implements Query {
 
     private final int projectId;
     private final Repository repository;
-    private final Iterator<Map<String, Object>> commits;
+    private final Map<String, Commit> paprikaCommits;
     private final CommitDetailsChecker detailsChecker;
 
     private final Persistence persistence;
@@ -41,10 +42,20 @@ class CommitsAnalysis implements Query {
         this.projectId = projectId;
         this.persistence = persistence;
         this.repository = repository;
-        this.commits = commits;
+        this.paprikaCommits = mapPaprikaCommits(commits);
         this.detailsChecker = detailsChecker;
         this.developerQueries = developerQueries;
         this.commitQueries = commitQueries;
+    }
+
+    private static Map<String, Commit> mapPaprikaCommits(Iterator<Map<String, Object>> commits) {
+        Map<String, Commit> mapping = new HashMap<>();
+        Commit paprikaCommit;
+        while (commits.hasNext()) {
+            paprikaCommit = Commit.fromInstance(commits.next());
+            mapping.put(paprikaCommit.sha, paprikaCommit);
+        }
+        return mapping;
     }
 
     @Override
@@ -55,28 +66,17 @@ class CommitsAnalysis implements Query {
 
         int commitCount = 0;
         CommitDetails details;
-        Commit paprikaCommit;
-        Commit gitCommit;
-        while (commits.hasNext()) {
-            paprikaCommit = Commit.fromInstance(commits.next());
-            try {
-                gitCommit = repository.getCommitWithDetails(paprikaCommit.sha);
-                // Add parents to the gitCommit.
-                gitCommit.setParents(repository.getCommitWithParents(paprikaCommit.sha).parents);
-                // We chose to use Paprika order in commit insertion
-                gitCommit.setOrdinal(paprikaCommit.ordinal);
-            } catch (IOException e) {
-                throw new QueryException(logger.getName(),
-                        "Unable to retrieve commit " + paprikaCommit.sha + " in git repository " + repository);
-            }
+        Commit currentCommit;
+        for (String commit : fetchGitLog()) {
+            currentCommit = fillCommit(commit);
 
-            logger.debug("[" + projectId + "] => Analyzing commit: " + gitCommit.sha);
-            details = detailsChecker.fetch(gitCommit.sha);
+            logger.debug("[" + projectId + "] => Analyzing commit: " + currentCommit.sha);
+            details = detailsChecker.fetch(currentCommit.sha);
 
-            authorStatements.addAll(authorStatements(gitCommit.authorEmail));
+            authorStatements.addAll(authorStatements(currentCommit.authorEmail));
             // GitCommit will not contain the right ordinal.
-            commitStatements.add(commitStatement(gitCommit, details));
-            renameStatements.addAll(fileRenameStatements(gitCommit, details));
+            commitStatements.add(commitStatement(currentCommit, details));
+            renameStatements.addAll(fileRenameStatements(currentCommit, details));
 
             if (++commitCount % BATCH_SIZE == 0) {
                 logger.info("[" + projectId + "] Persist commit batch of size: " + BATCH_SIZE);
@@ -87,6 +87,56 @@ class CommitsAnalysis implements Query {
             }
         }
         persistBatch(commitStatements, authorStatements, renameStatements);
+    }
+
+    /**
+     * Retrieve the git repository's log.
+     *
+     * @return An iterable of SHA1s.
+     * @throws QueryException If anything goes wrong.
+     */
+    private Iterable<String> fetchGitLog() throws QueryException {
+        try {
+            return repository.getLog();
+        } catch (IOException e) {
+            throw new QueryException(logger.getName(), e.getMessage());
+        }
+    }
+
+    /**
+     * Retrieve all details for a commit, currently;
+     * - Author,
+     * - Message,
+     * - Date,
+     * - If it exists in Paprika.
+     * - Ordinal (from Paprika)
+     *
+     * @param sha1 The commit's sha1.
+     * @return A new, filled in {@link Commit}.
+     * @throws QueryException If anything goes wrong.
+     */
+    private Commit fillCommit(String sha1) throws QueryException {
+        Commit result;
+        Commit paprikaCommit = paprikaCommits.getOrDefault(sha1, null);
+        try {
+            result = repository.getCommitWithDetails(sha1);
+
+            // Add parents to the gitCommit.
+            result.setParents(repository.getCommitWithParents(sha1).parents);
+
+            // Set paprika data, i.e. the ordinal
+            if (paprikaCommit != null) {
+                // We chose to use Paprika order in commit insertion
+                result.setOrdinal(paprikaCommit.ordinal);
+                result.setInPaprika(true);
+            } else {
+                result.setInPaprika(false);
+            }
+        } catch (IOException e) {
+            throw new QueryException(logger.getName(),
+                    "Unable to retrieve commit " + paprikaCommit.sha + " in git repository " + repository);
+        }
+        return result;
     }
 
     /**

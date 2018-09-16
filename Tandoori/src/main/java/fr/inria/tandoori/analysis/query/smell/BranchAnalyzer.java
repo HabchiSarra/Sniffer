@@ -277,21 +277,6 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
     }
 
     /**
-     * Create a commit in case of a gap in the Paprika result set.
-     * This means that all smells of the current type has been refactored.
-     *
-     * @param ordinal The missing commit ordinal.
-     * @throws CommitNotFoundException if no commit exists for the given ordinal and project.
-     */
-    Commit createNoSmellCommit(int ordinal) throws CommitNotFoundException {
-        List<Map<String, Object>> result = persistence.query(commitQueries.shaFromOrdinalQuery(projectId, ordinal));
-        if (result.isEmpty()) {
-            throw new CommitNotFoundException(projectId, ordinal);
-        }
-        return new Commit(String.valueOf(result.get(0).get("sha1")), ordinal);
-    }
-
-    /**
      * Helper method adding Smell- -Presence, -Introduction, or -Refactor statement.
      *
      * @param smell    The smell to insert.
