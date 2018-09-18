@@ -63,8 +63,9 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
 
     @Override
     public String shaFromOrdinalQuery(int projectId, int branchId, int ordinal, boolean paprikaOnly) {
+        // TODO: Be sure of this request
         String query = "SELECT sha1 FROM commit_entry " +
-                "RIGHT JOIN branch_commit " +
+                "JOIN branch_commit " +
                 "ON branch_commit.commit_id = commit_entry.id " +
                 "AND branch_commit.branch_id = (" + branchId + ") " +
                 "AND branch_commit.ordinal = " + ordinal;

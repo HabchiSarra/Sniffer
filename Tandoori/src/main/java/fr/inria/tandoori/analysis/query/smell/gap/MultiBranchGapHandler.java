@@ -29,7 +29,7 @@ public class MultiBranchGapHandler implements CommitGapHandler {
     public Commit fetchNoSmellCommit(Commit previous) throws CommitNotFoundException {
         int branchOrdinal = previous.getBranchOrdinal() + 1;
         List<Map<String, Object>> result = persistence.query(branchQueries.shaFromOrdinalQuery(projectId, branchId, branchOrdinal, true));
-        if (result.isEmpty()) {
+        if (result.isEmpty() || result.get(0).get("sha1") == null) {
             throw new CommitNotFoundException(projectId, previous.getOrdinal());
         }
         Commit commit = new Commit(String.valueOf(result.get(0).get("sha1")), previous.getOrdinal());
