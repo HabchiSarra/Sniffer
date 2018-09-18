@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -40,7 +41,7 @@ class CommitsAnalysis implements Query {
                     Iterator<Map<String, Object>> commits,
                     CommitDetailsChecker detailsChecker,
                     DeveloperQueries developerQueries, CommitQueries commitQueries) {
-        this(projectId, persistence, repository, commits, detailsChecker, developerQueries, commitQueries, true);
+        this(projectId, persistence, repository, commits, detailsChecker, developerQueries, commitQueries, false);
     }
 
     CommitsAnalysis(int projectId, Persistence persistence, Repository repository,
@@ -106,7 +107,7 @@ class CommitsAnalysis implements Query {
      * @return The list of sha to add to the project.
      * @throws QueryException If anything goes wrong.
      */
-    private Iterable<String> choseCommitsSource() throws QueryException {
+    private List<String> choseCommitsSource() throws QueryException {
         if (paprikaOnly) {
             List<String> shas = new ArrayList<>();
             for (Commit commit : paprikaCommits.values()) {
@@ -114,7 +115,9 @@ class CommitsAnalysis implements Query {
             }
             return shas;
         } else {
-            return fetchGitLog();
+            List<String> list = fetchGitLog();
+            Collections.reverse(list);
+            return list;
         }
     }
 
@@ -124,7 +127,7 @@ class CommitsAnalysis implements Query {
      * @return An iterable of SHA1s.
      * @throws QueryException If anything goes wrong.
      */
-    private Iterable<String> fetchGitLog() throws QueryException {
+    private List<String> fetchGitLog() throws QueryException {
         try {
             return repository.getLog();
         } catch (IOException e) {

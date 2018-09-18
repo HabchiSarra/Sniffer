@@ -132,7 +132,7 @@ public class Repository {
      * @return An iterable of commit SHA1s representing the git log.
      * @throws IOException If an exception occurred while retrieving git log.
      */
-    public Iterable<String> getLog() throws IOException {
+    public List<String> getLog() throws IOException {
         List<String> shas = new ArrayList<>();
         try {
             for (RevCommit commit : getGitRepository().log().call()) {
