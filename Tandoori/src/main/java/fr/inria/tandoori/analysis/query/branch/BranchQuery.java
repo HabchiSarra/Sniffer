@@ -54,7 +54,7 @@ public class BranchQuery extends PersistenceAnalyzer implements Query {
     private Commit retrieveHeadCommit() throws QueryException {
         Commit commit;
         try {
-            commit = repository.getCommitWithParents(fetchLastProjectCommitSha());
+            commit = repository.getCommitWithParents(repository.getHead().sha);
             logger.info("[" + projectId + "] => Found HEAD commit: " + commit.sha);
         } catch (IOException | IndexOutOfBoundsException e) {
             throw new QueryException(logger.getName(), e);
