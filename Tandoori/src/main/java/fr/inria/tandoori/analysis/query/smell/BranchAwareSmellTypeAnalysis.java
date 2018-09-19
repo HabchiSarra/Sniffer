@@ -156,7 +156,7 @@ class BranchAwareSmellTypeAnalysis implements Query {
         logger.debug("[" + projectId + "] => Initializing branch: " + currentBranch);
         persistence.commit();
         BranchAnalyzer analyzer = new MultiBranchAnalyzer(projectId, persistence, duplicationChecker,
-                commitQueries, smellQueries, branchQueries, currentBranch);
+                commitQueries, smellQueries, branchQueries, currentBranch, retrieveBranchParentSha(currentBranch));
         analyzer.addExistingSmells(retrieveBranchParentSmells(currentBranch));
         branchAnalyzers.put(currentBranch, analyzer);
 
@@ -166,6 +166,21 @@ class BranchAwareSmellTypeAnalysis implements Query {
         } else {
             branchLastCommitSha.put(currentBranch, (String) query.get(0).get("sha1"));
         }
+    }
+
+    /**
+     * Find the sha of this branch's parent commit.
+     *
+     * @param currentBranch The current branch identifier.
+     * @return The commit sha if found, null if not found.
+     */
+    private String retrieveBranchParentSha(int currentBranch) {
+        List<Map<String, Object>> result = persistence.query(branchQueries.parentCommitShaQuery(projectId, currentBranch));
+        if (result.isEmpty()) {
+            logger.warn("No sha found for parent commit of branch: " + currentBranch);
+            return null;
+        }
+        return (String) result.get(0).get("sha1");
     }
 
     /**

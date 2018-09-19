@@ -26,8 +26,8 @@ class MultiBranchAnalyzer extends BranchAnalyzer {
     private final int branchId;
 
     MultiBranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
-                        CommitQueries commitQueries, SmellQueries smellQueries, BranchQueries branchQueries, int branchId) {
-        super(projectId, persistence, duplicationChecker, commitQueries, smellQueries, new MultiBranchGapHandler(projectId, branchId, persistence, branchQueries));
+                        CommitQueries commitQueries, SmellQueries smellQueries, BranchQueries branchQueries, int branchId, String parentCommitSha) {
+        super(projectId, persistence, duplicationChecker, commitQueries, smellQueries, new MultiBranchGapHandler(projectId, branchId, persistence, branchQueries), parentCommitSha);
         this.branchQueries = branchQueries;
         this.branchId = branchId;
     }

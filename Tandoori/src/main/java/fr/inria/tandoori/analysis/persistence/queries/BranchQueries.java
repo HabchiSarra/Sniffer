@@ -54,6 +54,15 @@ public interface BranchQueries {
     String parentCommitIdQuery(int projectId, int branchId);
 
     /**
+     * Retrieve the sha of the given branch's parent commit.
+     *
+     * @param projectId The project identifier.
+     * @param branchId  The branch identifier.
+     * @return The generated query statement.
+     */
+    String parentCommitShaQuery(int projectId, int branchId);
+
+    /**
      * Return a list of {@link Smell} definitions extracted from the SmellPresence of the commit previous to the
      * given branch's first commit.
      *

@@ -81,6 +81,11 @@ public class JDBCBranchQueries extends JDBCQueriesHelper implements BranchQuerie
     }
 
     @Override
+    public String parentCommitShaQuery(int projectId, int branchId) {
+        return "SELECT sha1 FROM commit_entry where id = (" + parentCommitIdQuery(projectId, branchId) + ")";
+    }
+
+    @Override
     public String lastCommitShaQuery(int projectId, int branchId) {
         return branchLastCommitQuery(projectId, branchId, "sha1");
     }

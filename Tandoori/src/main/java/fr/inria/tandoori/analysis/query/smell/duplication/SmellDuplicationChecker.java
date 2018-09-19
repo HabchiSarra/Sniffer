@@ -3,11 +3,12 @@ package fr.inria.tandoori.analysis.query.smell.duplication;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.Smell;
 import fr.inria.tandoori.analysis.persistence.Persistence;
+import neo4j.QualifiedNameFromFileQuery;
+import neo4j.QueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,9 +24,12 @@ public class SmellDuplicationChecker {
     static final String NEW_FILE_COLUMN = "new_file";
 
     private static final Logger logger = LoggerFactory.getLogger(SmellDuplicationChecker.class.getName());
+    public static final String QUALIFIED_NAME = "qualified_name";
     private final List<FileRenameEntry> fileRenamings;
+    private final QueryEngine queryEngine;
 
-    public SmellDuplicationChecker(int projectId, Persistence persistence) {
+    public SmellDuplicationChecker(int projectId, Persistence persistence, QueryEngine queryEngine) {
+        this.queryEngine = queryEngine;
         fileRenamings = loadFileRename(projectId, persistence);
     }
 
@@ -59,16 +63,18 @@ public class SmellDuplicationChecker {
      * Retrieve the original smell if it is embedded in a renamed file.
      *
      * @param instance The instance to check.
+     * @param commit   The current commit in which the renaming took place.
+     * @param previous The previous commit, used for fetching the previous file's class name.
      * @return The original instance, null if not a renamed instance.
      */
-    public Smell original(Smell instance, Commit commit) {
+    public Smell original(Smell instance, Commit commit, Commit previous) {
         logger.trace("==> Trying to guess original smell for: " + instance);
 
         // If we find a renaming of the smell file in this specific commit, try to guess the original smell.
         int index = fileRenamings.indexOf(FileRenameEntry.fromSmell(instance, commit));
         if (index > -1) {
-            logger.trace("  ==> Guessed new original smell!");
-            return guessOriginalSmell(instance, commit, fileRenamings.get(index));
+            logger.trace("  ==> Guessing new original smell!");
+            return guessOriginalSmell(instance, previous, fileRenamings.get(index));
         }
 
         logger.trace("  ==> No original smell found");
@@ -82,68 +88,37 @@ public class SmellDuplicationChecker {
      * This instance ID will then be compared with the list of instances from the previous smell to find a match.
      *
      * @param instance Current smell instance name.
+     * @param commit   The commit holding the old file.
      * @param renaming Matching renaming entry.
      * @return The guessed original smell.
      */
     private Smell guessOriginalSmell(Smell instance, Commit commit, FileRenameEntry renaming) {
-        String guessOldInstance = guessInstanceName(instance.instance, renaming.oldFile);
+        String oldClass = fetchQualifiedName(commit.sha, renaming.oldFile);
+        String ending = extractIdentifierEnding(instance.instance);
+        String start = extractIdentifierStart(instance.instance);
+
+        String guessOldInstance = start + oldClass + ending;
         return new Smell(instance.type, guessOldInstance, renaming.oldFile);
     }
 
     /**
-     * @param instance identifier of the current smell instance.
-     * @param oldFile  Old smell file.
-     * @return Replace the current smell instance by an instance guessed from the file name.
-     */
-    private String guessInstanceName(String instance, String oldFile) {
-        String packagePath = extractPackageIdentifier(instance);
-        String ending = extractIdentifierEnding(instance);
-        String start = extractIdentifierStart(instance);
-
-        String newPackagePath = transformPackageIdentifier(oldFile);
-
-        return start + newPackagePath + ending;
-    }
-
-    /**
-     * Replace the package path content with the newFile path.
-     * <p>
-     * We iterate from the end of the oldFile (i.e. the class name) to its "java" directory
-     * to only use the useful part of the file path.
+     * Fetch the class fully qualified name from Parprika.
      *
-     * @param oldFile File containing the old package ID to set.
-     * @return The newly created package identifier of the original smell.
+     * @param sha  The commit to look into.
+     * @param file The file containing the queried class.
+     * @return The class fully qualified name if found, an empty String if not.
      */
-    private String transformPackageIdentifier(String oldFile) {
-        List<String> packageParts = new ArrayList<>();
-        // Remove .java extension from file before using it as identifier
-        oldFile = oldFile.split("\\.java$")[0];
-        String[] pathPart = oldFile.split("/");
-        int pathPartIndex = pathPart.length - 1;
-        String currentPart;
-        do {
-            currentPart = pathPart[pathPartIndex--];
-            if (!currentPart.equals("java") && !currentPart.equals("groovy")) {
-                packageParts.add(currentPart);
-            }
-        } while (!currentPart.equals("java") && !currentPart.equals("groovy") && pathPartIndex >= 0);
-        Collections.reverse(packageParts);
-        return String.join(".", packageParts);
-    }
-
-    /**
-     * We cut an retrieve the package id of our instance smell.
-     *
-     * @param instance Instance to parse.
-     * @return The package id and classname part of the smell identifier.
-     */
-    private String extractPackageIdentifier(String instance) {
-        String[] split = instance.split("[$#]");
-        if (instance.contains("#") && split.length >= 2) {
-            return split[1];
+    private String fetchQualifiedName(String sha, String file) {
+        QualifiedNameFromFileQuery query = new QualifiedNameFromFileQuery(queryEngine, sha, "/" + file);
+        List<Map<String, Object>> result = query.fetchResult(false);
+        if (result.isEmpty() || !result.get(0).containsKey(QUALIFIED_NAME)) {
+            logger.warn("Unable to query qualified name on Paprika for file " + file + " on commit " + sha);
+            return "";
         }
-        return split[0];
+        return (String) result.get(0).get(QUALIFIED_NAME);
+
     }
+
 
     /**
      * Extract the ending identifier (i.e. the method name) from our smell id:

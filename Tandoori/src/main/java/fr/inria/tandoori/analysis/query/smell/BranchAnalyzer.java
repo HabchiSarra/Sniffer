@@ -44,15 +44,36 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
     BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
                    CommitQueries commitQueries, SmellQueries smellQueries,
                    CommitGapHandler gapHandler) {
+        this(projectId, persistence, duplicationChecker, commitQueries, smellQueries, gapHandler, null);
+    }
+
+    BranchAnalyzer(int projectId, Persistence persistence, SmellDuplicationChecker duplicationChecker,
+                   CommitQueries commitQueries, SmellQueries smellQueries,
+                   CommitGapHandler gapHandler, String parentCommitSha) {
         super(logger, projectId, persistence, commitQueries);
         this.duplicationChecker = duplicationChecker;
         this.smellQueries = smellQueries;
         this.gapHandler = gapHandler;
 
         previous = Commit.empty();
-        underAnalysis = Commit.empty();
+        if (parentCommitSha != null) {
+            underAnalysis = new Commit(parentCommitSha, -1);
+        } else {
+            underAnalysis = Commit.empty();
+        }
         this.resetLostCommit();
     }
+
+    /**
+     * Tells if the given commit is a dummy placeholder commit.
+     *
+     * @param commit The commit to test.
+     * @return True if it is a placeholder, false otherwise.
+     */
+    private boolean isEmptyCommit(Commit commit) {
+        return commit.ordinal == -1;
+    }
+
 
     @Override
     public void addExistingSmells(List<Smell> smells) {
@@ -69,11 +90,11 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
         // We handle the commit change in our result dataset.
         // This dataset MUST be ordered by commit_number to have right results.
         if (!underAnalysis.equals(commit)) {
-            if (!underAnalysis.equals(Commit.empty())) {
+            if (!isEmptyCommit(underAnalysis)) {
                 handleCommitChanges(underAnalysis);
             }
             // Compare the two commits ordinal to find a gap.
-            if (gapHandler.hasGap(underAnalysis, commit) && !underAnalysis.equals(Commit.empty())) {
+            if (gapHandler.hasGap(underAnalysis, commit) && !isEmptyCommit(underAnalysis)) {
                 handleCommitGap();
             }
             updateCommitTracking(commit);
@@ -140,7 +161,7 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
 
     @Override
     public void notifyEnd(String lastCommitSha1) {
-        if (underAnalysis.equals(Commit.empty())) {
+        if (isEmptyCommit(underAnalysis)) {
             logger.info("[" + projectId + "] No smell found");
             return;
         }
@@ -191,7 +212,7 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
      * @param commit The currently analyzed commit.
      */
     private void handleSmellRename(Smell smell, Commit commit) {
-        Smell parent = duplicationChecker.original(smell, commit);
+        Smell parent = duplicationChecker.original(smell, commit, previous);
 
         // We found a file renamed, hence a potential renamed smell's parent
         if (parent != null) {
@@ -242,7 +263,7 @@ class BranchAnalyzer extends PersistenceAnalyzer implements BranchAnalysis {
      * @param commit The new commit.
      */
     private void persistCommitChanges(Commit commit) {
-        if (!underAnalysis.equals(Commit.empty())) {
+        if (!isEmptyCommit(underAnalysis)) {
             logger.debug("[" + projectId + "] ==> Persisting smells for commit: " + commit);
             insertSmellIntroductions(previous, commit);
             insertSmellRefactorings(previous, commit);
