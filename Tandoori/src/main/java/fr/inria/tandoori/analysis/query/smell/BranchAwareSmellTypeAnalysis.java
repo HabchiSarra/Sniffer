@@ -105,6 +105,7 @@ class BranchAwareSmellTypeAnalysis implements Query {
         }
 
         // We should only perform operations for branch 0 since all other commits are looped around.
+        // On top of that, we may have missed some branch finalization because of lost commits.
         for (int branchId : branchAnalyzers.keySet()) {
             finalizeBranch(branchId);
         }

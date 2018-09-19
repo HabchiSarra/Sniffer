@@ -30,7 +30,7 @@ public class MultiBranchGapHandler implements CommitGapHandler {
         int branchOrdinal = previous.getBranchOrdinal() + 1;
         List<Map<String, Object>> result = persistence.query(branchQueries.shaFromOrdinalQuery(projectId, branchId, branchOrdinal, true));
         if (result.isEmpty() || result.get(0).get("sha1") == null) {
-            throw new CommitNotFoundException(projectId, previous.getOrdinal());
+            throw new CommitNotFoundException(projectId, previous.getOrdinal() + 1);
         }
         Commit commit = new Commit(String.valueOf(result.get(0).get("sha1")), previous.getOrdinal());
         commit.setBranchOrdinal(branchOrdinal);
