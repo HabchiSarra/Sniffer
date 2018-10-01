@@ -93,8 +93,9 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
         return query;
     }
 
-
     public String lastSmellIdQuery(int projectId) {
-        return "SELECT id FROM smell ORDER BY id DESC LIMIT 1";
+        return "SELECT id FROM smell " +
+                "WHERE project_id = " + projectId + " " +
+                "ORDER BY id DESC LIMIT 1";
     }
 }
