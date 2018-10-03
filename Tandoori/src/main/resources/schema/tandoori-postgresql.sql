@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS commit_entry (
   date              DATE  NOT NULL,
   merged_commit_id  INTEGER,
   in_paprika        BOOLEAN NOT NULL DEFAULT FALSE,
+  number_of_classes INTEGER,
+  number_of_methods INTEGER,
   UNIQUE (project_id, sha1),
   FOREIGN KEY (project_id) REFERENCES Project (id),
   FOREIGN KEY (developer_id) REFERENCES Developer (id),

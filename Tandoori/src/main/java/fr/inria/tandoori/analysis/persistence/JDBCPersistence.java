@@ -1,13 +1,18 @@
 package fr.inria.tandoori.analysis.persistence;
 
+import org.postgresql.copy.CopyManager;
+import org.postgresql.core.BaseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -204,6 +209,17 @@ public class JDBCPersistence implements Persistence {
                 e = nextException;
             }
             logger.error("Unable to execute on database: " + path, e);
+        }
+        return -1;
+    }
+
+    public long copyFile(String path, String table) {
+        try {
+            CopyManager mgr = new CopyManager((BaseConnection) connection);
+            Reader in = new BufferedReader(new FileReader(new File(path)));
+            return mgr.copyIn("copy " + table + " FROM stdin WITH CSV HEADER", in);
+        } catch (SQLException | IOException e) {
+            logger.error("Unable to copy file to database", e);
         }
         return -1;
     }

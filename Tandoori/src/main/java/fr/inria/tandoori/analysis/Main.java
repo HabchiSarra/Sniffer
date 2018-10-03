@@ -19,6 +19,7 @@ public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class.getName());
     private static final String COMMAND_KEY = "sub_command";
     private static final String APP_ANALYSIS_COMMAND = "singleAnalysis";
+    private static final String SUPP_ANALYSIS_COMMAND = "supplementaryAnalysis";
     private static final String MULTI_ANALYSIS_COMMAND = "multiAnalysis";
 
     public static void main(String[] args) {
@@ -27,6 +28,9 @@ public class Main {
 
         Subparser analyseParser = subparsers.addParser(APP_ANALYSIS_COMMAND).help("Analyse a single app");
         SingleAppAnalysis.setArguments(analyseParser);
+
+        Subparser supplementaryParser = subparsers.addParser(SUPP_ANALYSIS_COMMAND).help("Supplementary app analysis");
+        SupplementaryAnalysis.setArguments(supplementaryParser);
 
         Subparser multiAppParser = subparsers.addParser(MULTI_ANALYSIS_COMMAND).help("Analyse multiple apps");
         MultiAppAnalysis.setArguments(multiAppParser);
@@ -40,6 +44,9 @@ public class Main {
                     break;
                 case MULTI_ANALYSIS_COMMAND:
                     new MultiAppAnalysis(res).analyze();
+                    break;
+                case SUPP_ANALYSIS_COMMAND:
+                    new SupplementaryAnalysis(res).analyze();
                     break;
                 default:
                     logger.error("Unable to find command: " + res.getString(COMMAND_KEY));

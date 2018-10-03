@@ -88,4 +88,7 @@ public interface CommitQueries {
      * @return The generated query statement.
      */
     String mergedCommitIdQuery(int projectId, Commit commit);
+
+    String updateCommitSizeQuery(int projectId, String paprikaResultsPath);
+
 }

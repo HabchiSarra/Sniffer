@@ -33,7 +33,7 @@ import static fr.inria.tandoori.analysis.Main.DATABASE_USERNAME;
 /**
  * Class handling a single app analysis process in Tandoori.
  */
-public class SingleAppAnalysis {
+public class SingleAppAnalysis implements Analysis {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(SingleAppAnalysis.class.getName());
 
     private final String appName;

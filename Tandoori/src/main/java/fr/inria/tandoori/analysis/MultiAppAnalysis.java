@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +37,7 @@ public class MultiAppAnalysis {
     private final String githubToken;
     private final int threadsCount;
     private final String appLocalRepositories;
+    private AnalysisType analysisType;
     private final DataSource connectionPool;
 
     /**
@@ -47,11 +49,12 @@ public class MultiAppAnalysis {
      * @param threadsCount         Number of available threads for the analysis.
      * @param appLocalRepositories Path to the git remoteRepositories of applications to avoid cloning them, under the form repos/$appName.
      */
-    MultiAppAnalysis(String appsFile, String paprikaDBs, String githubToken, int threadsCount, String appLocalRepositories) {
+    MultiAppAnalysis(String appsFile, String paprikaDBs, String githubToken, int threadsCount, String appLocalRepositories, AnalysisType analysisType) {
         this.paprikaDBs = paprikaDBs;
         this.githubToken = githubToken;
         this.threadsCount = threadsCount;
         this.appLocalRepositories = appLocalRepositories;
+        this.analysisType = analysisType;
 
         applications = new ArrayList<>();
         remoteRepositories = new HashMap<>();
@@ -96,14 +99,17 @@ public class MultiAppAnalysis {
         String repository;
         String paprikaDB;
 
-        SingleAppAnalysisCallable analysis;
+        Callable<Void> analysis;
 
+
+        int analysisId = 0;
         for (String app : applications) {
             repository = chooseRepository(app);
             paprikaDB = Paths.get(paprikaDBs, app, "databases", "graph.db").toString();
-            analysis = new SingleAppAnalysisCallable(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool);
+            analysis = analysisType.getCallable(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool, analysisId);
             logger.info("New app analysis: " + analysis);
             executorService.submit(analysis);
+            analysisId++;
         }
 
         executorService.shutdown();
@@ -131,7 +137,8 @@ public class MultiAppAnalysis {
                 arguments.getString("databases"),
                 arguments.getString("githubToken"),
                 arguments.getInt("threads"),
-                arguments.getString("repositories")
+                arguments.getString("repositories"),
+                arguments.get("type") != null ? arguments.get("type") : AnalysisType.SINGLE_APP
         );
     }
 
@@ -151,6 +158,11 @@ public class MultiAppAnalysis {
                 .help("Path to the Paprika databases under the form paprika_db/$appName")
                 .type(String.class)
                 .required(true);
+
+        parser.addArgument("-type")
+                .help("Chose the analysis type to perform")
+                .type(AnalysisType.class)
+                .required(false);
 
         parser.addArgument("-k", "--githubToken")
                 .help("Paprika analysis database")

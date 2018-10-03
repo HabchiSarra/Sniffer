@@ -3,7 +3,6 @@ package fr.inria.tandoori.analysis.persistence.queries;
 import fr.inria.tandoori.analysis.model.Commit;
 import fr.inria.tandoori.analysis.model.GitDiff;
 import fr.inria.tandoori.analysis.model.GitRename;
-import fr.inria.tandoori.analysis.query.Query;
 
 public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQueries {
 
@@ -87,4 +86,14 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
     public String mergedCommitIdQuery(int projectId, Commit commit) {
         return "SELECT merged_commit_id AS id FROM commit_entry where sha1 = '" + commit.sha + "'";
     }
+
+    @Override
+    public String updateCommitSizeQuery(int projectId, String tempTable) {
+        return "UPDATE commit_entry " +
+                "SET number_of_classes = " + tempTable + ".number_of_classes, " +
+                "number_of_methods = " + tempTable + ".number_of_methods " +
+                "FROM " + tempTable + " " +
+                "WHERE  commit_entry.sha1 = " + tempTable + ".sha1; ";
+    }
+
 }

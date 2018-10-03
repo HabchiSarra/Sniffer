@@ -4,6 +4,7 @@ dependencies {
     compile project(":HarissaGitHub")
 
     compile "net.sourceforge.argparse4j:argparse4j:0.7.0"
+    compile "org.neo4j:neo4j-cypher:3.4.1"
     compile 'org.xerial:sqlite-jdbc:3.21.0.1'
     compile 'joda-time:joda-time:2.10'
 

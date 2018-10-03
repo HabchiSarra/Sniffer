@@ -46,4 +46,7 @@ public interface Persistence {
      * @return -1 if an error occurred, 0 if no modification, the number of affected rows otherwise.
      */
     int execute(String statement);
+
+
+    long copyFile(String path, String table);
 }
