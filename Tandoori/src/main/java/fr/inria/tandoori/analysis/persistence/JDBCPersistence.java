@@ -1,18 +1,18 @@
 package fr.inria.tandoori.analysis.persistence;
 
+import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
-import org.postgresql.core.BaseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -214,14 +214,43 @@ public class JDBCPersistence implements Persistence {
     }
 
     public long copyFile(String path, String table) {
+        Reader in = null;
         try {
-            CopyManager mgr = new CopyManager((BaseConnection) connection);
-            Reader in = new BufferedReader(new FileReader(new File(path)));
+            PGConnection connection = getPgConnection();
+            CopyManager mgr = connection.getCopyAPI();
+            in = new BufferedReader(new FileReader(new File(path)));
             return mgr.copyIn("copy " + table + " FROM stdin WITH CSV HEADER", in);
         } catch (SQLException | IOException e) {
             logger.error("Unable to copy file to database", e);
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    logger.warn("Unable to close copy input stream", e);
+                }
+            }
         }
         return -1;
+    }
+
+    /**
+     * Select the right {@link PGConnection} to use.
+     * This was creating an issue while using c3p0 since it uses a {@link com.mchange.v2.c3p0.impl.NewProxyConnection}.
+     * <p>
+     * Warning: Dark forces are at work over here.
+     *
+     * @return The needed {@link PGConnection} instance.
+     * @throws SQLException If we can't unwrap the connection to a {@link PGConnection}.
+     */
+    private PGConnection getPgConnection() throws SQLException {
+        try {
+            Field innerConnection = connection.getClass().getDeclaredField("inner");
+            innerConnection.setAccessible(true);
+            return (PGConnection) innerConnection.get(connection);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            return connection.unwrap(PGConnection.class);
+        }
     }
 
     /**

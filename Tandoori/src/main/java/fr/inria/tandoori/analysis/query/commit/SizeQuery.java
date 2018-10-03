@@ -10,24 +10,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class SizeQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(CommitsQuery.class.getName());
-    private static final String TMP_TABLE = "tmp_x";
-    private static final String CREATE_TMP_TABLE = "CREATE TEMP TABLE " + TMP_TABLE +
-            " (sha1 text, number_of_classes int, number_of_methods int );";
-    private static final String DROP_TMP_TABLE = "DROP TABLE " + TMP_TABLE;
 
-    private final int projectId;
+    private final int analysisId;
     private final String paprikaDB;
     private final Persistence persistence;
     private CommitQueries commitQueries;
 
     private final static String TMP_DIR = System.getProperty("java.io.tmpdir");
 
-    public SizeQuery(int projectId, String paprikaDB, Persistence persistence, CommitQueries commitQueries) {
-        this.projectId = projectId;
+    public SizeQuery(int analysisId, String paprikaDB, Persistence persistence, CommitQueries commitQueries) {
+        this.analysisId = analysisId;
         this.paprikaDB = paprikaDB;
         this.persistence = persistence;
         this.commitQueries = commitQueries;
@@ -35,21 +32,35 @@ public class SizeQuery implements Query {
 
     @Override
     public void query() throws QueryException {
-        logger.info("[" + projectId + "] Starting Size insertion ");
+        logger.info("[" + analysisId + "] Starting Size insertion");
+        String file = csvFilePath();
+        logger.debug("[" + analysisId + "] Using temporary file: " + file);
+        String table = tmpTableName();
+        logger.debug("[" + analysisId + "] Using temporary table: " + table);
 
-
-        QueryEngine engine = new QueryEngine(paprikaDB);
-
-        engine.setCsvPrefix(csvFilePrefix());
-        generateCommitSize(engine);
-        engine.shutDown();
+        generateCsv();
 
         persistence.execute(addCommitEntryColumn("number_of_classes"));
         persistence.execute(addCommitEntryColumn("number_of_methods"));
-        persistence.execute(CREATE_TMP_TABLE);
-        persistence.copyFile(csvFilePath(), TMP_TABLE);
-        persistence.execute(commitQueries.updateCommitSizeQuery(projectId, TMP_TABLE));
-        persistence.execute(DROP_TMP_TABLE);
+        persistence.execute(createTmpTable(table));
+        long affectedRows = persistence.copyFile(file, table);
+        if (affectedRows <= 0) {
+            throw new QueryException(logger.getName(), "[\" + analysisId + \"] No data copied to temp table");
+        }
+        persistence.execute(commitQueries.updateCommitSizeQuery(table));
+
+        try {
+            Files.delete(Paths.get(file));
+        } catch (IOException e) {
+            logger.warn("Unable to remove csv file", e);
+        }
+    }
+
+    private void generateCsv() throws QueryException {
+        QueryEngine engine = new QueryEngine(paprikaDB);
+        engine.setCsvPrefix(csvFilePrefix());
+        generateCommitSize(engine);
+        engine.shutDown();
     }
 
     private static String addCommitEntryColumn(String columnName) {
@@ -57,7 +68,7 @@ public class SizeQuery implements Query {
     }
 
     private String csvFilePrefix() {
-        return Paths.get(TMP_DIR, String.valueOf(projectId)).toString();
+        return Paths.get(TMP_DIR, String.valueOf(analysisId)).toString();
     }
 
     private String csvFilePath() {
@@ -74,5 +85,13 @@ public class SizeQuery implements Query {
 
     }
 
+    private String createTmpTable(String name) {
+        return "CREATE TEMP TABLE " + name +
+                " (sha1 text, number_of_classes int, number_of_methods int );";
+    }
+
+    private String tmpTableName() {
+        return "tmp_size_" + analysisId;
+    }
 
 }

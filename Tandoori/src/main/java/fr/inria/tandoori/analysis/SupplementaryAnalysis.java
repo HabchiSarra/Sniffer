@@ -22,7 +22,7 @@ import static fr.inria.tandoori.analysis.Main.DATABASE_USERNAME;
 
 public class SupplementaryAnalysis implements Analysis {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(SingleAppAnalysis.class.getName());
-    private final int appId;
+    private final int analysisId;
     private final String paprikaDB;
 
     private List<Query> getAnalysisProcess(int appId, Persistence persistence, CommitQueries commitQueries) {
@@ -36,8 +36,8 @@ public class SupplementaryAnalysis implements Analysis {
      *
      * @param paprikaDB   Path to paprika database.
      */
-    SupplementaryAnalysis(int appId, String paprikaDB) {
-        this.appId = appId;
+    SupplementaryAnalysis(int analysisId, String paprikaDB) {
+        this.analysisId = analysisId;
         this.paprikaDB = paprikaDB;
     }
 
@@ -52,8 +52,8 @@ public class SupplementaryAnalysis implements Analysis {
 
     public void analyze(Persistence persistence, CommitQueries commitQueries) throws AnalysisException {
         persistence.initialize();
-        logger.info("[" + appId + "] Starting supplementary analysis");
-        for (Query process : getAnalysisProcess(appId, persistence, commitQueries)) {
+        logger.info("[" + analysisId + "] Starting supplementary analysis");
+        for (Query process : getAnalysisProcess(analysisId, persistence, commitQueries)) {
             try {
                 process.query();
             } catch (QueryException e) {
@@ -61,7 +61,7 @@ public class SupplementaryAnalysis implements Analysis {
             }
         }
 
-        logger.info("[" + appId + "] Supplementary analysis done.");
+        logger.info("[" + analysisId + "] Supplementary analysis done.");
         persistence.close();
     }
 
@@ -88,7 +88,7 @@ public class SupplementaryAnalysis implements Analysis {
                 .type(String.class)
                 .required(true);
 
-        parser.addArgument("-id", "--id")
+        parser.addArgument("-id")
                 .help("Set an identifier to the processing, defaults to 0")
                 .type(Integer.class)
                 .required(false);
