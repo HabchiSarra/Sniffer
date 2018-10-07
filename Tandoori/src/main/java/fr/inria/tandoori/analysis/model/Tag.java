@@ -4,6 +4,7 @@ package fr.inria.tandoori.analysis.model;
 import org.joda.time.DateTime;
 
 public class Tag {
+    private final String TAG_PREFIX = "refs/tags/";
     private final String name;
     private final String sha;
     private DateTime date;
@@ -14,7 +15,11 @@ public class Tag {
      * @param date Date of the commit linked to the tag.
      */
     public Tag(String name, String sha, DateTime date) {
-        this.name = name;
+        if (name.startsWith(TAG_PREFIX)) {
+            this.name = name.substring(TAG_PREFIX.length());
+        } else {
+            this.name = name;
+        }
         this.sha = sha;
         this.date = date;
     }
