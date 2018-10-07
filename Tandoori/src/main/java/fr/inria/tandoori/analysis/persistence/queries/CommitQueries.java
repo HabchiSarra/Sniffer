@@ -35,6 +35,15 @@ public interface CommitQueries {
     String idFromShaQuery(int projectId, String sha);
 
     /**
+     * Query the identifier of a commit.
+     * This method will not test the projectId against the sha.
+     *
+     * @param sha Commit sha.
+     * @return The generated query statement.
+     */
+    String idFromShaQuery(String sha);
+
+    /**
      * Query the sha1 of a commit.
      *
      * @param projectId Project to look into.
@@ -74,7 +83,7 @@ public interface CommitQueries {
     /**
      * Returns the sha1 of the last project's commit.
      *
-     * @param projectId Project to look into.
+     * @param projectId   Project to look into.
      * @param paprikaOnly Only return a commit analyzed by paprika.
      * @return The generated query statement.
      */
@@ -88,6 +97,8 @@ public interface CommitQueries {
      * @return The generated query statement.
      */
     String mergedCommitIdQuery(int projectId, Commit commit);
+
+    String projectIdFromShaQuery(String sha);
 
     String updateCommitSizeQuery(String paprikaResultsPath);
 

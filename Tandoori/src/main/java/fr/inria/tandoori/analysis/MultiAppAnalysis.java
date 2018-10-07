@@ -101,15 +101,12 @@ public class MultiAppAnalysis {
 
         Callable<Void> analysis;
 
-
-        int analysisId = 0;
         for (String app : applications) {
             repository = chooseRepository(app);
             paprikaDB = Paths.get(paprikaDBs, app, "databases", "graph.db").toString();
-            analysis = analysisType.getCallable(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool, analysisId);
+            analysis = analysisType.getCallable(app, repository, paprikaDB, githubToken, remoteRepositories.get(app), connectionPool);
             logger.info("New app analysis: " + analysis);
             executorService.submit(analysis);
-            analysisId++;
         }
 
         executorService.shutdown();

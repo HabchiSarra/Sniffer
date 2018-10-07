@@ -14,7 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class SizeQuery implements Query {
-    private static final Logger logger = LoggerFactory.getLogger(CommitsQuery.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(SizeQuery.class.getName());
 
     private final int analysisId;
     private final String paprikaDB;

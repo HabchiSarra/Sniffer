@@ -37,6 +37,11 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
     }
 
     @Override
+    public String idFromShaQuery(String sha) {
+        return "SELECT id FROM commit_entry WHERE sha1 = '" + sha + "'";
+    }
+
+    @Override
     public String shaFromOrdinalQuery(int projectId, int ordinal) {
         return shaFromOrdinalQuery(projectId, ordinal, false);
     }
@@ -85,6 +90,11 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
     @Override
     public String mergedCommitIdQuery(int projectId, Commit commit) {
         return "SELECT merged_commit_id AS id FROM commit_entry where sha1 = '" + commit.sha + "'";
+    }
+
+    @Override
+    public String projectIdFromShaQuery(String sha) {
+        return "SELECT project_id from commit_entry WHERE sha1 = '" + sha + "'";
     }
 
     @Override

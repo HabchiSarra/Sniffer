@@ -56,6 +56,17 @@ CREATE TABLE IF NOT EXISTS commit_entry (
   FOREIGN KEY (merged_commit_id) REFERENCES commit_entry (id)
 );
 
+CREATE TABLE IF NOT EXISTS tag (
+  id                SERIAL NOT NULL PRIMARY KEY,
+  project_id        INTEGER NOT NULL,
+  commit_id         INTEGER,
+  name              VARCHAR(256) NOT NULL,
+  date              DATE  NOT NULL,
+  UNIQUE (project_id, name),
+  FOREIGN KEY (project_id) REFERENCES project (id),
+  FOREIGN KEY (commit_id) REFERENCES commit_entry (id)
+);
+
 CREATE TABLE IF NOT EXISTS Branch (
   id            SERIAL NOT NULL PRIMARY KEY,
   project_id    INTEGER NOT NULL,
