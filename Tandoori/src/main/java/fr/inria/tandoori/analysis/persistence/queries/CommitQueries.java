@@ -35,15 +35,6 @@ public interface CommitQueries {
     String idFromShaQuery(int projectId, String sha);
 
     /**
-     * Query the identifier of a commit.
-     * This method will not test the projectId against the sha.
-     *
-     * @param sha Commit sha.
-     * @return The generated query statement.
-     */
-    String idFromShaQuery(String sha);
-
-    /**
      * Query the sha1 of a commit.
      *
      * @param projectId Project to look into.
