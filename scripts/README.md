@@ -7,23 +7,23 @@ Loop over the given applications to query the `devNote.sh` script.
 This script will need a valid __github API key__ in the file __./githubKey__
 
 The script will look for databases in a __databases__ dir, final outputs in __output__ 
-and write temporary results in __/tmp/tandoori__.
+and write temporary results in __/tmp/tracker__.
 
 Example usage: `./metricLoop.sh ../allApps.csv`
 
 # devNote.sh
 
-This is the main script of the Tandoori approach, working on only one project at a time 
+This is the main script of the Sniffer, working on only one project at a time 
 (see [metricLoop.sh](#metricloopsh) to load multiple projects).
 
 It will :
 
-1. Query the smells from our Tandoori database (require __Tandoori.jar__).
-1. Retrieve every commits of the current project if __COMMITS.csv__ is absent (require __GitMiner.jar__).
+1. Query the smells from our Detector database (require __SmellDetector.jar__).
+1. Retrieve every commits of the current project if __COMMITS.csv__ is absent (require __GitHubMiner.jar__).
 1. Merge the developers identity from the smells into the __COMMITS.csv__ file.
 1. Retrieve the project commits in [topological order](https://git-scm.com/docs/git-log#git-log---topo-order) 
 (will clone the project & use `git log`).
-1. Calculate the metrics from all previous information sources (require __MetricsCalculator.jar__).
+1. Calculate the metrics from all previous information sources (require __CSVSmellTracker.jar__).
 
 Example usage: `./devNote.sh -d "$dbDir/$appName" -p "$appPath" -k "$(cat $githubKeyFile)" -o "$tmpOutput"`
 
@@ -31,7 +31,7 @@ Example usage: `./devNote.sh -d "$dbDir/$appName" -p "$appPath" -k "$(cat $githu
 
 This script will loop over all already analyzed projects to add the following data:
 
-- Process the number of method and classes (Using __Tandoori.jar__).
+- Process the number of method and classes (Using __SmellDetector.jar__).
 - Sort the project's commits by type (`feat,fix,docs,style,refactor,perf,tests,chores`).
 
 # group.py

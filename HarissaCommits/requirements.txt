@@ -1,4 +1,0 @@
-gitpython==2.1.8
-
-# Unit tests
-coverage==4.5.1

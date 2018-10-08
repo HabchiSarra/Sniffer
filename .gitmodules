@@ -1,16 +1,16 @@
-[submodule "Harissa"]
-	path = Harissa
-	url = git@github.com:HSarah/Harissa.git
+[submodule "SmellDetector"]
+	path = SmellDetector
+	url = git@github.com:HabchiSarra/SmellDetector.git
 	branch = develop
-[submodule "HarissaMetrics"]
-	path = HarissaMetrics
-	url = git@github.com:HSarah/HarissaMetrics.git
+[submodule "CSVSmellTracker"]
+	path = CSVSmellTracker
+	url = git@github.com:HabchiSarra/CSVSmellTracker.git
 	branch = master
-[submodule "HarissaGitHub"]
-	path = HarissaGitHub
-	url = git@github.com:HSarah/HarissaGitHub.git
+[submodule "GitHubMiner"]
+	path = GitHubMiner
+	url = git@github.com:HabchiSarra/GitHubMiner.git
 	branch = master
-[submodule "PaprikaCommitManager"]
-	path = PaprikaCommitManager
-	url = git@git.evilantrules.xyz:Tandoori/PaprikaCommitManager.git
+[submodule "CommitLooper"]
+	path = CommitLooper
+	url = git@git.evilantrules.xyz:Sniffer/CommitLooper.git
 	branch = master

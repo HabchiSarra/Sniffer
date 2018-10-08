@@ -11,15 +11,15 @@ buildscript {
 }
 
 
-task harissaGitHubMavenPackage(type: Exec) {
-    workingDir './HarissaGitHub'
+task gitHubMinerMavenPackage(type: Exec) {
+    workingDir './GitHubMiner'
 
     executable "mvn"
     args 'package'
 }
 
-task harissaGitHubClean(type: Exec) {
-    workingDir './HarissaGitHub'
+task gitHubMinerClean(type: Exec) {
+    workingDir './GitHubMiner'
 
     executable "mvn"
     args 'clean'
@@ -27,11 +27,11 @@ task harissaGitHubClean(type: Exec) {
 
 task packages {
     subprojects.each { dependsOn("${it.name}:shadowJar") }
-    packages.dependsOn(harissaGitHubMavenPackage)
+    packages.dependsOn(gitHubMinerMavenPackage)
 }
 
 task clean {
-    dependsOn(harissaGitHubClean)
+    dependsOn(gitHubMinerClean)
 }
 
 subprojects {
@@ -39,7 +39,7 @@ subprojects {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
     version '1.0-SNAPSHOT'
-    group = 'fr.inria.tandoori'
+    group = 'fr.inria.sniffer'
 
     repositories {
         mavenCentral()

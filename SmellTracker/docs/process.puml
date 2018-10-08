@@ -1,0 +1,59 @@
+@startuml
+[Commit] <<Analysis process>> as commit
+note left
+    Parse the git repository log
+     trying to match the commits
+     from detector to retrieve their ordinal.
+end note
+[Branch] <<Analysis process>> as branch
+note left
+    Fetch the last commit analyzed by Detector
+    in Tracker database.
+    Then parse all git log entries from the
+    repository to generate the branches
+    representation in Tracker.
+end note
+[Smell] <<Analysis process>> as smell
+note left
+    Process all smells returned by detector
+    using the branches stored in Tracker.
+
+    This process will have to read smells
+    associated to some commits while
+    importing new ones to keep track
+    of operations between branches.
+end note
+
+database Detector as detector
+note left
+    This Neo4j database contains all
+    analyzed commits and the smells
+    for each commit.
+end note
+
+database "Git Repository" as git
+note right
+    Project's repository enabling us
+    to parse commits for details:
+    diff, message, author, ...
+end note
+
+database Tracker as tracker
+note right
+    Tracker is our Postgresql database
+    containing all processed data
+end note
+
+detector --> commit: Analyzed commits in order
+commit -> tracker: [W] commits
+commit <- git: Git log, commit details,\n commits missing in Detector
+
+commit ..> branch: Process flow
+branch <-> tracker: [R] Last Commit\n [W] branches
+branch <- git: Iterate through\n parents
+
+branch ..> smell: Process flow
+smell <-> tracker: [R] commit, branch:\n smells, merges, parent\n[W] smells
+detector -> smell: Smells and commits\n in order
+
+@enduml

@@ -4,19 +4,19 @@ appsFile="allApps.csv"
 outDir=`realpath output`
 inputDir=`realpath output` # We scan back every existing output dirs to update metrics
 dbDir=`realpath databases`
-tmpDir="/tmp/tandoori"
+tmpDir="/tmp/tracker"
 mkdir -p $tmpDir
 
-tandoori="Tandoori.jar"
+detector="SmellDetector.jar"
 
 ##
-# Call Tandoori for the given application
+# Call Detector for the given application
 #
 # $1 - application name
-# $2 - Tandoori request type
+# $2 - Detector request type
 ##
-function tandooriRequest {
-    java -Xss512m -jar $tandoori query -r $2 -db "$dbDir/$1/databases/graph.db" -d true
+function detectorRequest {
+    java -Xss512m -jar $detector query -r $2 -db "$dbDir/$1/databases/graph.db" -d true
 }
 
 ##
@@ -27,11 +27,11 @@ function tandooriRequest {
 function retrieveNbMethodsAndClasses {
     appName=$1
     echo "# Computing methods and classes for project $appName"
-    tandooriRequest $appName ALLNUMMETHODS
-    tandooriRequest $appName COUNTVAR 
-    tandooriRequest $appName COUNTINNER
-    tandooriRequest $appName COUNTASYNC
-    tandooriRequest $appName COUNTVIEWS
+    detectorRequest $appName ALLNUMMETHODS
+    detectorRequest $appName COUNTVAR
+    detectorRequest $appName COUNTINNER
+    detectorRequest $appName COUNTASYNC
+    detectorRequest $appName COUNTVIEWS
 
 }
 

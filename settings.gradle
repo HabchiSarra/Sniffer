@@ -1,4 +1,4 @@
-// HarissaGithub is a maven project, we will build it by hand.
-include ':Harissa', ":HarissaMetrics", ':HarissaGitHub'
-include ':Tandoori'
+// GitHubMiner is a maven project, we will build it by hand.
+include ':SmellDetector', ":CSVSmellTracker", ':GitHubMiner'
+include ':SmellTracker'
 

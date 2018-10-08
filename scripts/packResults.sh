@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #echo "Retrieving results"
-#cp -r /run/media/antoine/Maxtor/tandoori-metrics/output/* results/
+#cp -r /run/media/antoine/Maxtor/metrics/output/* results/
 
 timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 outDir="packages"

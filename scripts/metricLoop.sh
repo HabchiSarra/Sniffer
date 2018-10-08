@@ -5,7 +5,7 @@ outDir="output"
 inputDir="output" # We scan back every existing output dirs to update metrics
 dbDir="databases"
 githubKeyFile="./githubKey"
-tmpDir="/tmp/tandoori"
+tmpDir="/tmp/tracker"
 mkdir -p $tmpDir
 
 ##

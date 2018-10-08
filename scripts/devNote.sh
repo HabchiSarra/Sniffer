@@ -89,24 +89,24 @@ fi
 
 # Parsing done, starting out script
 WORKDIR=$(dirname $(realpath -s $0))
-GIT_MINER="$WORKDIR/GitMiner.jar"
-METRICS_CALC="$WORKDIR/MetricsCalculator.jar"
-TANDOORI="$WORKDIR/Tandoori.jar"
+GIT_MINER="$WORKDIR/GitHubMiner.jar"
+METRICS_CALC="$WORKDIR/CSVSmellTracker.jar"
+DETECTOR="$WORKDIR/SmellDetector.jar"
 
 ##
-# Query Tandoori jar to process the smells for a given application.
+# Query Detector jar to process the smells for a given application.
 # We are setting a bigger stacktrace size in this method (512Mo).
 #
 # $1 - The application database to query
 # $2 - The output directory
 ##
-function tandooriQuery {
+function detectorQuery {
     appDB="$1"
     smellsDir="$2"
     mkdir -p "$smellsDir"
     [[ $verbose -eq "0" ]] || echo "## Will use database: $appDB, file: $(ls $appDB/..)"
-    cd "$smellsDir" # We can't provide an output directory to TANDOORI unfortunately
-    java -Xss512m -jar $TANDOORI query -r NONFUZZY -db "$1/databases/graph.db" -d true 
+    cd "$smellsDir" # We can't provide an output directory to DETECTOR unfortunately
+    java -Xss512m -jar $DETECTOR query -r NONFUZZY -db "$1/databases/graph.db" -d true
     cd -
 }
 
@@ -152,7 +152,7 @@ function addDeveloperRow {
 # $3 - GitMiner output containing project commits
 # $4 - GitHub project identifier to set in output
 # $5 - Project logs in correct order
-# $6 - Project database containing Tandoori analysis
+# $6 - Project database containing Detector analysis
 ##
 function metricsCalculation {
     java -jar $METRICS_CALC -d "$1" -o "$2" -c "$3" -p "$4" -l "$5" -db "$6"
@@ -183,11 +183,11 @@ appDB="$appDB/databases/graph.db"
 echo "Using appDB $appDB"
 
 smellsDir="$outputDir/smells"
-[[ $verbose -eq "0" ]] || echo "## Temporary results for Tandoori will be in $smellsDir"
+[[ $verbose -eq "0" ]] || echo "## Temporary results for Detector will be in $smellsDir"
 echo "# Cleaning previous smells"
 rm -rf $smellsDir
 echo "# Parsing project database to find smells"
-tandooriQuery "$appDB"  "$smellsDir"
+detectorQuery "$appDB"  "$smellsDir"
 
 devDir="$outputDir/devs"
 devFile="$devDir/COMMITS.csv" # TODO: Can we define a custom output file?
