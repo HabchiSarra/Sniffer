@@ -48,7 +48,7 @@ public class SizeQuery implements Query {
         persistence.execute(createTmpTable(table));
         long affectedRows = persistence.copyFile(file, table);
         if (affectedRows <= 0) {
-            throw new QueryException(logger.getName(), "[\" + appId + \"] No data copied to temp table");
+            throw new QueryException(logger.getName(), "[" + appId + "] No data copied to temp table");
         }
         persistence.execute(commitQueries.updateCommitSizeQuery(appId, table));
 
@@ -92,9 +92,9 @@ public class SizeQuery implements Query {
         return "CREATE TEMP TABLE " + name + " (" +
                 "sha1 TEXT, " +
                 "number_of_classes INT, " +
-                "number_of_methods INT " +
-                "number_of_views INT " +
-                "number_of_activities INT " +
+                "number_of_methods INT, " +
+                "number_of_views INT, " +
+                "number_of_activities INT, " +
                 "number_of_inner_classes INT " +
                 ");";
     }
