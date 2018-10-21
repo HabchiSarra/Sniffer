@@ -93,12 +93,16 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
     }
 
     @Override
-    public String updateCommitSizeQuery(String tempTable) {
+    public String updateCommitSizeQuery(int projectId, String tempTable) {
         return "UPDATE commit_entry " +
                 "SET number_of_classes = " + tempTable + ".number_of_classes, " +
                 "number_of_methods = " + tempTable + ".number_of_methods " +
+                "number_of_views = " + tempTable + ".number_of_views " +
+                "number_of_activities = " + tempTable + ".number_of_activities " +
+                "number_of_inner_classes = " + tempTable + ".number_of_inner_classes " +
                 "FROM " + tempTable + " " +
-                "WHERE  commit_entry.sha1 = " + tempTable + ".sha1; ";
+                "WHERE  commit_entry.sha1 = " + tempTable + ".sha1 " +
+                "AND commit_entry.project_id = " + projectId;
     }
 
 }

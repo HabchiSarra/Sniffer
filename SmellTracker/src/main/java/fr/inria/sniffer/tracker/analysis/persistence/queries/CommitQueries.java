@@ -91,6 +91,6 @@ public interface CommitQueries {
 
     String projectIdFromShaQuery(String sha);
 
-    String updateCommitSizeQuery(String paprikaResultsPath);
+    String updateCommitSizeQuery(int projectId, String paprikaResultsPath);
 
 }

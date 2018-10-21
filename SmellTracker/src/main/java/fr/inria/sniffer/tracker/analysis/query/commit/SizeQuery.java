@@ -16,15 +16,15 @@ import java.nio.file.Paths;
 public class SizeQuery implements Query {
     private static final Logger logger = LoggerFactory.getLogger(SizeQuery.class.getName());
 
-    private final int analysisId;
+    private final int appId;
     private final String paprikaDB;
     private final Persistence persistence;
     private CommitQueries commitQueries;
 
     private final static String TMP_DIR = System.getProperty("java.io.tmpdir");
 
-    public SizeQuery(int analysisId, String paprikaDB, Persistence persistence, CommitQueries commitQueries) {
-        this.analysisId = analysisId;
+    public SizeQuery(int appId, String paprikaDB, Persistence persistence, CommitQueries commitQueries) {
+        this.appId = appId;
         this.paprikaDB = paprikaDB;
         this.persistence = persistence;
         this.commitQueries = commitQueries;
@@ -32,22 +32,25 @@ public class SizeQuery implements Query {
 
     @Override
     public void query() throws QueryException {
-        logger.info("[" + analysisId + "] Starting Size insertion");
+        logger.info("[" + appId + "] Starting Size insertion");
         String file = csvFilePath();
-        logger.debug("[" + analysisId + "] Using temporary file: " + file);
+        logger.debug("[" + appId + "] Using temporary file: " + file);
         String table = tmpTableName();
-        logger.debug("[" + analysisId + "] Using temporary table: " + table);
+        logger.debug("[" + appId + "] Using temporary table: " + table);
 
         generateCsv();
 
         persistence.execute(addCommitEntryColumn("number_of_classes"));
         persistence.execute(addCommitEntryColumn("number_of_methods"));
+        persistence.execute(addCommitEntryColumn("number_of_views"));
+        persistence.execute(addCommitEntryColumn("number_of_activities"));
+        persistence.execute(addCommitEntryColumn("number_of_inner_classes"));
         persistence.execute(createTmpTable(table));
         long affectedRows = persistence.copyFile(file, table);
         if (affectedRows <= 0) {
-            throw new QueryException(logger.getName(), "[\" + analysisId + \"] No data copied to temp table");
+            throw new QueryException(logger.getName(), "[\" + appId + \"] No data copied to temp table");
         }
-        persistence.execute(commitQueries.updateCommitSizeQuery(table));
+        persistence.execute(commitQueries.updateCommitSizeQuery(appId, table));
 
         try {
             Files.delete(Paths.get(file));
@@ -68,7 +71,7 @@ public class SizeQuery implements Query {
     }
 
     private String csvFilePrefix() {
-        return Paths.get(TMP_DIR, String.valueOf(analysisId)).toString();
+        return Paths.get(TMP_DIR, String.valueOf(appId)).toString();
     }
 
     private String csvFilePath() {
@@ -86,12 +89,18 @@ public class SizeQuery implements Query {
     }
 
     private String createTmpTable(String name) {
-        return "CREATE TEMP TABLE " + name +
-                " (sha1 text, number_of_classes int, number_of_methods int );";
+        return "CREATE TEMP TABLE " + name + " (" +
+                "sha1 TEXT, " +
+                "number_of_classes INT, " +
+                "number_of_methods INT " +
+                "number_of_views INT " +
+                "number_of_activities INT " +
+                "number_of_inner_classes INT " +
+                ");";
     }
 
     private String tmpTableName() {
-        return "tmp_size_" + analysisId;
+        return "tmp_size_" + appId;
     }
 
 }
