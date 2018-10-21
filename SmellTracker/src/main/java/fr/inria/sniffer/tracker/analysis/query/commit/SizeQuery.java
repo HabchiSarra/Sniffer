@@ -93,9 +93,15 @@ public class SizeQuery implements Query {
                 "sha1 TEXT, " +
                 "number_of_classes INT, " +
                 "number_of_methods INT, " +
-                "number_of_views INT, " +
+                "number_of_interfaces INT, " +
+                "number_of_broadcast_receivers INT, " +
+                "number_of_services INT, " +
+                "number_of_content_providers INT, " +
                 "number_of_activities INT, " +
-                "number_of_inner_classes INT " +
+                "number_of_variables INT, " +
+                "number_of_inner_classes INT, " +
+                "number_of_async_tasks INT, " +
+                "number_of_views INT" +
                 ");";
     }
 
