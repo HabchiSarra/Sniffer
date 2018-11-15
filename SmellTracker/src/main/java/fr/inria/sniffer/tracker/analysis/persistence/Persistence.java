@@ -43,5 +43,5 @@ public interface Persistence {
     int execute(String statement);
 
 
-    long copyFile(String path, String table);
+    long copyFile(String path, String table, String columns);
 }

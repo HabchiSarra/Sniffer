@@ -213,13 +213,19 @@ public class JDBCPersistence implements Persistence {
         return -1;
     }
 
-    public long copyFile(String path, String table) {
+    public long copyFile(String path, String table, String columns) {
         Reader in = null;
         try {
             PGConnection connection = getPgConnection();
             CopyManager mgr = connection.getCopyAPI();
             in = new BufferedReader(new FileReader(new File(path)));
-            return mgr.copyIn("copy " + table + " FROM stdin WITH CSV HEADER", in);
+            String query = "COPY " + table + " ";
+            if (columns != null) {
+                query += "(" + columns + ") ";
+            }
+            query += " FROM stdin WITH CSV HEADER";
+
+            return mgr.copyIn(query, in);
         } catch (SQLException | IOException e) {
             logger.error("Unable to copy file to database", e);
         } finally {

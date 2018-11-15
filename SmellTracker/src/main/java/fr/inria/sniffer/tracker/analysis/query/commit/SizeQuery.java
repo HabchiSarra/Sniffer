@@ -9,6 +9,9 @@ import fr.inria.sniffer.detector.neo4j.QueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -46,7 +49,7 @@ public class SizeQuery implements Query {
         persistence.execute(addCommitEntryColumn("number_of_activities"));
         persistence.execute(addCommitEntryColumn("number_of_inner_classes"));
         persistence.execute(createTmpTable(table));
-        long affectedRows = persistence.copyFile(file, table);
+        long affectedRows = persistence.copyFile(file, table, fetchHeader(file));
         if (affectedRows <= 0) {
             throw new QueryException(logger.getName(), "[" + appId + "] No data copied to temp table");
         }
@@ -56,6 +59,30 @@ public class SizeQuery implements Query {
             Files.delete(Paths.get(file));
         } catch (IOException e) {
             logger.warn("Unable to remove csv file", e);
+        }
+    }
+
+    /**
+     *
+     * @param file
+     * @return
+     */
+    private String fetchHeader(String file) {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(file));
+            return br.readLine();
+        } catch (IOException e) {
+            logger.warn("[" + appId + "] Unable to read first line of file: " + file);
+            return null;
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    logger.warn("[" + appId + "] Unable to close reader for file: " + file);
+                }
+            }
         }
     }
 
