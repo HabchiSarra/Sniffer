@@ -30,10 +30,12 @@ public class SupplementaryAnalysis implements Analysis {
     private final String appRepo;
 
     private List<Query> getAnalysisProcess(int appId, Repository repository, Persistence persistence,
-                                           CommitQueries commitQueries, TagQueries tagQueries) {
+                                           CommitQueries commitQueries, SmellQueries smellQueries,
+                                           TagQueries tagQueries) {
         List<Query> analysisProcess = new ArrayList<>();
         analysisProcess.add(new SizeQuery(appId, paprikaDB, persistence, commitQueries));
         analysisProcess.add(new TagQuery(appId, repository, persistence, tagQueries));
+        analysisProcess.add(new SmellDeletionQuery(appId, paprikaDB, persistence, smellQueries));
         return analysisProcess;
     }
 
@@ -71,12 +73,13 @@ public class SupplementaryAnalysis implements Analysis {
         ProjectQueries projectQueries = new JDBCProjectQueries();
         DeveloperQueries developerQueries = new JDBCDeveloperQueries();
         CommitQueries commitQueries = new JDBCCommitQueries(developerQueries);
+        SmellQueries smellQueries = new JDBCSmellQueries(commitQueries);
         TagQueries tagQueries = new JDBCTagQueries(commitQueries);
-        this.analyze(persistence, projectQueries, commitQueries, tagQueries);
+        this.analyze(persistence, projectQueries, commitQueries, smellQueries, tagQueries);
     }
 
     public void analyze(Persistence persistence, ProjectQueries projectQueries,
-                        CommitQueries commitQueries, TagQueries tagQueries) throws AnalysisException {
+                        CommitQueries commitQueries, SmellQueries smellQueries, TagQueries tagQueries) throws AnalysisException {
         persistence.initialize();
         int appId = appId(appName, persistence, projectQueries);
         logger.info("[" + appId + "] Starting supplementary analysis");
@@ -88,7 +91,7 @@ public class SupplementaryAnalysis implements Analysis {
         }
 
         for (Query process : getAnalysisProcess(appId, repository, persistence,
-                commitQueries, tagQueries)) {
+                commitQueries, smellQueries, tagQueries)) {
             try {
                 process.query();
             } catch (QueryException e) {

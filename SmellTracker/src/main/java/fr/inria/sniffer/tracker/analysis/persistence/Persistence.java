@@ -43,5 +43,13 @@ public interface Persistence {
     int execute(String statement);
 
 
+    /**
+     * Copy the CSV input file into a table.
+     *
+     * @param path    The file path.
+     * @param table   The output table.
+     * @param columns The ordered tables to insert from CSV.
+     * @return
+     */
     long copyFile(String path, String table, String columns);
 }

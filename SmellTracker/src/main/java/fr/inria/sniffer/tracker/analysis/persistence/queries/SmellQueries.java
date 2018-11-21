@@ -63,4 +63,23 @@ public interface SmellQueries {
      * @return The generated query statement.
      */
     String lastSmellIdQuery(int projectId);
+
+    /**
+     * Return the all instances of refactored smells for the project
+     * with their matching commit's sha1.
+     *
+     * @param projectId The project identifier.
+     * @return The generated query statement.
+     */
+    String allRefactoredInstancesWithSha1(int projectId);
+
+    /**
+     * Set the smell_refactoring entry as deleted.
+     *
+     * @param projectId     The project identifier.
+     * @param refactoringId Id of the refactoring to set as deleted.
+     * @param deleted       Set the deleted value.
+     * @return The generated query statement.
+     */
+    String setAsDeleted(int projectId, int refactoringId, boolean deleted);
 }

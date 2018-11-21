@@ -89,8 +89,22 @@ public interface CommitQueries {
      */
     String mergedCommitIdQuery(int projectId, Commit commit);
 
+    /**
+     * Return the id of the project holding the given commit sha.
+     *
+     * @param sha Commit sha.
+     * @return The generated query statement.
+     */
     String projectIdFromShaQuery(String sha);
 
+    /**
+     * Update all the commits of the given project with the elements size
+     * from the given table.
+     *
+     * @param projectId          the project to update.
+     * @param paprikaResultsPath The table to use.
+     * @return The generated query statement.
+     */
     String updateCommitSizeQuery(int projectId, String paprikaResultsPath);
 
 }

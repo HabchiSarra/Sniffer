@@ -98,4 +98,20 @@ public class JDBCSmellQueries extends JDBCQueriesHelper implements SmellQueries 
                 "WHERE project_id = " + projectId + " " +
                 "ORDER BY id DESC LIMIT 1";
     }
+
+    public String allRefactoredInstancesWithSha1(int projectId) {
+        return "SELECT smell_refactoring.id as id, " +
+                "commit_entry.sha1 as sha1, " +
+                "smell.instance as instance, " +
+                "smell.type as type " +
+                "FROM smell_refactoring " +
+                "LEFT JOIN commit_entry ON commit_entry.id = smell_refactoring.commit_id " +
+                "LEFT JOIN smell ON smell.id = smell_refactoring.smell_id " +
+                "WHERE smell_refactoring.project_id = " + projectId;
+    }
+
+    public String setAsDeleted(int projectId, int refactoringId, boolean deleted) {
+        return "UPDATE smell_refactoring SET deleted = " + deleted + " " +
+                "WHERE id = " + refactoringId;
+    }
 }

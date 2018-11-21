@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS smell_refactoring (
   project_id INTEGER NOT NULL,
   commit_id INTEGER NOT NULL,
   ignored BOOLEAN NOT NULL DEFAULT FALSE,
+  deleted BOOLEAN,
   UNIQUE (smell_id, commit_id),
   FOREIGN KEY (smell_id) REFERENCES Smell (id),
   FOREIGN KEY (commit_id) REFERENCES commit_entry (id),

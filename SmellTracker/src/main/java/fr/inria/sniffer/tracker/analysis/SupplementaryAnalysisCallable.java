@@ -35,9 +35,10 @@ final class SupplementaryAnalysisCallable implements Callable<Void> {
         ProjectQueries projectQueries = new JDBCProjectQueries();
         DeveloperQueries developerQueries = new JDBCDeveloperQueries();
         CommitQueries commitQueries = new JDBCCommitQueries(developerQueries);
+        SmellQueries smellQueries = new JDBCSmellQueries(commitQueries);
         TagQueries tagQueries = new JDBCTagQueries(commitQueries);
         try {
-            analysis.analyze(persistence, projectQueries, commitQueries, tagQueries);
+            analysis.analyze(persistence, projectQueries, commitQueries, smellQueries, tagQueries);
         } catch (AnalysisException e) {
             logger.error("Unable to perform analysis on project " + appName, e);
         }
