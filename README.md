@@ -1,6 +1,9 @@
 This repository embed every tool needed to analyse projects using the smell Sniffer.
 
 # Content 
+## CommitLooper
+
+First Step of the analysis, calling SmellDetector on each commit of the selected applications.
 
 ## SmellDetector
 
