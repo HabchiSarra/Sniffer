@@ -4,9 +4,9 @@ import fr.inria.sniffer.tracker.analysis.persistence.Persistence;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.SmellQueries;
 import fr.inria.sniffer.tracker.analysis.query.Query;
 import fr.inria.sniffer.tracker.analysis.query.QueryException;
-import neo4j.IsClassExistingQuery;
-import neo4j.IsMethodExistingQuery;
-import neo4j.QueryEngine;
+import fr.inria.sniffer.detector.neo4j.IsClassExistingQuery;
+import fr.inria.sniffer.detector.neo4j.IsMethodExistingQuery;
+import fr.inria.sniffer.detector.neo4j.QueryEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +79,7 @@ public class SmellDeletionQuery implements Query {
      * @return True if the smell has been deleted, False otherwise.
      */
     private boolean isDeleted(QueryEngine queryEngine, String sha1, String instance, String type) throws QueryException {
-        neo4j.Query query;
+        fr.inria.sniffer.detector.neo4j.Query query;
         switch (type) {
             case "HMU":
             case "IOD":

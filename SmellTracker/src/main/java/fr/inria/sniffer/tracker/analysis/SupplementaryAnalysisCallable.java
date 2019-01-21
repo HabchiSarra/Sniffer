@@ -3,6 +3,8 @@ package fr.inria.sniffer.tracker.analysis;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.DeveloperQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCCommitQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCProjectQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCSmellQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.SmellQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.TagQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.PostgresqlPersistence;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.CommitQueries;

@@ -1,20 +1,23 @@
 package fr.inria.sniffer.tracker.analysis;
 
-import fr.inria.sniffer.tracker.analysis.persistence.queries.DeveloperQueries;
-import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCCommitQueries;
-import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCProjectQueries;
-import fr.inria.sniffer.tracker.analysis.persistence.queries.TagQueries;
 import fr.inria.sniffer.tracker.analysis.model.Repository;
 import fr.inria.sniffer.tracker.analysis.persistence.Persistence;
 import fr.inria.sniffer.tracker.analysis.persistence.PostgresqlPersistence;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.CommitQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.DeveloperQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCCommitQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCDeveloperQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCProjectQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCSmellQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.JDBCTagQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.ProjectQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.SmellQueries;
+import fr.inria.sniffer.tracker.analysis.persistence.queries.TagQueries;
 import fr.inria.sniffer.tracker.analysis.query.Query;
 import fr.inria.sniffer.tracker.analysis.query.QueryException;
 import fr.inria.sniffer.tracker.analysis.query.commit.SizeQuery;
 import fr.inria.sniffer.tracker.analysis.query.project.TagQuery;
+import fr.inria.sniffer.tracker.analysis.query.smell.SmellDeletionQuery;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 import org.slf4j.LoggerFactory;
