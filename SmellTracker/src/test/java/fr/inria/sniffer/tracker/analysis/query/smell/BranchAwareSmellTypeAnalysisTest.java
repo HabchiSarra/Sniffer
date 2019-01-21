@@ -421,7 +421,7 @@ public class BranchAwareSmellTypeAnalysisTest extends SmellTypeAnalysisTestCase 
         verify(smellQueries).smellCategoryInsertionStatement(projectId, anotherCommit.sha, secondSmell, SmellCategory.PRESENCE);
 
         // Since we couldn't find the missing commit, we put the smells in LostRefactor and no presence.
-        verify(smellQueries).lostSmellCategoryInsertionStatement(projectId, firstSmell, SmellCategory.REFACTOR, someCommit.ordinal, anotherCommit.ordinal);
+        verify(smellQueries).lostSmellCategoryInsertionStatement(projectId, firstSmell, SmellCategory.REFACTOR, someCommit.ordinal + 1, anotherCommit.ordinal);
     }
 
     /**

@@ -103,7 +103,7 @@ public class SmellDuplicationChecker {
     }
 
     /**
-     * Fetch the class fully qualified name from Parprika.
+     * Fetch the class fully qualified name from SmellDetector.
      *
      * @param sha  The commit to look into.
      * @param file The file containing the queried class.

@@ -1,13 +1,18 @@
 package fr.inria.sniffer.tracker.analysis.query.smell.duplication;
 
+import fr.inria.sniffer.detector.neo4j.QueryEngine;
 import fr.inria.sniffer.tracker.analysis.model.Commit;
 import fr.inria.sniffer.tracker.analysis.model.Smell;
 import fr.inria.sniffer.tracker.analysis.persistence.Persistence;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +21,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +37,8 @@ public class SmellDuplicationCheckerTest {
     private static SmellDuplicationChecker.FileRenameEntry j2gRename;
     private static SmellDuplicationChecker.FileRenameEntry g2jRename;
     private List<Map<String, Object>> filesRenames;
+    private Commit parent;
+    private QueryEngine queryEngine;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -57,12 +66,24 @@ public class SmellDuplicationCheckerTest {
     public void setUp() {
         filesRenames = new ArrayList<>();
         addRenameEntry(fileRename, sameCommit, sameOldFile, j2gRename, g2jRename);
+        this.parent = new Commit(sameCommit.sha1, 0);
+        this.queryEngine = mock(QueryEngine.class);
+        GraphDatabaseService graphDatabaseService = mock(GraphDatabaseService.class);
+        doReturn(graphDatabaseService).when(queryEngine).getGraphDatabaseService();
+        doReturn(mock(Result.class)).when(graphDatabaseService).execute(anyString());
+        doReturn(mock(Transaction.class)).when(graphDatabaseService).beginTx();
     }
 
     private SmellDuplicationChecker getDuplicationChecker() {
         Persistence persistence = mock(Persistence.class);
         when(persistence.query(anyString())).thenReturn(filesRenames);
-        return new SmellDuplicationChecker(1, persistence);
+        return new SmellDuplicationChecker(1, persistence, queryEngine);
+    }
+
+    private void mockPreviousQualifiedName(String qualifiedName) {
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put(SmellDuplicationChecker.QUALIFIED_NAME, qualifiedName);
+        doReturn(Collections.singletonList(resultMap)).when(queryEngine).toMap(any(Result.class));
     }
 
     @Test
@@ -82,7 +103,7 @@ public class SmellDuplicationCheckerTest {
         Commit commit = new Commit("anyothercommit", 1);
 
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNull(original);
     }
@@ -94,7 +115,7 @@ public class SmellDuplicationCheckerTest {
         Commit commit = new Commit(sameCommit.sha1, 1);
 
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNull(original);
     }
@@ -106,7 +127,7 @@ public class SmellDuplicationCheckerTest {
         Commit commit = new Commit(sameCommit.sha1, 1);
 
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNull(original);
     }
@@ -117,8 +138,9 @@ public class SmellDuplicationCheckerTest {
         Smell instance = new Smell("MIM", "method#a.b.d$myInnerClass$AnotherInnerClass", fileRename.newFile);
         Commit commit = new Commit(sameCommit.sha1, 1);
 
+        mockPreviousQualifiedName("a.b.c");
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNotNull(original);
         assertEquals("method#a.b.c$myInnerClass$AnotherInnerClass", original.instance);
@@ -131,8 +153,9 @@ public class SmellDuplicationCheckerTest {
         Smell instance = new Smell("MIM", "method#d.e.f", sameOldFile.newFile);
         Commit commit = new Commit(sameOldFile.sha1, 1);
 
+        mockPreviousQualifiedName("a.b.c");
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNotNull(original);
         assertEquals("method#a.b.c", original.instance);
@@ -145,8 +168,9 @@ public class SmellDuplicationCheckerTest {
         Smell instance = new Smell("MIM", "d.e.f$myInnerClass$AnotherInnerClass", sameOldFile.newFile);
         Commit commit = new Commit(sameOldFile.sha1, 1);
 
+        mockPreviousQualifiedName("a.b.c");
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNotNull(original);
         assertEquals("a.b.c$myInnerClass$AnotherInnerClass", original.instance);
@@ -159,8 +183,9 @@ public class SmellDuplicationCheckerTest {
         Smell instance = new Smell("MIM", "g.h.i", sameCommit.newFile);
         Commit commit = new Commit(sameCommit.sha1, 1);
 
+        mockPreviousQualifiedName("d.e.f");
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNotNull(original);
         assertEquals("d.e.f", original.instance);
@@ -175,10 +200,10 @@ public class SmellDuplicationCheckerTest {
 
         SmellDuplicationChecker checker = getDuplicationChecker();
         // The original guess will create a cache that is used between commits
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
-        commit = new Commit("newSha", 2);
-        Smell secondOriginal = checker.original(newInstanceFurtherCommit, commit);
+        Commit new_commit = new Commit("newSha", 2);
+        Smell secondOriginal = checker.original(newInstanceFurtherCommit, new_commit, commit);
 
         assertNotNull(original);
         assertNull(secondOriginal);
@@ -194,12 +219,14 @@ public class SmellDuplicationCheckerTest {
         Smell renameEqualToFirst = new Smell("MIM", original.instance, original.file);
         Commit commit = new Commit(sameCommit.sha1, 1);
 
+        mockPreviousQualifiedName("d.e.f");
         SmellDuplicationChecker checker = getDuplicationChecker();
         // The original guess will create a cache that is used between commits
-        Smell expectedOriginal = checker.original(firstRename, commit);
+        Smell expectedOriginal = checker.original(firstRename, commit, parent);
 
-        commit = new Commit(anotherSha, 2);
-        Smell expectedFirstRename = checker.original(renameEqualToFirst, commit);
+        mockPreviousQualifiedName("g.h.i");
+        Commit new_commit = new Commit(anotherSha, 2);
+        Smell expectedFirstRename = checker.original(renameEqualToFirst, new_commit, commit);
 
         assertNotNull(expectedOriginal);
         assertNotNull(expectedFirstRename);
@@ -215,8 +242,9 @@ public class SmellDuplicationCheckerTest {
                 j2gRename.newFile);
         Commit commit = new Commit(j2gRename.sha1, 1);
 
+        mockPreviousQualifiedName("a.b.c");
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNotNull(original);
         assertEquals("method#a.b.c$myInnerClass$AnotherInnerClass", original.instance);
@@ -227,11 +255,12 @@ public class SmellDuplicationCheckerTest {
     public void groovy2JavaUpperFolder() {
         // The instance name format is critical there.
         Smell instance = new Smell("MIM", "method#a.b.d$myInnerClass$AnotherInnerClass",
-               g2jRename.newFile);
+                g2jRename.newFile);
         Commit commit = new Commit(g2jRename.sha1, 1);
 
+        mockPreviousQualifiedName("a.b.c");
         SmellDuplicationChecker checker = getDuplicationChecker();
-        Smell original = checker.original(instance, commit);
+        Smell original = checker.original(instance, commit, parent);
 
         assertNotNull(original);
         assertEquals("method#a.b.c$myInnerClass$AnotherInnerClass", original.instance);

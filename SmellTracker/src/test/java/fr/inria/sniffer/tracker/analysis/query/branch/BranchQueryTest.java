@@ -73,6 +73,7 @@ public class BranchQueryTest {
             map.put("id", 1);
             doReturn(Collections.singletonList(map)).when(persistence).query(commit.sha);
         }
+        doReturn(commits[commits.length - 1]).when(repository).getHead();
     }
 
     /**

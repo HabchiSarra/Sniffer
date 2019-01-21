@@ -140,7 +140,7 @@ public abstract class SmellTypeAnalysisTestCase {
     }
 
     protected Smell mockSmellRenamed(Commit renamingCommit, Smell renamed, Smell parent) {
-        doReturn(parent).when(duplicationChecker).original(renamed, renamingCommit);
+        doReturn(parent).when(duplicationChecker).original(eq(renamed), eq(renamingCommit), any(Commit.class));
         Smell expectedRenamedSmell = new Smell(renamed.type, renamed.instance, renamed.file);
         expectedRenamedSmell.parent = parent;
         return expectedRenamedSmell;
