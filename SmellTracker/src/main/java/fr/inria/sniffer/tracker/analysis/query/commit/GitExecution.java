@@ -50,6 +50,7 @@ class GitExecution {
     }
 
     public static List<String> commitSummary(String repository, String commit) {
-        return execute(repository, " show " + commit + " -M50% --stat --summary --format=");
+        // stat=800 avoids losing file name when too long (default is 80)
+        return execute(repository, " show " + commit + " -M50% --stat=800 --summary --format=");
     }
 }

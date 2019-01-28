@@ -1,6 +1,7 @@
 package fr.inria.sniffer.tracker.analysis.persistence.queries;
 
 import fr.inria.sniffer.tracker.analysis.model.Commit;
+import fr.inria.sniffer.tracker.analysis.model.GitChangedFile;
 import fr.inria.sniffer.tracker.analysis.model.GitDiff;
 import fr.inria.sniffer.tracker.analysis.model.GitRename;
 
@@ -107,4 +108,13 @@ public interface CommitQueries {
      */
     String updateCommitSizeQuery(int projectId, String paprikaResultsPath);
 
+    /**
+     * Generate a statement inserting a {@link GitChangedFile} into the persistence.
+     *
+     * @param projectId   The project identifier.
+     * @param commitSha   Sha1 of the commit to link.
+     * @param changedFile {@link GitRename} instance to persist.
+     * @return The generated insertion statement.
+     */
+    String fileChangedInsertionStatement(int projectId, String commitSha, GitChangedFile changedFile);
 }

@@ -15,6 +15,7 @@ import fr.inria.sniffer.tracker.analysis.persistence.queries.SmellQueries;
 import fr.inria.sniffer.tracker.analysis.persistence.queries.TagQueries;
 import fr.inria.sniffer.tracker.analysis.query.Query;
 import fr.inria.sniffer.tracker.analysis.query.QueryException;
+import fr.inria.sniffer.tracker.analysis.query.commit.FilesChangeDetectionQuery;
 import fr.inria.sniffer.tracker.analysis.query.commit.SizeQuery;
 import fr.inria.sniffer.tracker.analysis.query.project.TagQuery;
 import fr.inria.sniffer.tracker.analysis.query.smell.SmellDeletionQuery;
@@ -39,6 +40,7 @@ public class SupplementaryAnalysis implements Analysis {
         analysisProcess.add(new SizeQuery(appId, paprikaDB, persistence, commitQueries));
         analysisProcess.add(new TagQuery(appId, repository, persistence, tagQueries));
         analysisProcess.add(new SmellDeletionQuery(appId, paprikaDB, persistence, smellQueries));
+        analysisProcess.add(new FilesChangeDetectionQuery(appId, repository, persistence, commitQueries));
         return analysisProcess;
     }
 

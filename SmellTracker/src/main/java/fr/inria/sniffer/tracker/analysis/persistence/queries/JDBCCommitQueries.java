@@ -1,6 +1,7 @@
 package fr.inria.sniffer.tracker.analysis.persistence.queries;
 
 import fr.inria.sniffer.tracker.analysis.model.Commit;
+import fr.inria.sniffer.tracker.analysis.model.GitChangedFile;
 import fr.inria.sniffer.tracker.analysis.model.GitDiff;
 import fr.inria.sniffer.tracker.analysis.model.GitRename;
 
@@ -103,6 +104,13 @@ public class JDBCCommitQueries extends JDBCQueriesHelper implements CommitQuerie
                 "FROM " + tempTable + " " +
                 "WHERE  commit_entry.sha1 = " + tempTable + ".sha1 " +
                 "AND commit_entry.project_id = " + projectId;
+    }
+
+    @Override
+    public String fileChangedInsertionStatement(int projectId, String commitSha, GitChangedFile changedFile) {
+        return "INSERT INTO file_changed (project_id, commit_id, file_name, modification_size) VALUES ('" +
+                projectId + "', (" + idFromShaQuery(projectId, commitSha) + "), '" + escapeStringEntry(changedFile.name) + "', '" +
+                changedFile.changeSize + "') ON CONFLICT DO NOTHING;";
     }
 
 }
