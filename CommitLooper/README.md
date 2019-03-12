@@ -53,6 +53,8 @@ configuration as the branches we use.
 
 See the `git log` documentation: https://git-scm.com/docs/git-log#_commit_ordering
 
+You can also take a look at our git log experiments: https://github.com/aveuiller/test-git-log
+
 ### I have too many processes!
 
 We are currently not limiting the number of processes spawned by ProjectLooper,
