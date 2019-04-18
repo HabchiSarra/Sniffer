@@ -1,4 +1,4 @@
-This repository embed every tool needed to analyse projects using the smell Sniffer.
+This repository embeds all the tools needed to analyse projects using the smell Sniffer.
 
 # Content 
 ## CommitLooper
