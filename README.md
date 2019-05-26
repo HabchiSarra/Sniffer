@@ -37,4 +37,6 @@ See in [the folder](scripts) for more information.
 
 # Build
 
-To build all elements of this repository use the command `./gradlew packages`.
+Before performing any operation on the project, initialize the submodules using the command `git submodule init && git submodule update`.
+
+To build all artifacts of this repository use the command `./gradlew packages`.
