@@ -10,28 +10,8 @@ buildscript {
     }
 }
 
-
-task gitHubMinerMavenPackage(type: Exec) {
-    workingDir './GitHubMiner'
-
-    executable "mvn"
-    args 'package'
-}
-
-task gitHubMinerClean(type: Exec) {
-    workingDir './GitHubMiner'
-
-    executable "mvn"
-    args 'clean'
-}
-
 task packages {
     subprojects.each { dependsOn("${it.name}:shadowJar") }
-    packages.dependsOn(gitHubMinerMavenPackage)
-}
-
-task clean {
-    dependsOn(gitHubMinerClean)
 }
 
 subprojects {
