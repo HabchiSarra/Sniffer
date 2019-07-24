@@ -7,6 +7,7 @@ function processCommit {
     commitNumber="$3"
     dbPath="`pwd`/../../${DB_DIRECTORY}/${projectName}/databases/graph.db"
 
+    git checkout ${commit}
     java -Xmx1G -jar "`pwd`/../../${SMELL_DETECTOR_JAR}" \
         analyse `pwd` -db ${dbPath} -n ${projectName} -k ${commit} -cn ${commitNumber}
 }
