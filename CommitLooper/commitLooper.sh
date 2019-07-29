@@ -9,7 +9,7 @@ function processCommit {
 
     git checkout ${commit}
     java -Xmx1G -jar "`pwd`/../../${SMELL_DETECTOR_JAR}" \
-        analyse `pwd` -db ${dbPath} -n ${projectName} -k ${commit} -cn ${commitNumber}
+        analyse `pwd` -db ${dbPath} -n ${projectName} -k ${commit} -cn ${commitNumber} # -e '.*debug.*'
 }
 
 ## Args parsing
