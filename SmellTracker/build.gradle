@@ -31,4 +31,5 @@ mainClassName = "fr.inria.sniffer.tracker.analysis.Main"
 apply plugin: "com.github.johnrengelman.shadow"
 shadowJar {
     mergeServiceFiles()
+    zip64 true
 }
