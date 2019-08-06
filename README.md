@@ -44,57 +44,57 @@ To build all artifacts of this repository use the command `./gradlew packages`.
 
 # Workflow Details
 
-This section will explain the whole process of this toolkit, and propose ways of integrating new smells definitions or datasources.
+This section will explain the whole process of this toolkit, and propose a few ways of integrating new code smell definitions or datasources.
 
 ## Detailed process
 
-As far as I can see, this will be quite difficult to integrate with our current workflow, but that could be a fine addition to our modularity capabilities in the long run.
-
-The process can be cut down as follow:
-1. The script `projectLooper.sh` will clone all input projects, and start a `commitLooper.sh` with each one as input.
-2. The script `commitLooper.sh` will checkout each commit of the input project and call `SmellDetector.jar` with the files as input.
-3. The `SmellDetector.jar` will then perform a series of processing to output a `Neo4j` database per application.
-    1. Send the source code in our `Spoon` processors to compile it using `JDT`.
+The process can be cut down as follows:
+1. The script `projectLooper.sh` clones all input projects, and starts the script`commitLooper.sh` with each project as input.
+2. For each commit of the input project, `commitLooper.sh` performs a checkout and calls `SmellDetector.jar` on the source code files.
+3. The `SmellDetector.jar` analyses the source code of each commit by going through the following steps: 
+    1. Send the source code in our `Spoon` processors to generate an *AST* using `JDT`.
     2. Process the generated *AST* to create a `Paprika` model.
-    3. Persist the model with as much metadata as a graph in the application's `Neo4j` database.
-4. Once the `Neo4j` database is complete, we run `SmellTracker.jar` on each application to fill a `PostgreSQL` database containing valuable data fo all applications.
-The `SmellTracker` process is detailed in [this document](./SmellTracker/docs/process.pdf), and can be resumed as follow:
-    1. Retrieve the commits data and order from the *Git* repository and the `Neo4j` database.
-    2. Retrieve the branch data and order from the *Git* repository. This step enhance the precision of our smell lifecycle detection.
-    3. Retrieve the all smells of each type from queries defined in `SmellDetector` and analyze the lifecycle of those smells depending on the detected commits.
+    3. Persist the model with as much metadata as a graph in a `Neo4j` database.
+The commits of the same project have all their models stored in one database. That is, by the end of this step, we have a `Neo4J` database per project.
+4. We run `SmellTracker.jar` on each project database to fill a `PostgreSQL` database containing valuable data fo all applications.
+The `SmellTracker` process is detailed in [this document](./SmellTracker/docs/process.pdf), and can be resumed as follows:
+    1. Extract the commits data and order from the *Git* repository and the `Neo4j` database.
+    2. Retrieve the branch data and order from the *Git* repository. This step assures the precision of our smell history tracking.
+    3. Detect code smells by launching queries defined in `SmellDetector` on the `Neo4J` database.
+    4. Based on the extracted commits order and the detected code smells, track the history of each code smell instance and store it in the `PostgreSQL` database.
 
 ## Integrate new smells
 
-### Add a new smell query
+### Add a new code smell query
 
-The easiest way to integrate a new smell in this process would be to create a new definition in `SmellDetector`.
+The easiest way to integrate a new code smell in this process would be to create a new definition in `SmellDetector`.
 This means writing a `Neo4j` query relying on the metadata persisted by `SmellDetector`.
-It may require to add some new metadata in the persisted model, but won't be much of a hassle to integrate.
+It may require to add some new metadata in the persisted model, but will not be much of a hassle to integrate.
 
-This is most likely the easiest way, but the less sustainable if you have lots of already defined smells in your own linter.
+This is most likely the easiest way, but the less sustainable if the `Paprika` model does not fit all your needs.
 
 **TODO: Add links & details**
 
 ### Add smells in the SmellDetector database
 
 If your smell detection are performed before persisting the model and already handled by a visitor pattern,
-you may want to add this detection before persisting the model, since spoon is already working with visitor.
-It would then be possible to add new metadata in the `SmellDetector` database, to represent the detected smell.
+you may want to add this detection before persisting the model, since Spoon is already working with visitor.
+It would then be possible to add new metadata in the `SmellDetector` database, to represent the detected code smells.
 
 
-The point is that you will have less work to do to transform you smell definition,
-but you would still be required to write a new detection query to look after all the already detected smells.
+The point is that you will have less work to do to transform your code smell definition.-
+However, if you also want to keep our originally detected code smells you would still be required to write a new detection query for them.
 Those queries should be trivial to write though.
 
 **TODO: Add links & details**
 
 ### Add a new datasource
 
-In the long run, we want to be datasource agnostic, and have a `SmellTracker` able to discuss with multiple smell definition sources.
+In the long run, we want to be datasource agnostic, and have a `SmellTracker` able to interact with multiple code smell detectors.
 This will require a rework of the toolkit on the `SmellDetector`, and `SmellTracker` to a certain extent.
 
-Due to the fact that `SmellTracker` is querying all smells at once to compute their lifecycle, it will not be possible to stream the information through the
-two tools, but we should be able to dot his by integrating multiple code parser and smell detection tools to create a model,
+Due to the fact that `SmellTracker` is querying all smells at once to track their history, it will not be possible to stream the information through the two tools.
+However, we should be able to dot his by integrating multiple code parsers and smell detection tools to create a model
 that could be read by `SmellTracker` through an interface defined in `SmellDetector`.
 
 **TODO: Add details**
