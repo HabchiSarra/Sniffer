@@ -83,7 +83,7 @@ It would then be possible to add new metadata in the `SmellDetector` database, t
 
 
 The point is that you will have less work to do to transform your code smell definition.-
-However, if you also want to keep our originally detected code smells you would still be required to write a new detection query for them.
+However, if you want to track your new code smells you would be required to write a new detection query for them.
 Those queries should be trivial to write though.
 
 **TODO: Add links & details**
