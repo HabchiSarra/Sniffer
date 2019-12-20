@@ -1,4 +1,8 @@
-This repository embeds all the tools needed to analyse projects using the smell Sniffer.
+This repository embeds all the tools needed to analyse projects using Sniffer.
+For a detailed description of the tool and its associated research work, you can refer to the following research papers:
+
+* [The rise of Android code smells: Who is to blame?](https://ieeexplore.ieee.org/document/8816779)
+* [On the survival of Android code smells in the wild.](https://ieeexplore.ieee.org/abstract/document/8816910)
 
 # Content 
 ## CommitLooper
@@ -44,7 +48,7 @@ To build all artifacts of this repository use the command `./gradlew packages`.
 
 # Workflow Details
 
-This section will explain the whole process of this toolkit, and propose a few ways of integrating new code smell definitions or datasources.
+This section explains the whole process of this toolkit, and propose a few ways of integrating new code smell definitions or datasources.
 
 ## Detailed process
 
@@ -62,6 +66,7 @@ The `SmellTracker` process is detailed in [this document](./SmellTracker/docs/pr
     2. Retrieve the branch data and order from the *Git* repository. This step assures the precision of our smell history tracking.
     3. Detect code smells by launching queries defined in `SmellDetector` on the `Neo4J` database.
     4. Based on the extracted commits order and the detected code smells, track the history of each code smell instance and store it in the `PostgreSQL` database.
+   
 
 ## Integrate new smells
 
