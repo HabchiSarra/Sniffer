@@ -2,7 +2,7 @@ gitpython==2.1.8
 python-dateutil==2.7.2
 
 # Distribution
-setuptools==39.0.1
+setuptools==65.5.1
 
 # Unit tests
 coverage==4.5.1
