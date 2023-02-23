@@ -1,16 +1,12 @@
 [submodule "SmellDetector"]
 	path = SmellDetector
-	url = git@github.com:HabchiSarra/SmellDetector.git
+	url = https://github.com/HabchiSarra/SmellDetector.git
 	branch = develop
 [submodule "CSVSmellTracker"]
 	path = CSVSmellTracker
-	url = git@github.com:HabchiSarra/CSVSmellTracker.git
+	url = https://github.com/HabchiSarra/CSVSmellTracker.git
 	branch = master
 [submodule "GitHubMiner"]
 	path = GitHubMiner
-	url = git@github.com:HabchiSarra/GitHubMiner.git
-	branch = master
-[submodule "CommitLooper"]
-	path = CommitLooper
-	url = git@git.evilantrules.xyz:Sniffer/CommitLooper.git
+	url = https://github.com/HabchiSarra/GitHubMiner.git
 	branch = master
